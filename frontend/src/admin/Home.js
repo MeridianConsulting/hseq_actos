@@ -62,7 +62,7 @@ const Home = () => {
           {/* Welcome Section */}
           <div className={`transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             <div className="text-center mb-12">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4 pt-12" style={{ color: 'var(--color-secondary)' }}>
                 ¡Bienvenido, {getUserName()}!
               </h1>
               <p className="text-xl" style={{ color: 'rgba(252, 247, 255, 0.8)' }}>
