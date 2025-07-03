@@ -76,26 +76,6 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Logo Meridian - Enhanced with brand colors */}
-      <div className={`fixed top-4 left-4 z-50 sm:top-6 sm:left-6 lg:top-8 lg:left-8 transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
-        <div className="relative group">
-          <div 
-            className="absolute -inset-2 rounded-xl blur-sm group-hover:blur opacity-0 group-hover:opacity-100 transition-all duration-500"
-            style={{ 
-              background: `linear-gradient(45deg, rgba(51, 97, 157, 0.3), rgba(99, 201, 219, 0.2))` 
-            }}
-          ></div>
-          <img 
-            src={logo} 
-            alt="Meridian Consulting" 
-            className="relative h-10 w-auto sm:h-12 md:h-14 lg:h-16 xl:h-18 filter drop-shadow-2xl group-hover:scale-110 transition-all duration-500"
-            style={{
-              filter: 'drop-shadow(0 10px 25px rgba(51, 97, 157, 0.3)) drop-shadow(0 0 20px rgba(99, 201, 219, 0.2))'
-            }}
-          />
-        </div>
-      </div>
-
       {/* Login Card - CENTRADO PERFECTAMENTE */}
       <div className={`relative w-full max-w-md mx-auto z-10 transition-all duration-1000 delay-200 ${isVisible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-10 opacity-0 scale-95'}`}>
         {/* Multiple Shadow Layers for Depth using brand colors */}
@@ -129,9 +109,29 @@ const Login = () => {
             }}
           ></div>
           
+          {/* Logo Meridian - Movido dentro del contenedor */}
+          <div className={`relative px-8 pt-8 pb-4 text-center transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
+            <div className="relative group inline-block">
+              <div 
+                className="absolute -inset-2 rounded-xl blur-sm group-hover:blur opacity-0 group-hover:opacity-100 transition-all duration-500"
+                style={{ 
+                  background: `linear-gradient(45deg, rgba(51, 97, 157, 0.3), rgba(99, 201, 219, 0.2))` 
+                }}
+              ></div>
+              <img 
+                src={logo} 
+                alt="Meridian Consulting" 
+                className="relative h-12 w-auto sm:h-14 md:h-16 filter drop-shadow-2xl group-hover:scale-110 transition-all duration-500"
+                style={{
+                  filter: 'drop-shadow(0 10px 25px rgba(51, 97, 157, 0.3)) drop-shadow(0 0 20px rgba(99, 201, 219, 0.2))'
+                }}
+              />
+            </div>
+          </div>
+          
           {/* Header with Enhanced Gradient using brand colors */}
           <div 
-            className={`relative px-8 py-10 text-center transition-all duration-700 delay-400 ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-5 opacity-0'}`}
+            className={`relative px-8 py-6 text-center transition-all duration-700 delay-400 ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-5 opacity-0'}`}
             style={{
               background: `linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 50%, var(--color-tertiary-dark) 100%)`
             }}
