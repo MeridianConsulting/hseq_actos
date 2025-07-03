@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import logo from '../assets/img/logo_meridian.png';
+import logo from '../assets/img/logo_meridian_blanco.png';
 import '../assets/css/styles.css';
 
 const Login = () => {
