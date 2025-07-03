@@ -33,48 +33,64 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary via-background to-secondary-dark flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
+      {/* Logo Meridian - Posicionado en esquina superior izquierda */}
+      <div className="fixed top-4 left-4 z-50 sm:top-6 sm:left-6 lg:top-8 lg:left-8">
+        <div className="relative">
+          <img 
+            src={logo} 
+            alt="Meridian Consulting" 
+            className="h-10 w-auto sm:h-12 md:h-14 lg:h-16 xl:h-18 filter drop-shadow-lg hover:scale-105 transition-transform duration-300"
+          />
+        </div>
+      </div>
+
+      {/* Background Pattern - Simplified */}
+      <div className="absolute inset-0 opacity-5">
         <div className="absolute inset-0 bg-gradient-to-r from-primary to-tertiary"></div>
-        <div className="absolute inset-0" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000' fill-opacity='0.1'%3E%3Ccircle cx='7' cy='7' r='1'/%3E%3Ccircle cx='53' cy='7' r='1'/%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3Ccircle cx='7' cy='53' r='1'/%3E%3Ccircle cx='53' cy='53' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}></div>
       </div>
 
       {/* Login Card */}
       <div className="relative w-full max-w-md">
-        {/* Glow Effect */}
-        <div className="absolute -inset-2 bg-gradient-to-r from-primary via-tertiary to-primary rounded-2xl blur-lg opacity-20 animate-pulse"></div>
+        {/* Subtle Shadow Effect - Removed animation */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-primary/10 via-tertiary/10 to-primary/10 rounded-2xl blur-sm opacity-50"></div>
         
         {/* Main Card */}
-        <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 overflow-hidden">
-          {/* Header with Logo */}
-          <div className="relative bg-gradient-to-r from-primary-dark via-primary to-primary-dark px-8 py-10 text-center">
-            <div className="absolute inset-0 bg-gradient-to-br from-tertiary/20 to-accent/20"></div>
+        <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 overflow-hidden">
+          {/* Header - Sin logo, más compacto */}
+          <div className="relative bg-gradient-to-r from-primary-dark via-primary to-primary-dark px-8 py-8 text-center">
+            <div className="absolute inset-0 bg-gradient-to-br from-tertiary/10 to-accent/10"></div>
             <div className="relative">
-              <div className="mb-6 flex justify-center">
-                <div className="relative">
-                  <div className="absolute -inset-4 bg-white/20 rounded-full blur-lg"></div>
-                  <img 
-                    src={logo} 
-                    alt="Meridian Consulting" 
-                    className="relative h-16 w-auto filter drop-shadow-2xl"
-                  />
-                </div>
-              </div>
-              <h1 className="text-2xl font-bold text-white mb-2">
-                Bienvenido de Nuevo
+              <h1 className="text-2xl font-bold text-white mb-3">
+                HSEQ Platform
               </h1>
-              <p className="text-secondary/80 text-sm">
-                Accede a tu cuenta de Meridian Consulting
-              </p>
+              <div className="text-secondary/90 text-sm space-y-2">
+                <p className="font-medium">
+                  Sistema de Gestión de Seguridad y Calidad
+                </p>
+                <p className="text-xs leading-relaxed text-secondary/75">
+                  Reporte de incidentes, hallazgos, condiciones y actos inseguros de manera trazable y accesible
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Platform Info Section */}
+          <div className="px-8 py-4 bg-gradient-to-r from-secondary/30 to-secondary/20 border-b border-secondary/30">
+            <div className="flex items-center space-x-3 text-primary-dark">
+              <svg className="h-5 w-5 text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.031 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <div className="text-sm">
+                <p className="font-semibold text-primary-dark">Acceso Seguro</p>
+                <p className="text-xs text-gray-600">Plataforma centralizada para gestión de HSEQ</p>
+              </div>
             </div>
           </div>
 
           {/* Form */}
           <div className="px-8 py-8">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Email Field */}
+              {/* Document Number Field */}
               <div className="space-y-2">
                 <label htmlFor="number" className="block text-sm font-semibold text-primary-dark">
                   Documento de Identidad
@@ -92,7 +108,7 @@ const Login = () => {
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                     <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
                 </div>
@@ -133,7 +149,6 @@ const Login = () => {
                 </div>
               </div>
 
-
               {/* Submit Button */}
               <button
                 type="submit"
@@ -156,16 +171,6 @@ const Login = () => {
               </button>
             </form>
           </div>
-        </div>
-
-        {/* Footer Note */}
-        <div className="mt-8 text-center">
-          <p className="text-dark-alt text-sm">
-            Meridian Consulting LTDA © {new Date().getFullYear()}
-          </p>
-          <p className="text-gray-400 text-xs mt-1">
-            Soluciones integrales para la industria petrolera
-          </p>
         </div>
       </div>
     </div>
