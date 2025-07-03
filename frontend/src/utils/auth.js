@@ -16,7 +16,6 @@ export const getUser = () => {
     try {
       return JSON.parse(fromLocal);
     } catch (error) {
-      console.error('Error parsing user data from localStorage:', error);
       return null;
     }
   }
@@ -25,7 +24,6 @@ export const getUser = () => {
     try {
       return JSON.parse(fromSession);
     } catch (error) {
-      console.error('Error parsing user data from sessionStorage:', error);
       return null;
     }
   }

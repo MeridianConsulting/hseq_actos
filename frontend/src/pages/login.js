@@ -50,21 +50,14 @@ const Login = () => {
         })
       });
 
-      // Debug: Ver el content-type de la respuesta
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers.get('content-type'));
-      
-      // Obtener el texto crudo primero para debugging
+      // Obtener el texto crudo de la respuesta
       const responseText = await response.text();
-      console.log('Response text:', responseText);
       
       // Intentar parsear como JSON
       let data;
       try {
         data = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        console.error('Raw response:', responseText);
         throw new Error('El servidor devolvió una respuesta inválida (no JSON)');
       }
 
@@ -88,7 +81,6 @@ const Login = () => {
         setError(data.message || 'Error en el inicio de sesión');
       }
     } catch (error) {
-      console.error('Error de conexión:', error);
       setError('Error de conexión con el servidor. Verifica tu conexión a internet.');
     } finally {
       setIsLoading(false);
@@ -475,7 +467,7 @@ const Login = () => {
       </div>
 
       {/* Custom Styles for Advanced Animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes blob {
           0% { transform: translate(0px, 0px) scale(1); }
           33% { transform: translate(30px, -50px) scale(1.1); }
