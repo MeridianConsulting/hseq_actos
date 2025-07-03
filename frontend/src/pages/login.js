@@ -222,7 +222,7 @@ const Login = () => {
                     }}
                   ></div>
                   <input
-                    type="number"
+                    type="text"
                     id="number"
                     name="number"
                     value={formData.number}
