@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Mantener las variables CSS personalizadas de Meridian */
+:root {
+  --color-primary: #33619D;
+  --color-primary-light: #4A78B4;
+  --color-primary-dark: #264C7D;
+  --color-secondary: #FCF7FF;
+  --color-secondary-dark: #E9E4EC;
+  --color-tertiary: #63C9DB;
+  --color-tertiary-light: #8AD7E5;
+  --color-tertiary-dark: #4BA0AF;
+  --color-background: #FCF7FF;
+  --color-dark: #04080F;
+  --color-dark-alt: #122236;
+  --color-accent: #F4D35E;
+  --color-accent-light: #F7DE85;
+  --color-accent-dark: #c7a41a;
+  --font-family-primary: 'Roboto', sans-serif;
+  --font-family-secondary: 'Open Sans', sans-serif;
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-xxl: 3rem;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+}
+
+/* Estilos base para mantener compatibilidad */
+body {
+  margin: 0;
+  font-family: var(--font-family-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-background);
+  color: var(--color-dark);
+}
+
+/* Componentes personalizados de Tailwind */
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-to-r from-primary to-primary-dark text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl;
+  }
+  
+  .card-glass {
+    @apply bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 placeholder-slate-400;
+  }
+} 
