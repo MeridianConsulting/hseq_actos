@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/img/logo_meridian_blanco.png';
 import '../assets/css/styles.css';
 
 const Login = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: '',
+    cedula: '',
     password: '',
     rememberMe: false
   });
@@ -13,6 +14,8 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Animation entrance effect
   useEffect(() => {
@@ -25,16 +28,71 @@ const Login = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    // Limpiar errores cuando el usuario comience a escribir
+    if (error) setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simular carga
-    setTimeout(() => {
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      const response = await fetch('http://localhost/hseq/backend/login.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cedula: formData.cedula,
+          password: formData.password
+        })
+      });
+
+      // Debug: Ver el content-type de la respuesta
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers.get('content-type'));
+      
+      // Obtener el texto crudo primero para debugging
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+      
+      // Intentar parsear como JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        console.error('Raw response:', responseText);
+        throw new Error('El servidor devolvió una respuesta inválida (no JSON)');
+      }
+
+      if (data.success) {
+        setSuccessMessage('Login exitoso. Redirigiendo...');
+        
+        // Guardar información del usuario en localStorage si "Recordarme" está marcado
+        if (formData.rememberMe) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem('isLoggedIn', 'true');
+        } else {
+          sessionStorage.setItem('user', JSON.stringify(data.user));
+          sessionStorage.setItem('isLoggedIn', 'true');
+        }
+
+        // Redirigir después de un breve delay para mostrar el mensaje de éxito
+        setTimeout(() => {
+          navigate('/home');
+        }, 1500);
+      } else {
+        setError(data.message || 'Error en el inicio de sesión');
+      }
+    } catch (error) {
+      console.error('Error de conexión:', error);
+      setError('Error de conexión con el servidor. Verifica tu conexión a internet.');
+    } finally {
       setIsLoading(false);
-      console.log('Login data:', formData);
-    }, 2000);
+    }
   };
 
   return (
@@ -201,11 +259,35 @@ const Login = () => {
 
           {/* Form with Enhanced Animations using brand colors */}
           <div className={`px-8 py-10 transition-all duration-700 delay-600 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'}`}>
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 rounded-xl border border-red-300 bg-red-50 bg-opacity-10 backdrop-blur-sm">
+                <div className="flex items-center">
+                  <svg className="h-5 w-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm text-red-200">{error}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {successMessage && (
+              <div className="mb-6 p-4 rounded-xl border border-green-300 bg-green-50 bg-opacity-10 backdrop-blur-sm">
+                <div className="flex items-center">
+                  <svg className="h-5 w-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm text-green-200">{successMessage}</p>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Document Number Field with Enhanced Effects */}
               <div className="space-y-3 group">
                 <label 
-                  htmlFor="number" 
+                  htmlFor="cedula" 
                   className="block text-sm font-semibold transition-colors duration-300"
                   style={{ 
                     color: 'rgba(252, 247, 255, 0.9)',
@@ -223,9 +305,9 @@ const Login = () => {
                   ></div>
                   <input
                     type="text"
-                    id="number"
-                    name="number"
-                    value={formData.number}
+                    id="cedula"
+                    name="cedula"
+                    value={formData.cedula}
                     onChange={handleChange}
                     className="relative w-full px-5 py-4 backdrop-blur-sm border rounded-2xl focus:outline-none focus:ring-2 transition-all duration-500 placeholder-opacity-40"
                     style={{
@@ -238,6 +320,7 @@ const Login = () => {
                     }}
                     placeholder="Número de documento"
                     required
+                    disabled={isLoading}
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-4">
                     <svg 
@@ -284,6 +367,7 @@ const Login = () => {
                     }}
                     placeholder="••••••••••"
                     required
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
@@ -293,6 +377,7 @@ const Login = () => {
                       color: 'rgba(252, 247, 255, 0.4)',
                       '--hover-color': 'var(--color-tertiary)'
                     }}
+                    disabled={isLoading}
                   >
                     {showPassword ? (
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -306,6 +391,22 @@ const Login = () => {
                     )}
                   </button>
                 </div>
+              </div>
+
+              {/* Remember Me Checkbox */}
+              <div className="flex items-center">
+                <input
+                  id="rememberMe"
+                  name="rememberMe"
+                  type="checkbox"
+                  checked={formData.rememberMe}
+                  onChange={handleChange}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  disabled={isLoading}
+                />
+                <label htmlFor="rememberMe" className="ml-2 block text-sm" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
+                  Recordarme
+                </label>
               </div>
 
               {/* Submit Button with Advanced Effects using brand colors */}
@@ -364,7 +465,7 @@ const Login = () => {
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    <span>Iniciar Sesión</span>
+                    <span>{isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}</span>
                   </span>
                 </button>
               </div>
