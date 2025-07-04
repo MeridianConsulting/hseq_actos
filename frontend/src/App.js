@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './admin/Home';
 import Dashboard from './admin/Dashboard';
-import Statistics from './admin/Statistics';
 import Login from './pages/Login';
 import { isAuthenticated } from './utils/auth';
 
@@ -46,14 +45,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/statistics" 
-              element={
-                <ProtectedRoute>
-                  <Statistics />
                 </ProtectedRoute>
               } 
             />
