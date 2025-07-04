@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { getUserName, isAdmin, isCoordinator } from '../utils/auth';
+import { getUserName } from '../utils/auth';
 import '../assets/css/styles.css';
 
 // Importar componentes de Nivo
@@ -108,68 +108,7 @@ const Dashboard = () => {
             </button>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col md:flex-row justify-center gap-6 mb-12 max-w-4xl mx-auto">
-            {/* Button 1 - Reportes */}
-            <div 
-              className="flex-1 backdrop-blur-2xl rounded-3xl p-8 border hover:transform hover:scale-105 transition-all duration-300"
-              style={{
-                backgroundColor: 'rgba(252, 247, 255, 0.12)',
-                borderColor: 'rgba(252, 247, 255, 0.25)',
-                boxShadow: '0 15px 40px -10px rgba(4, 8, 15, 0.4)'
-              }}
-            >
-              <div className="text-center">
-                <div className="text-5xl mb-4">📊</div>
-                <h3 className="text-xl font-bold mb-3" style={{ color: 'var(--color-secondary)' }}>
-                  Reportes HSEQ
-                </h3>
-                <p className="text-sm mb-4" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
-                  Gestiona y visualiza reportes de seguridad
-                </p>
-                <button 
-                  className="w-full py-3 px-5 rounded-xl font-bold transition-all duration-300 hover:transform hover:scale-105"
-                  style={{
-                    backgroundColor: 'var(--color-tertiary)',
-                    color: 'var(--color-dark)'
-                  }}
-                >
-                  Ver Reportes
-                </button>
-              </div>
-            </div>
 
-            {/* Button 2 - Usuarios (solo para admin/coordinator) */}
-            {(isAdmin() || isCoordinator()) && (
-              <div 
-                className="flex-1 backdrop-blur-2xl rounded-3xl p-8 border hover:transform hover:scale-105 transition-all duration-300"
-                style={{
-                  backgroundColor: 'rgba(252, 247, 255, 0.12)',
-                  borderColor: 'rgba(252, 247, 255, 0.25)',
-                  boxShadow: '0 15px 40px -10px rgba(4, 8, 15, 0.4)'
-                }}
-              >
-                <div className="text-center">
-                  <div className="text-5xl mb-4">👥</div>
-                  <h3 className="text-xl font-bold mb-3" style={{ color: 'var(--color-secondary)' }}>
-                    Gestión de Usuarios
-                  </h3>
-                  <p className="text-sm mb-4" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
-                    Administra usuarios del sistema
-                  </p>
-                  <button 
-                    className="w-full py-3 px-5 rounded-xl font-bold transition-all duration-300 hover:transform hover:scale-105"
-                    style={{
-                      backgroundColor: 'var(--color-tertiary)',
-                      color: 'var(--color-dark)'
-                    }}
-                  >
-                    Gestionar Usuarios
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Period Filter */}
           <div className="flex justify-center mb-8">
@@ -435,10 +374,59 @@ const Dashboard = () => {
                   }}
                 />
               </div>
+                        </div>
+          </div>
+
+          {/* Download Reports Section */}
+          <div className="mt-12 flex justify-center">
+            <div 
+              className="backdrop-blur-2xl rounded-3xl p-8 border hover:transform hover:scale-105 transition-all duration-500 max-w-md w-full"
+              style={{
+                backgroundColor: 'rgba(252, 247, 255, 0.15)',
+                borderColor: 'rgba(252, 247, 255, 0.3)',
+                boxShadow: '0 20px 50px -15px rgba(4, 8, 15, 0.5)'
+              }}
+            >
+              <div className="text-center">
+                <div className="text-6xl mb-6">📥</div>
+                <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
+                  Descargar Reportes HSEQ
+                </h3>
+                <p className="text-base mb-6" style={{ color: 'rgba(252, 247, 255, 0.8)' }}>
+                  Genera y descarga reportes completos del sistema de gestión HSEQ con todas las métricas y estadísticas actuales
+                </p>
+                <button 
+                  className="w-full group relative font-bold py-5 px-8 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent text-lg"
+                  style={{
+                    background: 'linear-gradient(45deg, var(--color-tertiary), var(--color-tertiary-light))',
+                    color: 'var(--color-dark)',
+                    boxShadow: '0 15px 35px -5px rgba(99, 201, 219, 0.5)',
+                    '--focus-ring-color': 'rgba(99, 201, 219, 0.5)'
+                  }}
+                >
+                  <div 
+                    className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent, rgba(252, 247, 255, 0.4), transparent)'
+                    }}
+                  ></div>
+                  <span className="relative flex items-center justify-center space-x-3">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>DESCARGAR REPORTES</span>
+                  </span>
+                </button>
+                
+                {/* Additional Info */}
+                <div className="mt-4 text-xs opacity-70" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
+                  Formato: PDF • Excel • CSV
+                </div>
+              </div>
             </div>
           </div>
 
-
+ 
         </div>
       </div>
       <Footer />
