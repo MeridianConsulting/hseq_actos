@@ -131,6 +131,7 @@ const Home = () => {
             <div className={`flex flex-col sm:flex-row gap-4 max-w-md mx-auto transition-all duration-1000 delay-500 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
               {/* Dashboard Button */}
               <button 
+                onClick={() => navigate('/dashboard')}
                 className="flex-1 group relative font-bold py-4 px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
                 style={{
                   background: 'linear-gradient(45deg, var(--color-tertiary), var(--color-tertiary-light))',
