@@ -84,4 +84,20 @@ export const getUserCedula = () => {
 export const getUserEmail = () => {
   const user = getUser();
   return user ? user.correo : null;
+};
+
+// Obtener ruta basada en el rol del usuario
+export const getRoleRoute = (role) => {
+  switch (role) {
+    case 'admin':
+      return '/dashboard';
+    case 'coordinador':
+      return '/coordinator';
+    case 'soporte':
+      return '/support';
+    case 'colaborador':
+      return '/collaborator';
+    default:
+      return '/home';
+  }
 }; 
