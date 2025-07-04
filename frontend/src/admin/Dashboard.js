@@ -48,26 +48,26 @@ const Dashboard = () => {
           </div>
 
           {/* Dashboard Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 max-w-6xl mx-auto">
             {/* Card 1 - Reportes */}
             <div 
-              className="backdrop-blur-2xl rounded-2xl p-6 border hover:transform hover:scale-105 transition-all duration-300"
+              className="backdrop-blur-2xl rounded-3xl p-8 border hover:transform hover:scale-105 transition-all duration-300"
               style={{
                 backgroundColor: 'rgba(252, 247, 255, 0.12)',
                 borderColor: 'rgba(252, 247, 255, 0.25)',
-                boxShadow: '0 10px 30px -5px rgba(4, 8, 15, 0.3)'
+                boxShadow: '0 15px 40px -10px rgba(4, 8, 15, 0.4)'
               }}
             >
               <div className="text-center">
-                <div className="text-4xl mb-4">📊</div>
-                <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--color-secondary)' }}>
+                <div className="text-6xl mb-6">📊</div>
+                <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
                   Reportes HSEQ
                 </h3>
-                <p className="text-sm mb-4" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
+                <p className="text-base mb-6" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
                   Gestiona y visualiza reportes de seguridad
                 </p>
                 <button 
-                  className="w-full py-2 px-4 rounded-lg font-semibold transition-all duration-300"
+                  className="w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 hover:transform hover:scale-105"
                   style={{
                     backgroundColor: 'var(--color-tertiary)',
                     color: 'var(--color-dark)'
@@ -81,147 +81,60 @@ const Dashboard = () => {
             {/* Card 2 - Usuarios (solo para admin/coordinator) */}
             {(isAdmin() || isCoordinator()) && (
               <div 
-                className="backdrop-blur-2xl rounded-2xl p-6 border hover:transform hover:scale-105 transition-all duration-300"
+                className="backdrop-blur-2xl rounded-3xl p-8 border hover:transform hover:scale-105 transition-all duration-300"
                 style={{
                   backgroundColor: 'rgba(252, 247, 255, 0.12)',
                   borderColor: 'rgba(252, 247, 255, 0.25)',
-                  boxShadow: '0 10px 30px -5px rgba(4, 8, 15, 0.3)'
+                  boxShadow: '0 15px 40px -10px rgba(4, 8, 15, 0.4)'
                 }}
               >
                 <div className="text-center">
-                  <div className="text-4xl mb-4">👥</div>
-                  <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--color-secondary)' }}>
+                  <div className="text-6xl mb-6">👥</div>
+                  <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
                     Gestión de Usuarios
                   </h3>
-                  <p className="text-sm mb-4" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
+                  <p className="text-base mb-6" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
                     Administra usuarios del sistema
                   </p>
                   <button 
-                    className="w-full py-2 px-4 rounded-lg font-semibold transition-all duration-300"
+                    className="w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 hover:transform hover:scale-105"
                     style={{
                       backgroundColor: 'var(--color-tertiary)',
                       color: 'var(--color-dark)'
                     }}
                   >
-                    Gestionar
+                    Gestionar Usuarios
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Card 3 - Configuración */}
+            {/* Card 3 - Estadísticas */}
             <div 
-              className="backdrop-blur-2xl rounded-2xl p-6 border hover:transform hover:scale-105 transition-all duration-300"
+              className="backdrop-blur-2xl rounded-3xl p-8 border hover:transform hover:scale-105 transition-all duration-300"
               style={{
                 backgroundColor: 'rgba(252, 247, 255, 0.12)',
                 borderColor: 'rgba(252, 247, 255, 0.25)',
-                boxShadow: '0 10px 30px -5px rgba(4, 8, 15, 0.3)'
+                boxShadow: '0 15px 40px -10px rgba(4, 8, 15, 0.4)'
               }}
             >
               <div className="text-center">
-                <div className="text-4xl mb-4">⚙️</div>
-                <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--color-secondary)' }}>
-                  Configuración
-                </h3>
-                <p className="text-sm mb-4" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
-                  Ajustes del sistema y perfil
-                </p>
-                <button 
-                  className="w-full py-2 px-4 rounded-lg font-semibold transition-all duration-300"
-                  style={{
-                    backgroundColor: 'var(--color-tertiary)',
-                    color: 'var(--color-dark)'
-                  }}
-                >
-                  Configurar
-                </button>
-              </div>
-            </div>
-
-            {/* Card 4 - Estadísticas */}
-            <div 
-              className="backdrop-blur-2xl rounded-2xl p-6 border hover:transform hover:scale-105 transition-all duration-300"
-              style={{
-                backgroundColor: 'rgba(252, 247, 255, 0.12)',
-                borderColor: 'rgba(252, 247, 255, 0.25)',
-                boxShadow: '0 10px 30px -5px rgba(4, 8, 15, 0.3)'
-              }}
-            >
-              <div className="text-center">
-                <div className="text-4xl mb-4">📈</div>
-                <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--color-secondary)' }}>
+                <div className="text-6xl mb-6">📈</div>
+                <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
                   Estadísticas
                 </h3>
-                <p className="text-sm mb-4" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
+                <p className="text-base mb-6" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
                   Métricas y análisis de datos
                 </p>
                 <button 
                   onClick={() => navigate('/statistics')}
-                  className="w-full py-2 px-4 rounded-lg font-semibold transition-all duration-300"
+                  className="w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 hover:transform hover:scale-105"
                   style={{
                     backgroundColor: 'var(--color-tertiary)',
                     color: 'var(--color-dark)'
                   }}
                 >
                   Ver Métricas
-                </button>
-              </div>
-            </div>
-
-            {/* Card 5 - Incidentes */}
-            <div 
-              className="backdrop-blur-2xl rounded-2xl p-6 border hover:transform hover:scale-105 transition-all duration-300"
-              style={{
-                backgroundColor: 'rgba(252, 247, 255, 0.12)',
-                borderColor: 'rgba(252, 247, 255, 0.25)',
-                boxShadow: '0 10px 30px -5px rgba(4, 8, 15, 0.3)'
-              }}
-            >
-              <div className="text-center">
-                <div className="text-4xl mb-4">⚠️</div>
-                <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--color-secondary)' }}>
-                  Gestión de Incidentes
-                </h3>
-                <p className="text-sm mb-4" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
-                  Registra y monitorea incidentes
-                </p>
-                <button 
-                  className="w-full py-2 px-4 rounded-lg font-semibold transition-all duration-300"
-                  style={{
-                    backgroundColor: 'var(--color-tertiary)',
-                    color: 'var(--color-dark)'
-                  }}
-                >
-                  Ver Incidentes
-                </button>
-              </div>
-            </div>
-
-            {/* Card 6 - Capacitaciones */}
-            <div 
-              className="backdrop-blur-2xl rounded-2xl p-6 border hover:transform hover:scale-105 transition-all duration-300"
-              style={{
-                backgroundColor: 'rgba(252, 247, 255, 0.12)',
-                borderColor: 'rgba(252, 247, 255, 0.25)',
-                boxShadow: '0 10px 30px -5px rgba(4, 8, 15, 0.3)'
-              }}
-            >
-              <div className="text-center">
-                <div className="text-4xl mb-4">🎓</div>
-                <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--color-secondary)' }}>
-                  Capacitaciones
-                </h3>
-                <p className="text-sm mb-4" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
-                  Programas de entrenamiento
-                </p>
-                <button 
-                  className="w-full py-2 px-4 rounded-lg font-semibold transition-all duration-300"
-                  style={{
-                    backgroundColor: 'var(--color-tertiary)',
-                    color: 'var(--color-dark)'
-                  }}
-                >
-                  Ver Cursos
                 </button>
               </div>
             </div>
