@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/img/logo_meridian_blanco.png';
 import '../assets/css/styles.css';
+import { getRoleRoute } from '../utils/auth';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -75,7 +76,9 @@ const Login = () => {
 
         // Redirigir después de un breve delay para mostrar el mensaje de éxito
         setTimeout(() => {
-          navigate('/home');
+          // Usar getRoleRoute para determinar la ruta correcta según el rol
+          const targetRoute = getRoleRoute(data.user.rol);
+          navigate(targetRoute);
         }, 1500);
       } else {
         setError(data.message || 'Error en el inicio de sesión');

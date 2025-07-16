@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { getUserName } from '../utils/auth';
+import { getUser, logout, getUserName, isAdmin, isCoordinator } from '../utils/auth';
 import '../assets/css/styles.css';
 
 // Importar componentes de Nivo
@@ -14,6 +14,20 @@ import { ResponsiveRadar } from '@nivo/radar';
 const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [user, setUser] = useState(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const userData = getUser();
+    if (userData) {
+      setUser(userData);
+      setTimeout(() => setIsVisible(true), 100);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+  };
 
   const goBackToHome = () => {
     navigate('/home');
@@ -76,22 +90,29 @@ const Dashboard = () => {
   return (
     <>
       <Header />
-      <div className="min-h-screen" style={{
+      <div className="dashboard-container" style={{
         background: 'linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 35%, var(--color-tertiary-dark) 100%)'
       }}>
-        <div className="container mx-auto px-4 py-8 pb-8">
-          {/* Header Section */}
-          <div className="text-center mb-12 pt-12">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
-              Panel de Control
-            </h1>
-            <p className="text-xl" style={{ color: 'rgba(252, 247, 255, 0.8)' }}>
-              Bienvenido al dashboard, {getUserName()}
-            </p>
-          </div>
-
-          {/* Back Button */}
-          <div className="mb-8">
+        {/* Animated Background Particles */}
+        <div className="dashboard-background">
+          <div 
+            className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full mix-blend-multiply filter blur-xl animate-blob"
+            style={{ backgroundColor: 'rgba(51, 97, 157, 0.15)' }}
+          ></div>
+          <div 
+            className="absolute top-1/3 right-1/4 w-64 h-64 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-2000"
+            style={{ backgroundColor: 'rgba(99, 201, 219, 0.12)' }}
+          ></div>
+          <div 
+            className="absolute bottom-1/4 left-1/3 w-64 h-64 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000"
+            style={{ backgroundColor: 'rgba(244, 211, 94, 0.08)' }}
+          ></div>
+        </div>
+        
+        {/* Main Content Container */}
+        <div className="dashboard-content container mx-auto px-4 pb-8">
+          {/* Top Navigation Bar */}
+          <div className="flex justify-between items-center">
             <button 
               onClick={goBackToHome}
               className="flex items-center space-x-2 font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105"
@@ -106,7 +127,103 @@ const Dashboard = () => {
               </svg>
               <span>Volver al Inicio</span>
             </button>
+            
+            {user && (
+              <button 
+                onClick={handleLogout}
+                className="group relative font-bold py-3 px-6 rounded-xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
+                style={{
+                  background: 'linear-gradient(45deg, #dc2626, #ef4444)',
+                  color: 'white',
+                  boxShadow: '0 10px 25px -5px rgba(220, 38, 38, 0.4)',
+                  '--focus-ring-color': 'rgba(220, 38, 38, 0.5)'
+                }}
+              >
+                <div 
+                  className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+                  style={{
+                    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)'
+                  }}
+                ></div>
+                <span className="relative flex items-center justify-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  <span>Cerrar Sesión</span>
+                </span>
+              </button>
+            )}
           </div>
+
+          {/* Welcome Section */}
+          {user && (
+            <div className={`transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <div className="text-center mb-8">
+                <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
+                  ¡Bienvenido, {getUserName()}!
+                </h1>
+                <p className="text-xl" style={{ color: 'rgba(252, 247, 255, 0.8)' }}>
+                  Plataforma HSEQ - Sistema de Gestión de Seguridad y Calidad
+                </p>
+              </div>
+
+              {/* User Information Card */}
+              <div className="max-w-2xl mx-auto mb-8 transition-all duration-1000 delay-300">
+                <div 
+                  className="backdrop-blur-2xl rounded-3xl shadow-2xl border p-8"
+                  style={{
+                    backgroundColor: 'rgba(252, 247, 255, 0.12)',
+                    borderColor: 'rgba(252, 247, 255, 0.25)',
+                    boxShadow: '0 25px 50px -12px rgba(4, 8, 15, 0.4)'
+                  }}
+                >
+                  <div className="text-center mb-6">
+                    <div 
+                      className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center"
+                      style={{ backgroundColor: 'rgba(51, 97, 157, 0.3)' }}
+                    >
+                      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-secondary)' }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-secondary)' }}>
+                      Información del Usuario
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white bg-opacity-10 rounded-xl p-4">
+                      <p className="text-sm font-semibold mb-1" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Nombre Completo</p>
+                      <p className="text-lg font-bold" style={{ color: 'var(--color-secondary)' }}>{user.nombre}</p>
+                    </div>
+                    <div className="bg-white bg-opacity-10 rounded-xl p-4">
+                      <p className="text-sm font-semibold mb-1" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Documento</p>
+                      <p className="text-lg font-bold" style={{ color: 'var(--color-secondary)' }}>{user.cedula}</p>
+                    </div>
+                    <div className="bg-white bg-opacity-10 rounded-xl p-4">
+                      <p className="text-sm font-semibold mb-1" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Correo Electrónico</p>
+                      <p className="text-lg font-bold" style={{ color: 'var(--color-secondary)' }}>{user.correo}</p>
+                    </div>
+                    <div className="bg-white bg-opacity-10 rounded-xl p-4">
+                      <p className="text-sm font-semibold mb-1" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Rol del Sistema</p>
+                      <span 
+                        className="inline-block px-3 py-1 rounded-full text-sm font-bold capitalize"
+                        style={{
+                          backgroundColor: isAdmin() ? 'rgba(220, 38, 38, 0.2)' : 
+                                         isCoordinator() ? 'rgba(59, 130, 246, 0.2)' : 
+                                         'rgba(34, 197, 94, 0.2)',
+                          color: isAdmin() ? '#fca5a5' : 
+                                 isCoordinator() ? '#93c5fd' : 
+                                 '#86efac'
+                        }}
+                      >
+                        {user.rol}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Period Filter */}
           <div className="flex justify-center mb-8">

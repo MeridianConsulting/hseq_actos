@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Home from './admin/Home';
+// import Home from './admin/Home'; // Ya no se usa
 import Dashboard from './admin/Dashboard';
 import Login from './pages/Login';
 import CollaboratorDashboard from './pages/CollaboratorDashboard';
@@ -20,7 +20,8 @@ const PublicRoute = ({ children }) => {
       const targetRoute = getRoleRoute(user.rol);
       return <Navigate to={targetRoute} replace />;
     }
-    return <Navigate to="/home" replace />;
+    // Si no hay rol, redirigir a dashboard por defecto
+    return <Navigate to="/dashboard" replace />;
   }
   return children;
 };
@@ -43,14 +44,7 @@ function App() {
                 </PublicRoute>
               } 
             />
-            <Route 
-              path="/home" 
-              element={
-                <ProtectedRoute>
-                  <Home />
-                </ProtectedRoute>
-              } 
-            />
+            {/* Eliminar la ruta /home para admin, solo dashboard */}
             <Route 
               path="/dashboard" 
               element={

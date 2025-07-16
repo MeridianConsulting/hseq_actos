@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import logo from '../assets/img/logo_meridian.png';
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+  
+  // Detectar si estamos en el dashboard
+  const isDashboard = location.pathname.includes('/dashboard');
 
   // Prevenir scroll cuando el menú está abierto
   useEffect(() => {
@@ -27,7 +31,7 @@ const Header = () => {
   };
 
   return (
-    <header className="main-header" id="header">
+    <header className={`main-header ${isDashboard ? 'dashboard-header' : ''}`} id="header">
       <div className="header-container">
         <div className="logo">
           <Link to="/" onClick={closeMenu}>
