@@ -110,7 +110,7 @@ const Dashboard = () => {
         </div>
         
         {/* Main Content Container */}
-        <div className="dashboard-content container mx-auto px-4 pb-8">
+        <div className="dashboard-content container mx-auto px-4 pb-8 pt-8">
 
           {/* Welcome Section */}
           {user && (
