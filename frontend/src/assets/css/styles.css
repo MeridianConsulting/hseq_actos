@@ -2701,6 +2701,7 @@ body:not([data-page="dashboard"]) header.main-header.scrolled {
   position: relative;
   z-index: 10;
   background: transparent;
+  padding-top: 2rem; /* Agregar espacio superior */
 }
 
 /* Ensure the dashboard background extends properly */
@@ -2711,21 +2712,21 @@ body:not([data-page="dashboard"]) header.main-header.scrolled {
 /* Responsive adjustments for dashboard */
 @media (max-width: 768px) {
   .dashboard-container {
-    padding-top: 1rem;
+    padding-top: 1.5rem;
   }
   
   .dashboard-content {
-    padding: 0 1rem;
+    padding: 1.5rem 1rem 0 1rem; /* Más espacio superior en móviles */
   }
 }
 
 @media (max-width: 480px) {
   .dashboard-container {
-    padding-top: 0.5rem;
+    padding-top: 1rem;
   }
   
   .dashboard-content {
-    padding: 0 0.5rem;
+    padding: 1rem 0.5rem 0 0.5rem; /* Espacio superior ajustado para pantallas pequeñas */
   }
 }
 
