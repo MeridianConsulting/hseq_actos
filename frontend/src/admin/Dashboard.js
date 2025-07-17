@@ -111,49 +111,6 @@ const Dashboard = () => {
         
         {/* Main Content Container */}
         <div className="dashboard-content container mx-auto px-4 pb-8">
-          {/* Top Navigation Bar */}
-          <div className="flex justify-between items-center">
-            <button 
-              onClick={goBackToHome}
-              className="flex items-center space-x-2 font-bold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105"
-              style={{
-                backgroundColor: 'rgba(252, 247, 255, 0.15)',
-                color: 'var(--color-secondary)',
-                border: '1px solid rgba(252, 247, 255, 0.3)'
-              }}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              <span>Volver al Inicio</span>
-            </button>
-            
-            {user && (
-              <button 
-                onClick={handleLogout}
-                className="group relative font-bold py-3 px-6 rounded-xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
-                style={{
-                  background: 'linear-gradient(45deg, #dc2626, #ef4444)',
-                  color: 'white',
-                  boxShadow: '0 10px 25px -5px rgba(220, 38, 38, 0.4)',
-                  '--focus-ring-color': 'rgba(220, 38, 38, 0.5)'
-                }}
-              >
-                <div 
-                  className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
-                  style={{
-                    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)'
-                  }}
-                ></div>
-                <span className="relative flex items-center justify-center space-x-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  <span>Cerrar Sesión</span>
-                </span>
-              </button>
-            )}
-          </div>
 
           {/* Welcome Section */}
           {user && (
@@ -167,57 +124,161 @@ const Dashboard = () => {
                 </p>
               </div>
 
-              {/* User Information Card */}
-              <div className="max-w-2xl mx-auto mb-8 transition-all duration-1000 delay-300">
+              {/* User Information Card - Redesigned */}
+              <div className="max-w-4xl mx-auto mb-8 transition-all duration-1000 delay-300">
                 <div 
-                  className="backdrop-blur-2xl rounded-3xl shadow-2xl border p-8"
+                  className="backdrop-blur-2xl rounded-3xl shadow-2xl border overflow-hidden"
                   style={{
                     backgroundColor: 'rgba(252, 247, 255, 0.12)',
                     borderColor: 'rgba(252, 247, 255, 0.25)',
                     boxShadow: '0 25px 50px -12px rgba(4, 8, 15, 0.4)'
                   }}
                 >
-                  <div className="text-center mb-6">
-                    <div 
-                      className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center"
-                      style={{ backgroundColor: 'rgba(51, 97, 157, 0.3)' }}
-                    >
-                      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-secondary)' }}>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
+                  {/* Header Section with Avatar */}
+                  <div 
+                    className="relative p-8 text-center"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(51, 97, 157, 0.2) 0%, rgba(99, 201, 219, 0.1) 100%)',
+                      borderBottom: '1px solid rgba(252, 247, 255, 0.1)'
+                    }}
+                  >
+                    {/* Decorative background elements */}
+                    <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+                      <div 
+                        className="absolute -top-10 -left-10 w-20 h-20 rounded-full opacity-20"
+                        style={{ backgroundColor: 'var(--color-accent)' }}
+                      ></div>
+                      <div 
+                        className="absolute -bottom-10 -right-10 w-16 h-16 rounded-full opacity-15"
+                        style={{ backgroundColor: 'var(--color-tertiary)' }}
+                      ></div>
                     </div>
-                    <h3 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-secondary)' }}>
-                      Información del Usuario
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-white bg-opacity-10 rounded-xl p-4">
-                      <p className="text-sm font-semibold mb-1" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Nombre Completo</p>
-                      <p className="text-lg font-bold" style={{ color: 'var(--color-secondary)' }}>{user.nombre}</p>
-                    </div>
-                    <div className="bg-white bg-opacity-10 rounded-xl p-4">
-                      <p className="text-sm font-semibold mb-1" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Documento</p>
-                      <p className="text-lg font-bold" style={{ color: 'var(--color-secondary)' }}>{user.cedula}</p>
-                    </div>
-                    <div className="bg-white bg-opacity-10 rounded-xl p-4">
-                      <p className="text-sm font-semibold mb-1" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Correo Electrónico</p>
-                      <p className="text-lg font-bold" style={{ color: 'var(--color-secondary)' }}>{user.correo}</p>
-                    </div>
-                    <div className="bg-white bg-opacity-10 rounded-xl p-4">
-                      <p className="text-sm font-semibold mb-1" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Rol del Sistema</p>
+                    
+                    {/* Avatar and User Info */}
+                    <div className="relative z-10">
+                      <div 
+                        className="w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center relative group"
+                        style={{ 
+                          background: 'linear-gradient(135deg, rgba(51, 97, 157, 0.3) 0%, rgba(99, 201, 219, 0.2) 100%)',
+                          border: '3px solid rgba(252, 247, 255, 0.3)'
+                        }}
+                      >
+                        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-secondary)' }}>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <div 
+                          className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(244, 211, 94, 0.2) 0%, rgba(99, 201, 219, 0.2) 100%)'
+                          }}
+                        ></div>
+                      </div>
+                      <h3 className="text-3xl font-bold mb-2" style={{ color: 'var(--color-secondary)' }}>
+                        {user.nombre}
+                      </h3>
                       <span 
-                        className="inline-block px-3 py-1 rounded-full text-sm font-bold capitalize"
+                        className="inline-block px-4 py-2 rounded-full text-sm font-bold capitalize"
                         style={{
                           backgroundColor: isAdmin() ? 'rgba(220, 38, 38, 0.2)' : 
                                          isCoordinator() ? 'rgba(59, 130, 246, 0.2)' : 
                                          'rgba(34, 197, 94, 0.2)',
                           color: isAdmin() ? '#fca5a5' : 
                                  isCoordinator() ? '#93c5fd' : 
-                                 '#86efac'
+                                 '#86efac',
+                          border: '1px solid rgba(252, 247, 255, 0.2)'
                         }}
                       >
                         {user.rol}
                       </span>
+                    </div>
+                  </div>
+
+                  {/* User Details Grid */}
+                  <div className="p-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Personal Information */}
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold mb-4 flex items-center" style={{ color: 'var(--color-secondary)' }}>
+                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          Información Personal
+                        </h4>
+                        <div className="space-y-3">
+                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300">
+                            <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>NOMBRE COMPLETO</p>
+                            <p className="text-lg font-semibold" style={{ color: 'var(--color-secondary)' }}>{user.nombre}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300">
+                            <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>DOCUMENTO</p>
+                            <p className="text-lg font-semibold" style={{ color: 'var(--color-secondary)' }}>{user.cedula}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Contact Information */}
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold mb-4 flex items-center" style={{ color: 'var(--color-secondary)' }}>
+                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          Información de Contacto
+                        </h4>
+                        <div className="space-y-3">
+                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300">
+                            <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>CORREO ELECTRÓNICO</p>
+                            <p className="text-lg font-semibold" style={{ color: 'var(--color-secondary)' }}>{user.correo}</p>
+                          </div>
+                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300">
+                            <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>ESTADO</p>
+                            <div className="flex items-center">
+                              <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#22c55e' }}></div>
+                              <p className="text-sm font-medium" style={{ color: '#86efac' }}>Activo</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* System Information */}
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold mb-4 flex items-center" style={{ color: 'var(--color-secondary)' }}>
+                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                          </svg>
+                          Información del Sistema
+                        </h4>
+                        <div className="space-y-3">
+                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300">
+                            <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>ROL DEL SISTEMA</p>
+                            <span 
+                              className="inline-block px-3 py-1 rounded-full text-sm font-bold capitalize"
+                              style={{
+                                backgroundColor: isAdmin() ? 'rgba(220, 38, 38, 0.2)' : 
+                                               isCoordinator() ? 'rgba(59, 130, 246, 0.2)' : 
+                                               'rgba(34, 197, 94, 0.2)',
+                                color: isAdmin() ? '#fca5a5' : 
+                                       isCoordinator() ? '#93c5fd' : 
+                                       '#86efac',
+                                border: '1px solid rgba(252, 247, 255, 0.2)'
+                              }}
+                            >
+                              {user.rol}
+                            </span>
+                          </div>
+                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300">
+                            <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>ÚLTIMO ACCESO</p>
+                            <p className="text-sm font-medium" style={{ color: 'var(--color-secondary)' }}>
+                              {new Date().toLocaleDateString('es-ES', { 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -646,6 +707,49 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+        
+        {/* Floating Action Buttons */}
+        <div className="floating-action-buttons">
+          <button 
+            onClick={goBackToHome}
+            className="floating-button group"
+            style={{
+              backgroundColor: 'rgba(252, 247, 255, 0.9)',
+              color: 'var(--color-primary-dark)',
+              border: '2px solid rgba(252, 247, 255, 0.3)'
+            }}
+            title="Volver al Inicio"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <div className="tooltip">
+              Volver al Inicio
+            </div>
+          </button>
+          
+          {user && (
+            <button 
+              onClick={handleLogout}
+              className="floating-button group"
+              style={{
+                background: 'linear-gradient(45deg, #dc2626, #ef4444)',
+                color: 'white',
+                border: '2px solid rgba(220, 38, 38, 0.3)',
+                boxShadow: '0 8px 25px -5px rgba(220, 38, 38, 0.4)'
+              }}
+              title="Cerrar Sesión"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <div className="tooltip">
+                Cerrar Sesión
+              </div>
+            </button>
+          )}
+        </div>
+        
         <div style={{ backgroundColor: 'transparent', backgroundImage: 'none' }}>
           <Footer />
         </div>

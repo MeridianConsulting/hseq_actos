@@ -1,4 +1,6 @@
 /* CSS reset y estilos básicos */
+/* IMPORTANTE: Este archivo debe cargarse después de Tailwind CSS para que los estilos del header tengan prioridad */
+
 * {
   margin: 0;
   padding: 0;
@@ -26,6 +28,13 @@
   --color-accent-light: #F7DE85; /* Variante más clara del amarillo */
   --color-accent-dark: #c7a41a; /* Variante más oscura del amarillo */
   --color-hero-accent-dark: #d2b230; /* Variante más oscura del amarillo */
+  
+  /* Header specific variables */
+  --header-bg-default: rgba(252, 247, 255, 0.85);
+  --header-bg-scrolled: rgba(252, 247, 255, 0.95);
+  --header-shadow-default: 0 4px 20px rgba(51, 97, 157, 0.1);
+  --header-shadow-scrolled: 0 4px 30px rgba(51, 97, 157, 0.15);
+  --header-border: 1px solid rgba(51, 97, 157, 0.08);
   
   /* Tipografía */
   --font-family-primary: 'Roboto', sans-serif;
@@ -82,26 +91,36 @@ a {
 
 /* ==================== HEADER ==================== */
 .main-header {
-  background-color: rgba(252, 247, 255, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: var(--color-primary-dark);
-  padding: var(--spacing-sm) 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 4px 20px rgba(51, 97, 157, 0.1);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all var(--transition-normal);
-  border-bottom: 1px solid rgba(51, 97, 157, 0.08);
+  background-color: var(--header-bg-default) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  color: var(--color-primary-dark) !important;
+  padding: var(--spacing-sm) 0 !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  box-shadow: var(--header-shadow-default) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1) !important;
+  border-bottom: var(--header-border) !important;
+  transform: translateY(0) !important;
 }
 
 .main-header.scrolled {
-  padding: var(--spacing-xs) 0;
-  background-color: rgba(252, 247, 255, 0.95);
-  box-shadow: 0 4px 30px rgba(51, 97, 157, 0.15);
+  padding: var(--spacing-xs) 0 !important;
+  background-color: var(--header-bg-scrolled) !important;
+  box-shadow: var(--header-shadow-scrolled) !important;
+  transform: translateY(0) !important;
+}
+
+.main-header.scrolled .navbar-logo {
+  height: 60px !important;
+}
+
+.main-header.scrolled .nav-links a {
+  font-size: 1rem !important;
 }
 
 /* Dashboard header - transparent background */
@@ -111,6 +130,25 @@ a {
   -webkit-backdrop-filter: none !important;
   box-shadow: none !important;
   border-bottom: none !important;
+}
+
+/* Override Tailwind classes that might interfere with header */
+.main-header.bg-white,
+.main-header.bg-opacity-10,
+.main-header.backdrop-blur-md,
+.main-header.shadow-lg {
+  background-color: var(--header-bg-default) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  box-shadow: var(--header-shadow-default) !important;
+}
+
+.main-header.scrolled.bg-white,
+.main-header.scrolled.bg-opacity-10,
+.main-header.scrolled.backdrop-blur-md,
+.main-header.scrolled.shadow-lg {
+  background-color: var(--header-bg-scrolled) !important;
+  box-shadow: var(--header-shadow-scrolled) !important;
 }
 
 .header-container {
@@ -162,7 +200,7 @@ a {
 .navbar-logo {
   height: 70px;
   width: auto;
-  transition: height 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
@@ -189,7 +227,7 @@ a {
   padding: var(--spacing-xs) var(--spacing-xs);
   font-size: 1.05rem;
   letter-spacing: 0.02em;
-  transition: color 0.3s ease, transform 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 .nav-links a:hover {
@@ -307,6 +345,119 @@ a {
   .header-container {
     padding: 0 var(--spacing-lg);
   }
+}
+
+/* Additional header overrides to prevent Tailwind interference */
+.main-header * {
+  box-sizing: border-box;
+}
+
+.main-header .header-container {
+  width: 100% !important;
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+  padding: 0 var(--spacing-xl) !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+/* Ensure header stays visible and styled correctly */
+.main-header:not(.dashboard-header) {
+  background-color: rgba(252, 247, 255, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+.main-header:not(.dashboard-header).scrolled {
+  background-color: rgba(252, 247, 255, 0.95) !important;
+}
+
+/* High specificity overrides for header to prevent Tailwind interference */
+header.main-header,
+header.main-header.scrolled,
+header.main-header:not(.dashboard-header),
+header.main-header:not(.dashboard-header).scrolled {
+  background-color: var(--header-bg-default) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1) !important;
+}
+
+header.main-header.scrolled,
+header.main-header:not(.dashboard-header).scrolled {
+  background-color: var(--header-bg-scrolled) !important;
+  padding: var(--spacing-xs) 0 !important;
+  box-shadow: var(--header-shadow-scrolled) !important;
+}
+
+/* Dashboard header specific overrides */
+header.main-header.dashboard-header {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border-bottom: none !important;
+}
+
+/* Force header styles to override any Tailwind interference */
+.main-header:not(.dashboard-header) {
+  background: rgba(252, 247, 255, 0.85) !important;
+  background-color: rgba(252, 247, 255, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border-bottom: 1px solid rgba(51, 97, 157, 0.08) !important;
+}
+
+.main-header:not(.dashboard-header).scrolled {
+  background: rgba(252, 247, 255, 0.95) !important;
+  background-color: rgba(252, 247, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  box-shadow: 0 4px 30px rgba(51, 97, 157, 0.15) !important;
+}
+
+/* Additional specificity for mobile responsiveness */
+@media (max-width: 768px) {
+  .main-header:not(.dashboard-header) {
+    background: rgba(252, 247, 255, 0.85) !important;
+    background-color: rgba(252, 247, 255, 0.85) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+  }
+  
+  .main-header:not(.dashboard-header).scrolled {
+    background: rgba(252, 247, 255, 0.95) !important;
+    background-color: rgba(252, 247, 255, 0.95) !important;
+  }
+}
+
+/* Force header styles for non-dashboard pages */
+body:not([data-page="dashboard"]) header.main-header,
+body:not([data-page="dashboard"]) header.main-header.scrolled {
+  background-color: rgba(252, 247, 255, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1) !important;
+  border-bottom: 1px solid rgba(51, 97, 157, 0.08) !important;
+}
+
+body:not([data-page="dashboard"]) header.main-header.scrolled {
+  background-color: rgba(252, 247, 255, 0.95) !important;
+  padding: var(--spacing-xs) 0 !important;
+  box-shadow: 0 4px 30px rgba(51, 97, 157, 0.15) !important;
 }
 
 @media (max-width: 768px) {
@@ -2575,5 +2726,193 @@ a {
   
   .dashboard-content {
     padding: 0 0.5rem;
+  }
+}
+
+/* Floating Action Buttons Styles */
+.floating-action-buttons {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 50;
+}
+
+.floating-button {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.floating-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.floating-button .tooltip {
+  position: absolute;
+  right: 4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: white;
+  color: var(--color-primary-dark);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 60;
+}
+
+.floating-button:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+  right: 3.5rem;
+}
+
+.floating-button .tooltip::after {
+  content: '';
+  position: absolute;
+  right: -0.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 0.25rem solid white;
+  border-top: 0.25rem solid transparent;
+  border-bottom: 0.25rem solid transparent;
+}
+
+/* Mobile responsive for floating buttons */
+@media (max-width: 768px) {
+  .floating-action-buttons {
+    bottom: 1rem;
+    right: 1rem;
+  }
+  
+  .floating-button {
+    width: 3rem;
+    height: 3rem;
+  }
+  
+  .floating-button .tooltip {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .floating-action-buttons {
+    bottom: 0.75rem;
+    right: 0.75rem;
+  }
+  
+  .floating-button {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+
+/* User Information Card Enhanced Styles */
+.user-info-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.user-info-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(252, 247, 255, 0.3), transparent);
+}
+
+.user-avatar {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.user-avatar:hover {
+  transform: scale(1.05);
+}
+
+.user-avatar::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, var(--color-accent), var(--color-tertiary));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.user-avatar:hover::after {
+  opacity: 0.3;
+}
+
+.info-section {
+  transition: all 0.3s ease;
+}
+
+.info-section:hover {
+  transform: translateY(-2px);
+}
+
+.info-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.info-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(252, 247, 255, 0.05), transparent);
+  transition: left 0.5s ease;
+}
+
+.info-item:hover::before {
+  left: 100%;
+}
+
+/* Responsive adjustments for user info card */
+@media (max-width: 1024px) {
+  .user-info-card .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .user-info-card .grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .user-avatar {
+    width: 5rem;
+    height: 5rem;
+  }
+  
+  .user-avatar svg {
+    width: 2.5rem;
+    height: 2.5rem;
   }
 }

@@ -4,10 +4,28 @@ import logo from '../assets/img/logo_meridian.png';
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   
   // Detectar si estamos en el dashboard
   const isDashboard = location.pathname.includes('/dashboard');
+
+  // Detectar scroll para cambiar la apariencia del header
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    
+    // Verificar el estado inicial del scroll
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   // Prevenir scroll cuando el menú está abierto
   useEffect(() => {
@@ -31,7 +49,7 @@ const Header = () => {
   };
 
   return (
-    <header className={`main-header ${isDashboard ? 'dashboard-header' : ''}`} id="header">
+    <header className={`main-header ${isDashboard ? 'dashboard-header' : ''} ${isScrolled ? 'scrolled' : ''}`} id="header">
       <div className="header-container">
         <div className="logo">
           <Link to="/" onClick={closeMenu}>
