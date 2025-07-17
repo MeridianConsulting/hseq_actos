@@ -351,21 +351,69 @@ const Dashboard = () => {
             ))}
           </div>
 
-          {/* Charts Grid */}
+          {/* Charts Grid - Enhanced */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             {/* Bar Chart - Incidentes por Mes */}
             <div 
-              className="backdrop-blur-2xl rounded-2xl p-6 border"
+              className="chart-container group"
               style={{
-                backgroundColor: 'rgba(252, 247, 255, 0.12)',
-                borderColor: 'rgba(252, 247, 255, 0.25)',
-                height: '400px'
+                background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
+                border: '1px solid rgba(252, 247, 255, 0.2)',
+                borderRadius: '1.5rem',
+                padding: '1.5rem',
+                height: '450px',
+                position: 'relative',
+                overflow: 'hidden',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
+                transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
               }}
             >
-              <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
-                Incidentes y Reportes por Mes
-              </h3>
-              <div style={{ height: '320px' }}>
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 w-32 h-32 opacity-5">
+                <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-accent), var(--color-tertiary))' }}></div>
+              </div>
+              
+              {/* Chart Header */}
+              <div className="relative z-10 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ 
+                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+                      }}
+                    >
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                        Incidentes y Reportes
+                      </h3>
+                      <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
+                        Análisis mensual
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <div className="flex items-center space-x-1">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
+                      <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Incidentes</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }}></div>
+                      <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Reportes</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Chart Container */}
+              <div className="relative" style={{ height: '320px' }}>
                 <ResponsiveBar
                   data={incidentsByMonth}
                   keys={['incidentes', 'reportes']}
@@ -409,17 +457,60 @@ const Dashboard = () => {
 
             {/* Pie Chart - Incidentes por Tipo */}
             <div 
-              className="backdrop-blur-2xl rounded-2xl p-6 border"
+              className="chart-container group"
               style={{
-                backgroundColor: 'rgba(252, 247, 255, 0.12)',
-                borderColor: 'rgba(252, 247, 255, 0.25)',
-                height: '400px'
+                background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
+                border: '1px solid rgba(252, 247, 255, 0.2)',
+                borderRadius: '1.5rem',
+                padding: '1.5rem',
+                height: '450px',
+                position: 'relative',
+                overflow: 'hidden',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
+                transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
               }}
             >
-              <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
-                Distribución de Incidentes por Tipo
-              </h3>
-              <div style={{ height: '320px' }}>
+              {/* Decorative elements */}
+              <div className="absolute top-0 left-0 w-24 h-24 opacity-5">
+                <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-tertiary), var(--color-accent))' }}></div>
+              </div>
+              
+              {/* Chart Header */}
+              <div className="relative z-10 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ 
+                        background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                        boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)'
+                      }}
+                    >
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                        Distribución por Tipo
+                      </h3>
+                      <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
+                        Clasificación de incidentes
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold" style={{ color: 'var(--color-secondary)' }}>143</div>
+                    <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Total</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Chart Container */}
+              <div className="relative" style={{ height: '320px' }}>
                 <ResponsivePie
                   data={incidentsByType}
                   margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
@@ -455,21 +546,69 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Second Row Charts */}
+          {/* Second Row Charts - Enhanced */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Line Chart - Tendencias Mensuales */}
             <div 
-              className="backdrop-blur-2xl rounded-2xl p-6 border"
+              className="chart-container group"
               style={{
-                backgroundColor: 'rgba(252, 247, 255, 0.12)',
-                borderColor: 'rgba(252, 247, 255, 0.25)',
-                height: '400px'
+                background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
+                border: '1px solid rgba(252, 247, 255, 0.2)',
+                borderRadius: '1.5rem',
+                padding: '1.5rem',
+                height: '450px',
+                position: 'relative',
+                overflow: 'hidden',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
+                transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
               }}
             >
-              <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
-                Tendencias Mensuales
-              </h3>
-              <div style={{ height: '320px' }}>
+              {/* Decorative elements */}
+              <div className="absolute bottom-0 right-0 w-28 h-28 opacity-5">
+                <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-accent), var(--color-primary))' }}></div>
+              </div>
+              
+              {/* Chart Header */}
+              <div className="relative z-10 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ 
+                        background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                      }}
+                    >
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                        Tendencias Mensuales
+                      </h3>
+                      <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
+                        Evolución temporal
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <div className="flex items-center space-x-1">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
+                      <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Incidentes</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }}></div>
+                      <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Reportes</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Chart Container */}
+              <div className="relative" style={{ height: '320px' }}>
                 <ResponsiveLine
                   data={monthlyTrends}
                   margin={{ top: 20, right: 80, bottom: 50, left: 60 }}
@@ -511,17 +650,59 @@ const Dashboard = () => {
 
             {/* Radar Chart - Métricas de Seguridad */}
             <div 
-              className="backdrop-blur-2xl rounded-2xl p-6 border"
+              className="chart-container group"
               style={{
-                backgroundColor: 'rgba(252, 247, 255, 0.12)',
-                borderColor: 'rgba(252, 247, 255, 0.25)',
-                height: '400px'
+                background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
+                border: '1px solid rgba(252, 247, 255, 0.2)',
+                borderRadius: '1.5rem',
+                padding: '1.5rem',
+                height: '450px',
+                position: 'relative',
+                overflow: 'hidden',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
+                transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
               }}
             >
-              <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
-                Métricas de Seguridad (%)
-              </h3>
-              <div style={{ height: '320px' }}>
+              {/* Decorative elements */}
+              <div className="absolute top-0 left-0 w-20 h-20 opacity-5">
+                <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-primary), var(--color-tertiary))' }}></div>
+              </div>
+              
+              {/* Chart Header */}
+              <div className="relative z-10 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ 
+                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                        boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
+                      }}
+                    >
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                        Métricas de Seguridad
+                      </h3>
+                      <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
+                        Indicadores clave
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold" style={{ color: '#22c55e' }}>85.8%</div>
+                    <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Promedio</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Chart Container */}
+              <div className="relative" style={{ height: '320px' }}>
                 <ResponsiveRadar
                   data={safetyMetrics}
                   keys={['value']}
