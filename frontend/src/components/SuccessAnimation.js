@@ -11,15 +11,21 @@ const SuccessAnimation = ({
   size = "medium" // small, medium, large
 }) => {
   const sizeClasses = {
-    small: "w-16 h-16",
-    medium: "w-24 h-24", 
-    large: "w-32 h-32"
+    small: "w-20 h-20",
+    medium: "w-28 h-28", 
+    large: "w-36 h-36"
   };
 
   const textSizes = {
-    small: "text-sm",
-    medium: "text-lg",
-    large: "text-xl"
+    small: "text-base",
+    medium: "text-xl",
+    large: "text-2xl"
+  };
+
+  const containerSizes = {
+    small: "p-8",
+    medium: "p-12",
+    large: "p-16"
   };
 
   const confettiColors = [
@@ -43,7 +49,7 @@ const SuccessAnimation = ({
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-md"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -82,11 +88,16 @@ const SuccessAnimation = ({
 
           {/* Success Icon Container */}
           <motion.div
-            className="bg-white rounded-full p-6 shadow-2xl flex flex-col items-center"
-            initial={{ scale: 0, rotate: -180 }}
+            className={`bg-white rounded-3xl ${containerSizes[size]} shadow-2xl flex flex-col items-center relative min-w-[320px] max-w-md mx-4`}
+            initial={{ scale: 0, opacity: 0 }}
             animate={{ 
-              scale: [0, 1.2, 1],
-              rotate: [-180, 0]
+              scale: [0, 1.1, 1],
+              opacity: 1
+            }}
+            exit={{ 
+              scale: 0,
+              opacity: 0,
+              transition: { duration: 0.2 }
             }}
             transition={{ 
               duration: duration / 1000,
@@ -99,14 +110,14 @@ const SuccessAnimation = ({
               }, fadeOutDuration);
             }}
           >
-            {/* Check Icon */}
+            {/* Check Icon Container */}
             <motion.div
-              className={`${sizeClasses[size]} bg-green-500 rounded-full flex items-center justify-center mb-4`}
+              className={`${sizeClasses[size]} bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mb-6 shadow-lg`}
               animate={{ 
                 scale: [1, 1.1, 1],
                 boxShadow: [
                   "0 0 0 0 rgba(34, 197, 94, 0.4)",
-                  "0 0 0 20px rgba(34, 197, 94, 0)",
+                  "0 0 0 25px rgba(34, 197, 94, 0)",
                   "0 0 0 0 rgba(34, 197, 94, 0)"
                 ]
               }}
@@ -117,7 +128,7 @@ const SuccessAnimation = ({
               }}
             >
               <motion.svg
-                className="w-1/2 h-1/2 text-white"
+                className="w-1/2 h-1/2 text-white drop-shadow-sm"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -139,8 +150,8 @@ const SuccessAnimation = ({
             </motion.div>
 
             {/* Success Message */}
-            <motion.p
-              className={`${textSizes[size]} font-semibold text-gray-800 text-center`}
+            <motion.div
+              className="text-center"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ 
@@ -148,15 +159,48 @@ const SuccessAnimation = ({
                 delay: 0.6
               }}
             >
-              {message}
-            </motion.p>
+              <h3 className={`${textSizes[size]} font-bold text-gray-800 mb-2`}>
+                ¡Éxito!
+              </h3>
+              <p className={`${textSizes[size]} text-gray-600 leading-relaxed`}>
+                {message}
+              </p>
+            </motion.div>
+
+            {/* Decorative Elements */}
+            <motion.div
+              className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full opacity-20"
+              animate={{ 
+                scale: [1, 1.5, 1],
+                opacity: [0.2, 0.1, 0.2]
+              }}
+              transition={{ 
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeOut"
+              }}
+            />
+            
+            <motion.div
+              className="absolute -bottom-2 -left-2 w-4 h-4 bg-blue-500 rounded-full opacity-20"
+              animate={{ 
+                scale: [1, 1.3, 1],
+                opacity: [0.2, 0.1, 0.2]
+              }}
+              transition={{ 
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeOut",
+                delay: 0.5
+              }}
+            />
 
             {/* Pulse Ring Effect */}
             <motion.div
-              className="absolute inset-0 border-4 border-green-500 rounded-full"
+              className="absolute inset-0 border-2 border-green-500 rounded-3xl"
               animate={{ 
-                scale: [1, 1.5, 1],
-                opacity: [0.8, 0, 0.8]
+                scale: [1, 1.1, 1],
+                opacity: [0.3, 0, 0.3]
               }}
               transition={{ 
                 duration: 2,

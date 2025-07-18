@@ -42,7 +42,6 @@ const CollaboratorDashboard = () => {
     evidencia: null
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState('');
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
 
   useEffect(() => {
@@ -71,7 +70,6 @@ const CollaboratorDashboard = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setMessage('');
 
     try {
       // Aquí iría la lógica para enviar el reporte al backend
@@ -122,7 +120,7 @@ const CollaboratorDashboard = () => {
       if (fileInputConversacion) fileInputConversacion.value = '';
       
     } catch (error) {
-      setMessage('Error al enviar el reporte');
+      console.error('Error al enviar el reporte:', error);
     } finally {
       setIsLoading(false);
     }
@@ -130,7 +128,8 @@ const CollaboratorDashboard = () => {
 
   const handleSuccessAnimationComplete = () => {
     setShowSuccessAnimation(false);
-    setMessage('Reporte enviado exitosamente');
+    // Volver a la pantalla inicial después de la animación
+    setSelectedReportType(null);
   };
 
   const handleLogout = () => {
@@ -227,16 +226,6 @@ const CollaboratorDashboard = () => {
         </button>
       </div>
       
-      {message && (
-        <div className={`mb-6 p-4 rounded-lg ${
-          message.includes('exitosamente') 
-            ? 'bg-green-500 bg-opacity-20 text-green-100 border border-green-500' 
-            : 'bg-red-500 bg-opacity-20 text-red-100 border border-red-500'
-        }`}>
-          {message}
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Asunto */}
         <div>
@@ -445,16 +434,6 @@ const CollaboratorDashboard = () => {
         </button>
       </div>
       
-      {message && (
-        <div className={`mb-6 p-4 rounded-lg ${
-          message.includes('exitosamente') 
-            ? 'bg-green-500 bg-opacity-20 text-green-100 border border-green-500' 
-            : 'bg-red-500 bg-opacity-20 text-red-100 border border-red-500'
-        }`}>
-          {message}
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Asunto */}
         <div>
@@ -637,16 +616,6 @@ const CollaboratorDashboard = () => {
         </button>
       </div>
       
-      {message && (
-        <div className={`mb-6 p-4 rounded-lg ${
-          message.includes('exitosamente') 
-            ? 'bg-green-500 bg-opacity-20 text-green-100 border border-green-500' 
-            : 'bg-red-500 bg-opacity-20 text-red-100 border border-red-500'
-        }`}>
-          {message}
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Crear Conversación/Reflexión HSE */}
         {/* Asunto */}
