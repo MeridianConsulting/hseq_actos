@@ -1,0 +1,18 @@
+# Denegar acceso directo a archivos
+<Files "*">
+    Order Deny,Allow
+    Deny from all
+</Files>
+
+# Permitir solo imágenes y documentos específicos
+<FilesMatch "\.(jpg|jpeg|png|gif|pdf|doc|docx)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Configurar headers de seguridad
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options nosniff
+    Header set X-Frame-Options DENY
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule> 

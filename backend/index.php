@@ -56,8 +56,14 @@ if (!file_exists(__DIR__ . '/controllers/authController.php')) {
     exit;
 }
 
+if (!file_exists(__DIR__ . '/controllers/reportController.php')) {
+    echo json_encode(['success' => false, 'message' => 'reportController.php no encontrado']);
+    exit;
+}
+
 require_once __DIR__ . '/controllers/employeeController.php';
 require_once __DIR__ . '/controllers/authController.php';
+require_once __DIR__ . '/controllers/reportController.php';
 
 define('BASE_PATH', '/hseq/backend');
 
@@ -145,6 +151,127 @@ function handleRequest($method, $path){
             echo json_encode([
                 "success" => false, 
                 "message" => "Error fatal del servidor",
+                "error" => $e->getMessage()
+            ]);
+            return;
+        }
+    }
+    
+    // Rutas de reportes
+    if($path === 'api/reports' && $method === "POST"){
+        try {
+            $input = file_get_contents("php://input");
+            
+            if (empty($input)) {
+                http_response_code(400);
+                echo json_encode([
+                    "success" => false, 
+                    "message" => "No se recibieron datos"
+                ]);
+                return;
+            }
+            
+            $data = json_decode($input, true);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                http_response_code(400);
+                echo json_encode([
+                    "success" => false, 
+                    "message" => "Datos JSON inválidos: " . json_last_error_msg()
+                ]);
+                return;
+            }
+            
+            $reportController = new ReportController();
+            $result = $reportController->createReport($data);
+            
+            if($result['success']){
+                http_response_code(201);
+            } else {
+                http_response_code(400);
+            }
+            
+            echo json_encode($result);
+            return;
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false, 
+                "message" => "Error interno del servidor",
+                "error" => $e->getMessage()
+            ]);
+            return;
+        }
+    }
+    
+    if($path === 'api/reports' && $method === "GET"){
+        try {
+            $reportController = new ReportController();
+            
+            // Obtener filtros de la URL
+            $filters = [];
+            if (isset($_GET['tipo_reporte'])) {
+                $filters['tipo_reporte'] = $_GET['tipo_reporte'];
+            }
+            if (isset($_GET['estado'])) {
+                $filters['estado'] = $_GET['estado'];
+            }
+            
+            $result = $reportController->getAllReports($filters);
+            echo json_encode($result);
+            return;
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false, 
+                "message" => "Error interno del servidor",
+                "error" => $e->getMessage()
+            ]);
+            return;
+        }
+    }
+    
+    if($path === 'api/reports/user' && $method === "GET"){
+        try {
+            if (!isset($_GET['user_id'])) {
+                http_response_code(400);
+                echo json_encode([
+                    "success" => false, 
+                    "message" => "Se requiere user_id"
+                ]);
+                return;
+            }
+            
+            $reportController = new ReportController();
+            $result = $reportController->getReportsByUser($_GET['user_id']);
+            echo json_encode($result);
+            return;
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false, 
+                "message" => "Error interno del servidor",
+                "error" => $e->getMessage()
+            ]);
+            return;
+        }
+    }
+    
+    if($path === 'api/reports/stats' && $method === "GET"){
+        try {
+            $reportController = new ReportController();
+            $result = $reportController->getReportStats();
+            echo json_encode($result);
+            return;
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false, 
+                "message" => "Error interno del servidor",
                 "error" => $e->getMessage()
             ]);
             return;

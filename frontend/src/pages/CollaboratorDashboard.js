@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUser, logout } from '../utils/auth';
 import SuccessAnimation from '../components/SuccessAnimation';
+import ReportService from '../services/reportService';
 import '../assets/css/styles.css';
 
 const CollaboratorDashboard = () => {
@@ -72,55 +73,80 @@ const CollaboratorDashboard = () => {
     setIsLoading(true);
 
     try {
-      // Aquí iría la lógica para enviar el reporte al backend
-      console.log('Reporte enviado:', reportData);
+      // Procesar evidencia si existe
+      let evidencia = null;
+      if (reportData.evidencia) {
+        evidencia = await ReportService.processEvidence(reportData.evidencia);
+      }
+
+      // Preparar datos del reporte
+      const reportDataToSend = ReportService.prepareReportData(
+        reportData, 
+        selectedReportType, 
+        user.id
+      );
+
+      // Agregar evidencia si existe
+      if (evidencia) {
+        reportDataToSend.evidencia = evidencia;
+      }
+
+      // Enviar reporte al backend
+      const result = await ReportService.createReport(reportDataToSend);
       
-      // Mostrar animación de éxito
-      setShowSuccessAnimation(true);
-      
-      // Limpiar formulario
-      setReportData({
-        // Campos comunes para todos los tipos de reporte
-        asunto: '',
-        fecha_evento: '',
+      if (result.success) {
+        // Mostrar animación de éxito
+        setShowSuccessAnimation(true);
         
-        // Campos específicos para Hallazgos y Condiciones Inseguras
-        lugar_hallazgo: '',
-        lugar_hallazgo_otro: '',
-        tipo_hallazgo: '',
-        descripcion_hallazgo: '',
-        recomendaciones: '',
-        estado_condicion: '',
+        // Limpiar formulario
+        setReportData({
+          // Campos comunes para todos los tipos de reporte
+          asunto: '',
+          fecha_evento: '',
+          
+          // Campos específicos para Hallazgos y Condiciones Inseguras
+          lugar_hallazgo: '',
+          lugar_hallazgo_otro: '',
+          tipo_hallazgo: '',
+          descripcion_hallazgo: '',
+          recomendaciones: '',
+          estado_condicion: '',
+          
+          // Campos específicos para Incidentes HSE
+          grado_criticidad: '',
+          ubicacion_incidente: '',
+          hora_evento: '',
+          tipo_afectacion: '',
+          descripcion_incidente: '',
+          
+          // Campos específicos para Conversaciones y Reflexiones HSE
+          tipo_conversacion: '',
+          sitio_evento_conversacion: '',
+          lugar_hallazgo_conversacion: '',
+          lugar_hallazgo_conversacion_otro: '',
+          descripcion_conversacion: '',
+          asunto_conversacion: '',
+          
+          // Campo para evidencia
+          evidencia: null
+        });
         
-        // Campos específicos para Incidentes HSE
-        grado_criticidad: '',
-        ubicacion_incidente: '',
-        hora_evento: '',
-        tipo_afectacion: '',
-        descripcion_incidente: '',
+        // Reset file inputs
+        const fileInput = document.getElementById('evidencia');
+        const fileInputIncidente = document.getElementById('evidencia_incidente');
+        const fileInputConversacion = document.getElementById('evidencia_conversacion');
+        if (fileInput) fileInput.value = '';
+        if (fileInputIncidente) fileInputIncidente.value = '';
+        if (fileInputConversacion) fileInputConversacion.value = '';
         
-        // Campos específicos para Conversaciones y Reflexiones HSE
-        tipo_conversacion: '',
-        sitio_evento_conversacion: '',
-        lugar_hallazgo_conversacion: '',
-        lugar_hallazgo_conversacion_otro: '',
-        descripcion_conversacion: '',
-        asunto_conversacion: '',
-        
-        // Campo para evidencia
-        evidencia: null
-      });
-      
-      // Reset file inputs
-      const fileInput = document.getElementById('evidencia');
-      const fileInputIncidente = document.getElementById('evidencia_incidente');
-      const fileInputConversacion = document.getElementById('evidencia_conversacion');
-      if (fileInput) fileInput.value = '';
-      if (fileInputIncidente) fileInputIncidente.value = '';
-      if (fileInputConversacion) fileInputConversacion.value = '';
+        console.log('Reporte enviado exitosamente:', result);
+      } else {
+        throw new Error(result.message || 'Error al enviar el reporte');
+      }
       
     } catch (error) {
       console.error('Error al enviar el reporte:', error);
+      alert('Error al enviar el reporte: ' + error.message);
     } finally {
       setIsLoading(false);
     }
