@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 03-07-2025 a las 21:26:46
+-- Tiempo de generación: 18-07-2025 a las 16:08:30
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.0.30
 
@@ -88,7 +88,10 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`, `activo`, `creado_en`) VALUES
-(1, 'Mateo Lopez', '1011202252', 'aprendizit@meridian.com.co', '1011202252', 'admin', 1, '2025-07-03 18:47:32');
+(1, 'Mateo Lopez', '1011202252', 'desarrolloit@meridian.com.co', '1011202252', 'admin', 1, '2025-07-03 18:47:32'),
+(2, 'Ana María García', '1234567890', 'ana.garcia@meridian.com.co', '1234567890', 'colaborador', 1, '2025-07-04 16:33:05'),
+(3, 'Carlos Rodríguez', '9876543210', 'carlos.rodriguez@meridian.com.co', '9876543210', 'soporte', 1, '2025-07-04 16:33:05'),
+(4, 'María Elena Díaz', '5555666777', 'maria.diaz@meridian.com.co', '5555666777', 'coordinador', 1, '2025-07-04 16:33:06');
 
 --
 -- Índices para tablas volcadas
@@ -148,7 +151,7 @@ ALTER TABLE `reportes`
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- Restricciones para tablas volcadas

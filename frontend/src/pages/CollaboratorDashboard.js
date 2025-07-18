@@ -14,7 +14,13 @@ const CollaboratorDashboard = () => {
     ubicacion: '',
     fecha_evento: '',
     descripcion: '',
-    evidencia: null
+    evidencia: null,
+    lugar_hallazgo: '',
+    lugar_hallazgo_otro: '',
+    tipo_hallazgo: '',
+    descripcion_hallazgo: '',
+    recomendaciones: '',
+    estado_condicion: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -58,7 +64,13 @@ const CollaboratorDashboard = () => {
         ubicacion: '',
         fecha_evento: '',
         descripcion: '',
-        evidencia: null
+        evidencia: null,
+        lugar_hallazgo: '',
+        lugar_hallazgo_otro: '',
+        tipo_hallazgo: '',
+        descripcion_hallazgo: '',
+        recomendaciones: '',
+        estado_condicion: ''
       });
       
       // Reset file input
@@ -177,72 +189,119 @@ const CollaboratorDashboard = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Tipo de Evento */}
+        {/* Lugar del Hallazgo */}
         <div>
           <label className="block text-white font-semibold mb-2">
-            Tipo de Evento *
+            Lugar del hallazgo (Instalación donde ocurrió el evento) *
           </label>
           <select
-            name="tipo_evento"
-            value={reportData.tipo_evento}
+            name="lugar_hallazgo"
+            value={reportData.lugar_hallazgo}
             onChange={handleInputChange}
             className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             required
           >
-            <option value="" className="bg-gray-800 text-white">Seleccione un tipo</option>
-            <option value="acto_inseguro" className="bg-gray-800 text-white">Acto Inseguro</option>
-            <option value="condicion_insegura" className="bg-gray-800 text-white">Condición Insegura</option>
-            <option value="incidente" className="bg-gray-800 text-white">Incidente</option>
-            <option value="casi_accidente" className="bg-gray-800 text-white">Casi Accidente</option>
-            <option value="accidente" className="bg-gray-800 text-white">Accidente</option>
+            <option value="" className="bg-gray-800 text-white">Seleccione una instalación</option>
+            <option value="area_perforacion_exploratoria" className="bg-gray-800 text-white">Área de perforación Exploratoria</option>
+            <option value="campamentos" className="bg-gray-800 text-white">Campamentos</option>
+            <option value="campo_produccion" className="bg-gray-800 text-white">Campo de Producción</option>
+            <option value="casinos" className="bg-gray-800 text-white">Casinos</option>
+            <option value="oleoductos_poliductos_gasoductos" className="bg-gray-800 text-white">Oleoductos / Poliductos / Gasoductos</option>
+            <option value="parqueaderos" className="bg-gray-800 text-white">Parqueaderos</option>
+            <option value="plataformas_perforacion" className="bg-gray-800 text-white">Plataformas de Perforación</option>
+            <option value="pozos" className="bg-gray-800 text-white">Pozos</option>
+            <option value="vias_primarias_secundarias" className="bg-gray-800 text-white">Vías primarias y secundarias</option>
+            <option value="epp" className="bg-gray-800 text-white">Elementos de protección personal (EPP)</option>
+            <option value="otras" className="bg-gray-800 text-white">Otras</option>
           </select>
         </div>
 
-        {/* Ubicación */}
+        {/* Campo adicional para "Otras" */}
+        {reportData.lugar_hallazgo === 'otras' && (
+          <div>
+            <label className="block text-white font-semibold mb-2">
+              Especifique el lugar del hallazgo *
+            </label>
+            <input
+              type="text"
+              name="lugar_hallazgo_otro"
+              value={reportData.lugar_hallazgo_otro}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              placeholder="Escriba el lugar específico del hallazgo"
+              required
+            />
+          </div>
+        )}
+
+        {/* Tipo de Hallazgo */}
         <div>
           <label className="block text-white font-semibold mb-2">
-            Ubicación *
+            Tipo de hallazgo *
           </label>
-          <input
-            type="text"
-            name="ubicacion"
-            value={reportData.ubicacion}
+          <select
+            name="tipo_hallazgo"
+            value={reportData.tipo_hallazgo}
             onChange={handleInputChange}
             className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-            placeholder="Ej: Oficina 201, Planta de producción, etc."
             required
-          />
+          >
+            <option value="" className="bg-gray-800 text-white">Seleccione el tipo de hallazgo</option>
+            <option value="accion_mejoramiento" className="bg-gray-800 text-white">Acción de mejoramiento</option>
+            <option value="aspecto_positivo" className="bg-gray-800 text-white">Aspecto positivo</option>
+            <option value="condicion_insegura" className="bg-gray-800 text-white">Condición insegura</option>
+            <option value="acto_inseguro" className="bg-gray-800 text-white">Acto inseguro</option>
+          </select>
         </div>
 
-        {/* Fecha del Evento */}
+        {/* Descripción del Hallazgo */}
         <div>
           <label className="block text-white font-semibold mb-2">
-            Fecha del Evento *
-          </label>
-          <input
-            type="datetime-local"
-            name="fecha_evento"
-            value={reportData.fecha_evento}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-            required
-          />
-        </div>
-
-        {/* Descripción */}
-        <div>
-          <label className="block text-white font-semibold mb-2">
-            Descripción Detallada *
+            Descripción del hallazgo *
           </label>
           <textarea
-            name="descripcion"
-            value={reportData.descripcion}
+            name="descripcion_hallazgo"
+            value={reportData.descripcion_hallazgo}
             onChange={handleInputChange}
             rows="4"
             className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
-            placeholder="Describe detalladamente lo que observaste o lo que ocurrió..."
+            placeholder="Describe detalladamente el hallazgo observado..."
             required
           />
+        </div>
+
+        {/* Recomendaciones */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Recomendaciones *
+          </label>
+          <textarea
+            name="recomendaciones"
+            value={reportData.recomendaciones}
+            onChange={handleInputChange}
+            rows="4"
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
+            placeholder="Escriba las recomendaciones para mejorar la situación..."
+            required
+          />
+        </div>
+
+        {/* Estado de la Condición */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            La condición o acto ya fue cerrada o continúa abierta *
+          </label>
+          <select
+            name="estado_condicion"
+            value={reportData.estado_condicion}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            required
+          >
+            <option value="" className="bg-gray-800 text-white">Seleccione el estado</option>
+            <option value="abierta" className="bg-gray-800 text-white">Abierta</option>
+            <option value="cerrada" className="bg-gray-800 text-white">Cerrada</option>
+          </select>
         </div>
 
         {/* Evidencia */}
