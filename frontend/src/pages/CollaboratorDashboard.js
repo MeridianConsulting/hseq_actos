@@ -20,7 +20,14 @@ const CollaboratorDashboard = () => {
     tipo_hallazgo: '',
     descripcion_hallazgo: '',
     recomendaciones: '',
-    estado_condicion: ''
+    estado_condicion: '',
+    // Campos para Incidentes HSE
+    asunto: '',
+    grado_criticidad: '',
+    ubicacion_incidente: '',
+    hora_evento: '',
+    tipo_afectacion: '',
+    descripcion_incidente: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -70,12 +77,21 @@ const CollaboratorDashboard = () => {
         tipo_hallazgo: '',
         descripcion_hallazgo: '',
         recomendaciones: '',
-        estado_condicion: ''
+        estado_condicion: '',
+        // Campos para Incidentes HSE
+        asunto: '',
+        grado_criticidad: '',
+        ubicacion_incidente: '',
+        hora_evento: '',
+        tipo_afectacion: '',
+        descripcion_incidente: ''
       });
       
-      // Reset file input
+      // Reset file inputs
       const fileInput = document.getElementById('evidencia');
+      const fileInputIncidente = document.getElementById('evidencia_incidente');
       if (fileInput) fileInput.value = '';
+      if (fileInputIncidente) fileInputIncidente.value = '';
       
     } catch (error) {
       setMessage('Error al enviar el reporte');
@@ -348,11 +364,187 @@ const CollaboratorDashboard = () => {
     </div>
   );
 
+  const renderIncidentesForm = () => (
+    <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-3xl p-8 shadow-2xl">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-2xl font-bold text-white">
+          INCIDENTE HSE
+        </h3>
+        <button
+          onClick={handleBackToSelection}
+          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          <span>Volver</span>
+        </button>
+      </div>
+      
+      {message && (
+        <div className={`mb-6 p-4 rounded-lg ${
+          message.includes('exitosamente') 
+            ? 'bg-green-500 bg-opacity-20 text-green-100 border border-green-500' 
+            : 'bg-red-500 bg-opacity-20 text-red-100 border border-red-500'
+        }`}>
+          {message}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Asunto */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Asunto *
+          </label>
+          <input
+            type="text"
+            name="asunto"
+            value={reportData.asunto}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            placeholder="Escriba su respuesta"
+            required
+          />
+        </div>
+
+        {/* Grado de criticidad del evento */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Grado de criticidad del evento *
+          </label>
+          <select
+            name="grado_criticidad"
+            value={reportData.grado_criticidad}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            required
+          >
+            <option value="" className="bg-gray-800 text-white">Selecciona la respuesta</option>
+            <option value="bajo" className="bg-gray-800 text-white">Bajo</option>
+            <option value="medio" className="bg-gray-800 text-white">Medio</option>
+            <option value="alto" className="bg-gray-800 text-white">Alto</option>
+            <option value="critico" className="bg-gray-800 text-white">Crítico</option>
+          </select>
+        </div>
+
+        {/* Ubicación del Incidente */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Ubicación del Incidente - Instalación donde ocurre el evento *
+          </label>
+          <input
+            type="text"
+            name="ubicacion_incidente"
+            value={reportData.ubicacion_incidente}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            placeholder="Escriba su respuesta"
+            required
+          />
+        </div>
+
+        {/* Hora del evento */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Hora del evento *
+          </label>
+          <input
+            type="time"
+            name="hora_evento"
+            value={reportData.hora_evento}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+            required
+          />
+        </div>
+
+        {/* Tipo de evento - Afectación */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Tipo de evento - Afectación *
+          </label>
+          <select
+            name="tipo_afectacion"
+            value={reportData.tipo_afectacion}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            required
+          >
+            <option value="" className="bg-gray-800 text-white">Seleccione el tipo de afectación</option>
+            <option value="personas" className="bg-gray-800 text-white">Personas</option>
+            <option value="medio_ambiente" className="bg-gray-800 text-white">Medio Ambiente</option>
+            <option value="instalaciones" className="bg-gray-800 text-white">Instalaciones</option>
+            <option value="vehiculos" className="bg-gray-800 text-white">Vehículos</option>
+            <option value="seguridad_procesos" className="bg-gray-800 text-white">Seguridad de los procesos</option>
+            <option value="operaciones" className="bg-gray-800 text-white">Operaciones</option>
+          </select>
+        </div>
+
+        {/* Descripción del incidente */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Descripción (detalle los eventos y/o sucesos que ocasionaron el incidente) *
+          </label>
+          <textarea
+            name="descripcion_incidente"
+            value={reportData.descripcion_incidente}
+            onChange={handleInputChange}
+            rows="4"
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
+            placeholder="Escriba su respuesta"
+            required
+          />
+        </div>
+
+        {/* Evidencia */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Evidencia (Opcional)
+          </label>
+          <input
+            type="file"
+            id="evidencia_incidente"
+            name="evidencia"
+            onChange={handleFileChange}
+            accept="image/*,.pdf,.doc,.docx"
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+          />
+          <p className="text-gray-300 text-sm mt-2">
+            Formatos permitidos: JPG, PNG, PDF, DOC, DOCX (máx. 10MB)
+          </p>
+        </div>
+
+        {/* Submit Button */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>Enviando...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                </svg>
+                <span>Enviar Reporte</span>
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+
   const renderOtherForms = () => (
     <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-3xl p-8 shadow-2xl">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-2xl font-bold text-white">
-          {selectedReportType === 'incidentes' && 'Reporte de Incidentes HSE'}
           {selectedReportType === 'conversaciones' && 'Conversaciones y Reflexiones HSE'}
         </h3>
         <button
@@ -455,7 +647,8 @@ const CollaboratorDashboard = () => {
             <>
               {!selectedReportType && renderReportTypeSelection()}
               {selectedReportType === 'hallazgos' && renderHallazgosForm()}
-              {(selectedReportType === 'incidentes' || selectedReportType === 'conversaciones') && renderOtherForms()}
+              {selectedReportType === 'incidentes' && renderIncidentesForm()}
+              {selectedReportType === 'conversaciones' && renderOtherForms()}
             </>
           )}
 
