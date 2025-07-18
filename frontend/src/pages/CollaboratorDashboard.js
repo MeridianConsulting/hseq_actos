@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUser, logout } from '../utils/auth';
+import SuccessAnimation from '../components/SuccessAnimation';
 import '../assets/css/styles.css';
 
 const CollaboratorDashboard = () => {
@@ -10,34 +11,39 @@ const CollaboratorDashboard = () => {
   const [activeTab, setActiveTab] = useState('report');
   const [selectedReportType, setSelectedReportType] = useState(null);
   const [reportData, setReportData] = useState({
-    tipo_evento: '',
-    ubicacion: '',
+    // Campos comunes para todos los tipos de reporte
+    asunto: '',
     fecha_evento: '',
-    descripcion: '',
-    evidencia: null,
+    
+    // Campos específicos para Hallazgos y Condiciones Inseguras
     lugar_hallazgo: '',
     lugar_hallazgo_otro: '',
     tipo_hallazgo: '',
     descripcion_hallazgo: '',
     recomendaciones: '',
     estado_condicion: '',
-    // Campos para Incidentes HSE
-    asunto: '',
+    
+    // Campos específicos para Incidentes HSE
     grado_criticidad: '',
     ubicacion_incidente: '',
     hora_evento: '',
     tipo_afectacion: '',
     descripcion_incidente: '',
-    // Campos para Conversaciones y Reflexiones HSE
-    tipo_reporte: '',
-    asunto_conversacion: '',
+    
+    // Campos específicos para Conversaciones y Reflexiones HSE
+    tipo_conversacion: '',
     sitio_evento_conversacion: '',
     lugar_hallazgo_conversacion: '',
     lugar_hallazgo_conversacion_otro: '',
-    descripcion_conversacion: ''
+    descripcion_conversacion: '',
+    asunto_conversacion: '',
+    
+    // Campo para evidencia
+    evidencia: null
   });
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
 
   useEffect(() => {
     const userData = getUser();
@@ -70,35 +76,41 @@ const CollaboratorDashboard = () => {
     try {
       // Aquí iría la lógica para enviar el reporte al backend
       console.log('Reporte enviado:', reportData);
-      setMessage('Reporte enviado exitosamente');
+      
+      // Mostrar animación de éxito
+      setShowSuccessAnimation(true);
       
       // Limpiar formulario
       setReportData({
-        tipo_evento: '',
-        ubicacion: '',
+        // Campos comunes para todos los tipos de reporte
+        asunto: '',
         fecha_evento: '',
-        descripcion: '',
-        evidencia: null,
+        
+        // Campos específicos para Hallazgos y Condiciones Inseguras
         lugar_hallazgo: '',
         lugar_hallazgo_otro: '',
         tipo_hallazgo: '',
         descripcion_hallazgo: '',
         recomendaciones: '',
         estado_condicion: '',
-        // Campos para Incidentes HSE
-        asunto: '',
+        
+        // Campos específicos para Incidentes HSE
         grado_criticidad: '',
         ubicacion_incidente: '',
         hora_evento: '',
         tipo_afectacion: '',
         descripcion_incidente: '',
-        // Campos para Conversaciones y Reflexiones HSE
-        tipo_reporte: '',
-        asunto_conversacion: '',
+        
+        // Campos específicos para Conversaciones y Reflexiones HSE
+        tipo_conversacion: '',
         sitio_evento_conversacion: '',
         lugar_hallazgo_conversacion: '',
         lugar_hallazgo_conversacion_otro: '',
-        descripcion_conversacion: ''
+        descripcion_conversacion: '',
+        asunto_conversacion: '',
+        
+        // Campo para evidencia
+        evidencia: null
       });
       
       // Reset file inputs
@@ -114,6 +126,11 @@ const CollaboratorDashboard = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSuccessAnimationComplete = () => {
+    setShowSuccessAnimation(false);
+    setMessage('Reporte enviado exitosamente');
   };
 
   const handleLogout = () => {
@@ -221,6 +238,22 @@ const CollaboratorDashboard = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Asunto */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Asunto *
+          </label>
+          <input
+            type="text"
+            name="asunto"
+            value={reportData.asunto}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            placeholder="Escriba el asunto del hallazgo o condición insegura"
+            required
+          />
+        </div>
+
         {/* Lugar del Hallazgo */}
         <div>
           <label className="block text-white font-semibold mb-2">
@@ -265,6 +298,21 @@ const CollaboratorDashboard = () => {
             />
           </div>
         )}
+
+        {/* Fecha del evento */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Fecha del evento *
+          </label>
+          <input
+            type="date"
+            name="fecha_evento"
+            value={reportData.fecha_evento}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            required
+          />
+        </div>
 
         {/* Tipo de Hallazgo */}
         <div>
@@ -419,7 +467,22 @@ const CollaboratorDashboard = () => {
             value={reportData.asunto}
             onChange={handleInputChange}
             className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-            placeholder="Escriba su respuesta"
+            placeholder="Escriba el asunto del incidente"
+            required
+          />
+        </div>
+
+        {/* Fecha del evento */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Fecha del evento *
+          </label>
+          <input
+            type="date"
+            name="fecha_evento"
+            value={reportData.fecha_evento}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             required
           />
         </div>
@@ -455,7 +518,7 @@ const CollaboratorDashboard = () => {
             value={reportData.ubicacion_incidente}
             onChange={handleInputChange}
             className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-            placeholder="Escriba su respuesta"
+            placeholder="Escriba la ubicación específica del incidente"
             required
           />
         </div>
@@ -508,7 +571,7 @@ const CollaboratorDashboard = () => {
             onChange={handleInputChange}
             rows="4"
             className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
-            placeholder="Escriba su respuesta"
+            placeholder="Describa detalladamente los eventos que ocasionaron el incidente"
             required
           />
         </div>
@@ -586,23 +649,6 @@ const CollaboratorDashboard = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Crear Conversación/Reflexión HSE */}
-        <div>
-          <label className="block text-white font-semibold mb-2">
-            ¿Qué desea reportar? *
-          </label>
-          <select
-            name="tipo_reporte"
-            value={reportData.tipo_reporte}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-            required
-          >
-            <option value="" className="bg-gray-800 text-white">Seleccione el tipo de reporte</option>
-            <option value="reflexion" className="bg-gray-800 text-white">Reflexión</option>
-            <option value="conversacion" className="bg-gray-800 text-white">Conversación</option>
-          </select>
-        </div>
-
         {/* Asunto */}
         <div>
           <label className="block text-white font-semibold mb-2">
@@ -614,7 +660,39 @@ const CollaboratorDashboard = () => {
             value={reportData.asunto_conversacion}
             onChange={handleInputChange}
             className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-            placeholder="Escriba su respuesta"
+            placeholder="Escriba el asunto de la conversación o reflexión"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            ¿Qué desea reportar? *
+          </label>
+          <select
+            name="tipo_conversacion"
+            value={reportData.tipo_conversacion}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            required
+          >
+            <option value="" className="bg-gray-800 text-white">Seleccione el tipo de reporte</option>
+            <option value="reflexion" className="bg-gray-800 text-white">Reflexión</option>
+            <option value="conversacion" className="bg-gray-800 text-white">Conversación</option>
+          </select>
+        </div>
+
+        {/* Fecha del evento */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Fecha del evento *
+          </label>
+          <input
+            type="date"
+            name="fecha_evento"
+            value={reportData.fecha_evento}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             required
           />
         </div>
@@ -630,7 +708,7 @@ const CollaboratorDashboard = () => {
             value={reportData.sitio_evento_conversacion}
             onChange={handleInputChange}
             className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-            placeholder="Escriba su respuesta"
+            placeholder="Escriba el sitio específico del evento"
             required
           />
         </div>
@@ -690,7 +768,7 @@ const CollaboratorDashboard = () => {
             onChange={handleInputChange}
             rows="4"
             className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
-            placeholder="Escriba su respuesta"
+            placeholder="Describa detalladamente las situaciones reflexionadas o conversadas"
             required
           />
         </div>
@@ -872,6 +950,17 @@ const CollaboratorDashboard = () => {
           )}
         </div>
       </main>
+
+      {/* Success Animation */}
+      <SuccessAnimation
+        isVisible={showSuccessAnimation}
+        onComplete={handleSuccessAnimationComplete}
+        message="¡Reporte enviado exitosamente!"
+        showConfetti={true}
+        size="medium"
+        duration={1000}
+        fadeOutDuration={2000}
+      />
     </div>
   );
 };

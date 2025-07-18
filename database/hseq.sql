@@ -66,6 +66,7 @@ CREATE TABLE `reportes` (
   -- Campos comunes para todos los tipos de reporte
   `asunto` varchar(255) DEFAULT NULL,
   `descripcion_general` text DEFAULT NULL,
+  `fecha_evento` date DEFAULT NULL,
   
   -- Campos específicos para Hallazgos y Condiciones Inseguras
   `lugar_hallazgo` varchar(100) DEFAULT NULL,
@@ -88,6 +89,7 @@ CREATE TABLE `reportes` (
   `lugar_hallazgo_conversacion` varchar(100) DEFAULT NULL,
   `lugar_hallazgo_conversacion_otro` varchar(255) DEFAULT NULL,
   `descripcion_conversacion` text DEFAULT NULL,
+  `asunto_conversacion` varchar(255) DEFAULT NULL,
   
   -- Campos de auditoría
   `revisado_por` int(11) DEFAULT NULL,
@@ -151,7 +153,7 @@ ALTER TABLE `reportes`
   ADD KEY `revisado_por` (`revisado_por`);
 
 --
--- Indices de la tabla `usuarios`
+-- Índices de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
   ADD PRIMARY KEY (`id`),
