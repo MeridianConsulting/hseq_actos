@@ -58,12 +58,41 @@ CREATE TABLE `notificaciones` (
 CREATE TABLE `reportes` (
   `id` int(11) NOT NULL,
   `id_usuario` int(11) NOT NULL,
-  `tipo_evento` varchar(50) NOT NULL,
-  `ubicacion` varchar(100) DEFAULT NULL,
-  `fecha_evento` datetime NOT NULL,
-  `descripcion` text DEFAULT NULL,
-  `estado` enum('pendiente','en revisión','cerrado') DEFAULT 'pendiente',
-  `creado_en` timestamp NOT NULL DEFAULT current_timestamp()
+  `tipo_reporte` enum('hallazgos','incidentes','conversaciones') NOT NULL,
+  `estado` enum('pendiente','en_revision','cerrado') DEFAULT 'pendiente',
+  `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
+  `actualizado_en` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  
+  -- Campos comunes para todos los tipos de reporte
+  `asunto` varchar(255) DEFAULT NULL,
+  `descripcion_general` text DEFAULT NULL,
+  
+  -- Campos específicos para Hallazgos y Condiciones Inseguras
+  `lugar_hallazgo` varchar(100) DEFAULT NULL,
+  `lugar_hallazgo_otro` varchar(255) DEFAULT NULL,
+  `tipo_hallazgo` enum('accion_mejoramiento','aspecto_positivo','condicion_insegura','acto_inseguro') DEFAULT NULL,
+  `descripcion_hallazgo` text DEFAULT NULL,
+  `recomendaciones` text DEFAULT NULL,
+  `estado_condicion` enum('abierta','cerrada') DEFAULT NULL,
+  
+  -- Campos específicos para Incidentes HSE
+  `grado_criticidad` enum('bajo','medio','alto','critico') DEFAULT NULL,
+  `ubicacion_incidente` varchar(255) DEFAULT NULL,
+  `hora_evento` time DEFAULT NULL,
+  `tipo_afectacion` enum('personas','medio_ambiente','instalaciones','vehiculos','seguridad_procesos','operaciones') DEFAULT NULL,
+  `descripcion_incidente` text DEFAULT NULL,
+  
+  -- Campos específicos para Conversaciones y Reflexiones HSE
+  `tipo_conversacion` enum('reflexion','conversacion') DEFAULT NULL,
+  `sitio_evento_conversacion` varchar(255) DEFAULT NULL,
+  `lugar_hallazgo_conversacion` varchar(100) DEFAULT NULL,
+  `lugar_hallazgo_conversacion_otro` varchar(255) DEFAULT NULL,
+  `descripcion_conversacion` text DEFAULT NULL,
+  
+  -- Campos de auditoría
+  `revisado_por` int(11) DEFAULT NULL,
+  `fecha_revision` timestamp NULL DEFAULT NULL,
+  `comentarios_revision` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -116,7 +145,10 @@ ALTER TABLE `notificaciones`
 --
 ALTER TABLE `reportes`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `id_usuario` (`id_usuario`);
+  ADD KEY `id_usuario` (`id_usuario`),
+  ADD KEY `tipo_reporte` (`tipo_reporte`),
+  ADD KEY `estado` (`estado`),
+  ADD KEY `revisado_por` (`revisado_por`);
 
 --
 -- Indices de la tabla `usuarios`
@@ -161,19 +193,20 @@ ALTER TABLE `usuarios`
 -- Filtros para la tabla `evidencias`
 --
 ALTER TABLE `evidencias`
-  ADD CONSTRAINT `evidencias_ibfk_1` FOREIGN KEY (`id_reporte`) REFERENCES `reportes` (`id`);
+  ADD CONSTRAINT `evidencias_ibfk_1` FOREIGN KEY (`id_reporte`) REFERENCES `reportes` (`id`) ON DELETE CASCADE;
 
 --
 -- Filtros para la tabla `notificaciones`
 --
 ALTER TABLE `notificaciones`
-  ADD CONSTRAINT `notificaciones_ibfk_1` FOREIGN KEY (`id_reporte`) REFERENCES `reportes` (`id`);
+  ADD CONSTRAINT `notificaciones_ibfk_1` FOREIGN KEY (`id_reporte`) REFERENCES `reportes` (`id`) ON DELETE CASCADE;
 
 --
 -- Filtros para la tabla `reportes`
 --
 ALTER TABLE `reportes`
-  ADD CONSTRAINT `reportes_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`);
+  ADD CONSTRAINT `reportes_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`),
+  ADD CONSTRAINT `reportes_ibfk_2` FOREIGN KEY (`revisado_por`) REFERENCES `usuarios` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
