@@ -27,7 +27,14 @@ const CollaboratorDashboard = () => {
     ubicacion_incidente: '',
     hora_evento: '',
     tipo_afectacion: '',
-    descripcion_incidente: ''
+    descripcion_incidente: '',
+    // Campos para Conversaciones y Reflexiones HSE
+    tipo_reporte: '',
+    asunto_conversacion: '',
+    sitio_evento_conversacion: '',
+    lugar_hallazgo_conversacion: '',
+    lugar_hallazgo_conversacion_otro: '',
+    descripcion_conversacion: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -84,14 +91,23 @@ const CollaboratorDashboard = () => {
         ubicacion_incidente: '',
         hora_evento: '',
         tipo_afectacion: '',
-        descripcion_incidente: ''
+        descripcion_incidente: '',
+        // Campos para Conversaciones y Reflexiones HSE
+        tipo_reporte: '',
+        asunto_conversacion: '',
+        sitio_evento_conversacion: '',
+        lugar_hallazgo_conversacion: '',
+        lugar_hallazgo_conversacion_otro: '',
+        descripcion_conversacion: ''
       });
       
       // Reset file inputs
       const fileInput = document.getElementById('evidencia');
       const fileInputIncidente = document.getElementById('evidencia_incidente');
+      const fileInputConversacion = document.getElementById('evidencia_conversacion');
       if (fileInput) fileInput.value = '';
       if (fileInputIncidente) fileInputIncidente.value = '';
+      if (fileInputConversacion) fileInputConversacion.value = '';
       
     } catch (error) {
       setMessage('Error al enviar el reporte');
@@ -541,11 +557,193 @@ const CollaboratorDashboard = () => {
     </div>
   );
 
+  const renderConversacionesForm = () => (
+    <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-3xl p-8 shadow-2xl">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-2xl font-bold text-white">
+          CONVERSACIONES Y REFLEXIONES HSE
+        </h3>
+        <button
+          onClick={handleBackToSelection}
+          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          <span>Volver</span>
+        </button>
+      </div>
+      
+      {message && (
+        <div className={`mb-6 p-4 rounded-lg ${
+          message.includes('exitosamente') 
+            ? 'bg-green-500 bg-opacity-20 text-green-100 border border-green-500' 
+            : 'bg-red-500 bg-opacity-20 text-red-100 border border-red-500'
+        }`}>
+          {message}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Crear Conversación/Reflexión HSE */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            ¿Qué desea reportar? *
+          </label>
+          <select
+            name="tipo_reporte"
+            value={reportData.tipo_reporte}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            required
+          >
+            <option value="" className="bg-gray-800 text-white">Seleccione el tipo de reporte</option>
+            <option value="reflexion" className="bg-gray-800 text-white">Reflexión</option>
+            <option value="conversacion" className="bg-gray-800 text-white">Conversación</option>
+          </select>
+        </div>
+
+        {/* Asunto */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Asunto *
+          </label>
+          <input
+            type="text"
+            name="asunto_conversacion"
+            value={reportData.asunto_conversacion}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            placeholder="Escriba su respuesta"
+            required
+          />
+        </div>
+
+        {/* Sitio del evento */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Sitio del evento *
+          </label>
+          <input
+            type="text"
+            name="sitio_evento_conversacion"
+            value={reportData.sitio_evento_conversacion}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            placeholder="Escriba su respuesta"
+            required
+          />
+        </div>
+
+        {/* Lugar de hallazgo */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Lugar de hallazgo (Instalación donde ocurre el evento) *
+          </label>
+          <select
+            name="lugar_hallazgo_conversacion"
+            value={reportData.lugar_hallazgo_conversacion}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            required
+          >
+            <option value="" className="bg-gray-800 text-white">Seleccione una instalación</option>
+            <option value="area_perforacion_exploratoria" className="bg-gray-800 text-white">Área de perforación Exploratoria</option>
+            <option value="campamentos" className="bg-gray-800 text-white">Campamentos</option>
+            <option value="campo_produccion" className="bg-gray-800 text-white">Campo de Producción</option>
+            <option value="casinos" className="bg-gray-800 text-white">Casinos</option>
+            <option value="oleoductos_poliductos_gasoductos" className="bg-gray-800 text-white">Oleoductos / Poliductos / Gasoductos</option>
+            <option value="parqueaderos" className="bg-gray-800 text-white">Parqueaderos</option>
+            <option value="plataformas_perforacion" className="bg-gray-800 text-white">Plataformas de Perforación</option>
+            <option value="pozos" className="bg-gray-800 text-white">Pozos</option>
+            <option value="vias_primarias_secundarias" className="bg-gray-800 text-white">Vías primarias secundarias</option>
+            <option value="otras" className="bg-gray-800 text-white">Otras</option>
+          </select>
+        </div>
+
+        {/* Campo adicional para "Otras" */}
+        {reportData.lugar_hallazgo_conversacion === 'otras' && (
+          <div>
+            <label className="block text-white font-semibold mb-2">
+              Especifique el lugar del hallazgo *
+            </label>
+            <input
+              type="text"
+              name="lugar_hallazgo_conversacion_otro"
+              value={reportData.lugar_hallazgo_conversacion_otro}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              placeholder="Escriba el lugar específico del hallazgo"
+              required
+            />
+          </div>
+        )}
+
+        {/* Descripción de las situaciones reflexionadas y/o conversadas */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Descripción de las situaciones reflexionadas y/o conversadas *
+          </label>
+          <textarea
+            name="descripcion_conversacion"
+            value={reportData.descripcion_conversacion}
+            onChange={handleInputChange}
+            rows="4"
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
+            placeholder="Escriba su respuesta"
+            required
+          />
+        </div>
+
+        {/* Evidencia */}
+        <div>
+          <label className="block text-white font-semibold mb-2">
+            Evidencia (Opcional)
+          </label>
+          <input
+            type="file"
+            id="evidencia_conversacion"
+            name="evidencia"
+            onChange={handleFileChange}
+            accept="image/*,.pdf,.doc,.docx"
+            className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+          />
+          <p className="text-gray-300 text-sm mt-2">
+            Formatos permitidos: JPG, PNG, PDF, DOC, DOCX (máx. 10MB)
+          </p>
+        </div>
+
+        {/* Submit Button */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>Enviando...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                </svg>
+                <span>Enviar Reporte</span>
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+
   const renderOtherForms = () => (
     <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-3xl p-8 shadow-2xl">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-2xl font-bold text-white">
-          {selectedReportType === 'conversaciones' && 'Conversaciones y Reflexiones HSE'}
+          Formulario en desarrollo
         </h3>
         <button
           onClick={handleBackToSelection}
@@ -648,7 +846,7 @@ const CollaboratorDashboard = () => {
               {!selectedReportType && renderReportTypeSelection()}
               {selectedReportType === 'hallazgos' && renderHallazgosForm()}
               {selectedReportType === 'incidentes' && renderIncidentesForm()}
-              {selectedReportType === 'conversaciones' && renderOtherForms()}
+              {selectedReportType === 'conversaciones' && renderConversacionesForm()}
             </>
           )}
 
