@@ -7,7 +7,6 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
   const firstInputRef = useRef(null);
 
   useEffect(() => {
@@ -45,17 +44,12 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
       });
       setError(null);
       
-      // Mostrar modal con transición
-      setIsVisible(true);
-      
       // Enfocar el primer campo después de que el modal se abra
       setTimeout(() => {
         if (firstInputRef.current) {
           firstInputRef.current.focus();
         }
-      }, 500);
-    } else {
-      setIsVisible(false);
+      }, 300);
     }
   }, [isOpen, report]);
 
@@ -645,105 +639,87 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-50 bg-black bg-opacity-60 backdrop-blur-sm"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            onClose();
-          }
-        }}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-        aria-describedby="modal-description"
-      >
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="w-full sm:max-w-md md:max-w-lg lg:max-w-2xl max-h-[90vh] bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl border border-gray-700 flex flex-col">
-            {/* Header - Fixed */}
-            <div className="flex-shrink-0 bg-gradient-to-r from-gray-900 to-gray-800 rounded-t-2xl p-4 sm:p-6 border-b border-gray-700">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-3">
+      <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
+          {/* Header */}
+          <div className="sticky top-0 bg-gradient-to-r from-gray-900 to-gray-800 rounded-t-3xl p-6 border-b border-gray-700">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center space-x-4">
+                {report && (
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-blue-500">
+                    {getEventTypeIcon(report.tipo_reporte)}
+                  </div>
+                )}
+                <div>
+                  <h2 className="text-2xl font-bold text-white">
+                    Editar Reporte
+                  </h2>
                   {report && (
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500">
-                      {getEventTypeIcon(report.tipo_reporte)}
-                    </div>
-                  )}
-                  <div>
-                    <h2 id="modal-title" className="text-xl font-bold text-white">
-                      Editar Reporte
-                    </h2>
-                    {report && (
-                      <p id="modal-description" className="text-white text-opacity-60 text-xs">
-                        {getEventTypeLabel(report.tipo_reporte)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={onClose}
-                  className="w-8 h-8 bg-white bg-opacity-10 hover:bg-opacity-20 rounded-full flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
-                  aria-label="Cerrar modal"
-                  tabIndex={0}
-                >
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Body - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-              {error && (
-                <div className="p-3 bg-red-500 bg-opacity-20 border border-red-500 border-opacity-30 rounded-lg" role="alert" aria-live="polite">
-                  <div className="flex items-center">
-                    <svg className="w-4 h-4 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <p className="text-red-300 text-sm">{error}</p>
-                  </div>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {renderFormFields()}
-
-                {/* Evidencia */}
-                <div className="bg-white bg-opacity-5 rounded-lg p-4 border border-white border-opacity-10">
-                  <h3 className="text-base font-semibold text-white mb-3 flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                    Nueva Evidencia (opcional)
-                  </h3>
-                  <div>
-                    <label htmlFor="evidencia" className="block text-sm font-medium text-white text-opacity-80 mb-2">
-                      Archivo de Evidencia
-                    </label>
-                    <input
-                      id="evidencia"
-                      type="file"
-                      name="evidencia"
-                      onChange={handleFileChange}
-                      accept="image/*,.pdf,.doc,.docx"
-                      className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    />
-                    <p className="mt-1 text-xs text-white text-opacity-60">
-                      Solo se pueden editar reportes pendientes. Formatos permitidos: imágenes, PDF, Word.
+                    <p className="text-white text-opacity-60 text-sm">
+                      {getEventTypeLabel(report.tipo_reporte)}
                     </p>
-                  </div>
+                  )}
                 </div>
-              </form>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-10 h-10 bg-white bg-opacity-10 hover:bg-opacity-20 rounded-full flex items-center justify-center transition-all duration-200"
+              >
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
             </div>
+          </div>
 
-            {/* Footer - Fixed */}
-            <div className="flex-shrink-0 bg-gradient-to-r from-gray-900 to-gray-800 rounded-b-2xl p-4 sm:p-6 border-t border-gray-700">
-              <div className="flex justify-end space-x-3">
+          {/* Content */}
+          <div className="p-6">
+            {error && (
+              <div className="mb-6 p-4 bg-red-500 bg-opacity-20 border border-red-500 border-opacity-30 rounded-lg" role="alert" aria-live="polite">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <p className="text-red-300">{error}</p>
+                </div>
+              </div>
+            )}
+
+            <form id="edit-report-form" onSubmit={handleSubmit} className="space-y-6">
+              {renderFormFields()}
+
+              {/* Evidencia */}
+              <div className="bg-white bg-opacity-5 rounded-2xl p-6 border border-white border-opacity-10">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                  <svg className="w-6 h-6 mr-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                  Nueva Evidencia (opcional)
+                </h3>
+                <div>
+                  <label htmlFor="evidencia" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Archivo de Evidencia
+                  </label>
+                  <input
+                    id="evidencia"
+                    type="file"
+                    name="evidencia"
+                    onChange={handleFileChange}
+                    accept="image/*,.pdf,.doc,.docx"
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                  <p className="mt-2 text-sm text-white text-opacity-60">
+                    Solo se pueden editar reportes pendientes. Formatos permitidos: imágenes, PDF, Word.
+                  </p>
+                </div>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-700">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 bg-white bg-opacity-10 hover:bg-opacity-20 text-white rounded-lg text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
-                  tabIndex={0}
+                  className="px-6 py-3 bg-white bg-opacity-10 hover:bg-opacity-20 text-white rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
                 >
                   Cancelar
                 </button>
@@ -751,18 +727,17 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
                   type="submit"
                   form="edit-report-form"
                   disabled={isLoading}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                  tabIndex={0}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                   aria-describedby={isLoading ? "loading-description" : undefined}
                 >
                   {isLoading ? (
                     <>
-                      <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" aria-hidden="true"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" aria-hidden="true"></div>
                       <span id="loading-description">Actualizando...</span>
                     </>
                   ) : (
                     <>
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
                       </svg>
                       <span>Actualizar Reporte</span>
@@ -770,7 +745,7 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
                   )}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </div>
