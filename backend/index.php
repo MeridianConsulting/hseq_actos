@@ -323,6 +323,69 @@ function handleRequest($method, $path){
         }
     }
     
+    // Endpoint para actualizar estado de reportes
+    if($path === 'api/reports/status' && $method === "PUT"){
+        try {
+            $input = file_get_contents("php://input");
+            
+            if (empty($input)) {
+                http_response_code(400);
+                echo json_encode([
+                    "success" => false, 
+                    "message" => "No se recibieron datos"
+                ]);
+                return;
+            }
+            
+            $data = json_decode($input, true);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                http_response_code(400);
+                echo json_encode([
+                    "success" => false, 
+                    "message" => "Datos JSON inválidos: " . json_last_error_msg()
+                ]);
+                return;
+            }
+            
+            // Validar que los datos requeridos estén presentes
+            if (!isset($data['report_id']) || !isset($data['status'])) {
+                http_response_code(400);
+                echo json_encode([
+                    "success" => false, 
+                    "message" => "Faltan campos requeridos: report_id y status"
+                ]);
+                return;
+            }
+            
+            $reportController = new ReportController();
+            $result = $reportController->updateReportStatus(
+                $data['report_id'], 
+                $data['status'], 
+                $data['revisor_id'] ?? null, 
+                $data['comentarios'] ?? null
+            );
+            
+            if($result['success']){
+                http_response_code(200);
+            } else {
+                http_response_code(400);
+            }
+            
+            echo json_encode($result);
+            return;
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false, 
+                "message" => "Error interno del servidor",
+                "error" => $e->getMessage()
+            ]);
+            return;
+        }
+    }
+
     // Rutas existentes de empleados
     if($path === 'api/employees' && $method === "GET"){
         $controller = new EmployeeController();

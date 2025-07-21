@@ -257,6 +257,37 @@ class ReportService {
             reader.readAsDataURL(file);
         });
     }
+
+    /**
+     * Actualizar estado de un reporte
+     */
+    static async updateReportStatus(reportId, status, revisorId = null, comentarios = null) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/reports/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    report_id: reportId,
+                    status: status,
+                    revisor_id: revisorId,
+                    comentarios: comentarios
+                })
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al actualizar estado del reporte');
+            }
+            
+            return data;
+        } catch (error) {
+            console.error('Error en updateReportStatus:', error);
+            throw error;
+        }
+    }
 }
 
 export default ReportService; 

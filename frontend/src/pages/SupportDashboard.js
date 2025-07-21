@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUser, logout } from '../utils/auth';
+import ReportService from '../services/reportService';
 import '../assets/css/styles.css';
 
 const SupportDashboard = () => {
@@ -25,33 +26,17 @@ const SupportDashboard = () => {
   const loadReports = async () => {
     setIsLoading(true);
     try {
-      // Aquí iría la lógica para cargar reportes del backend
-      // Por ahora, datos de ejemplo
-      const mockReports = [
-        {
-          id: 1,
-          tipo_evento: 'acto_inseguro',
-          ubicacion: 'Oficina 201',
-          fecha_evento: '2025-01-15T10:30:00',
-          descripcion: 'Empleado no utilizando equipo de protección',
-          estado: 'pendiente',
-          reportado_por: 'Juan Pérez',
-          creado_en: '2025-01-15T10:35:00'
-        },
-        {
-          id: 2,
-          tipo_evento: 'condicion_insegura',
-          ubicacion: 'Planta de producción',
-          fecha_evento: '2025-01-14T14:20:00',
-          descripcion: 'Derrame de aceite en el piso',
-          estado: 'en revisión',
-          reportado_por: 'María García',
-          creado_en: '2025-01-14T14:25:00'
-        }
-      ];
-      setReports(mockReports);
+      // Cargar todos los reportes desde el backend
+      const result = await ReportService.getAllReports();
+      
+      if (result.success) {
+        setReports(result.reports);
+      } else {
+        setMessage('Error al cargar reportes: ' + result.message);
+      }
     } catch (error) {
-      setMessage('Error al cargar reportes');
+      console.error('Error al cargar reportes:', error);
+      setMessage('Error al cargar reportes: ' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -59,15 +44,31 @@ const SupportDashboard = () => {
 
   const handleStatusChange = async (reportId, newStatus) => {
     try {
-      // Aquí iría la lógica para actualizar el estado del reporte
-      setReports(prev => 
-        prev.map(report => 
-          report.id === reportId ? { ...report, estado: newStatus } : report
-        )
+      // Actualizar estado del reporte usando el servicio
+      const result = await ReportService.updateReportStatus(
+        reportId, 
+        newStatus, 
+        user?.id, 
+        `Estado cambiado a ${newStatus} por ${user?.nombre}`
       );
-      setMessage('Estado del reporte actualizado');
+      
+      if (result.success) {
+        // Actualizar el estado local
+        setReports(prev => 
+          prev.map(report => 
+            report.id === reportId ? { ...report, estado: newStatus } : report
+          )
+        );
+        setMessage('Estado del reporte actualizado exitosamente');
+        
+        // Limpiar mensaje después de 3 segundos
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setMessage('Error al actualizar el estado: ' + result.message);
+      }
     } catch (error) {
-      setMessage('Error al actualizar el estado');
+      console.error('Error al actualizar estado:', error);
+      setMessage('Error al actualizar el estado: ' + error.message);
     }
   };
 
@@ -80,10 +81,12 @@ const SupportDashboard = () => {
     switch (status) {
       case 'pendiente':
         return 'bg-yellow-500';
-      case 'en revisión':
+      case 'en_revision':
         return 'bg-blue-500';
-      case 'cerrado':
+      case 'aprobado':
         return 'bg-green-500';
+      case 'rechazado':
+        return 'bg-red-500';
       default:
         return 'bg-gray-500';
     }
@@ -91,13 +94,39 @@ const SupportDashboard = () => {
 
   const getEventTypeLabel = (type) => {
     const labels = {
-      'acto_inseguro': 'Acto Inseguro',
-      'condicion_insegura': 'Condición Insegura',
-      'incidente': 'Incidente',
-      'casi_accidente': 'Casi Accidente',
-      'accidente': 'Accidente'
+      'hallazgos': 'Hallazgos',
+      'incidentes': 'Incidentes',
+      'conversaciones': 'Conversaciones'
     };
     return labels[type] || type;
+  };
+
+  const getLocationText = (report) => {
+    // Obtener la ubicación según el tipo de reporte
+    switch (report.tipo_reporte) {
+      case 'hallazgos':
+        return report.lugar_hallazgo || report.lugar_hallazgo_otro || 'No especificada';
+      case 'incidentes':
+        return report.ubicacion_incidente || 'No especificada';
+      case 'conversaciones':
+        return report.sitio_evento_conversacion || 'No especificada';
+      default:
+        return 'No especificada';
+    }
+  };
+
+  const getDescriptionText = (report) => {
+    // Obtener la descripción según el tipo de reporte
+    switch (report.tipo_reporte) {
+      case 'hallazgos':
+        return report.descripcion_hallazgo || report.asunto || 'Sin descripción';
+      case 'incidentes':
+        return report.descripcion_incidente || report.asunto || 'Sin descripción';
+      case 'conversaciones':
+        return report.descripcion_conversacion || report.asunto_conversacion || 'Sin descripción';
+      default:
+        return report.asunto || 'Sin descripción';
+    }
   };
 
   const filteredReports = reports.filter(report => {
@@ -105,13 +134,20 @@ const SupportDashboard = () => {
       case 'pending':
         return report.estado === 'pendiente';
       case 'in_review':
-        return report.estado === 'en revisión';
+        return report.estado === 'en_revision';
       case 'closed':
-        return report.estado === 'cerrado';
+        return report.estado === 'aprobado' || report.estado === 'rechazado';
       default:
         return true;
     }
   });
+
+  // Calcular estadísticas
+  const stats = {
+    pending: reports.filter(r => r.estado === 'pendiente').length,
+    inReview: reports.filter(r => r.estado === 'en_revision').length,
+    closed: reports.filter(r => r.estado === 'aprobado' || r.estado === 'rechazado').length
+  };
 
   return (
     <div className="min-h-screen" style={{
@@ -167,7 +203,7 @@ const SupportDashboard = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-white text-opacity-70 text-sm">Pendientes</p>
-                  <p className="text-2xl font-bold text-white">{reports.filter(r => r.estado === 'pendiente').length}</p>
+                  <p className="text-2xl font-bold text-white">{stats.pending}</p>
                 </div>
               </div>
             </div>
@@ -181,7 +217,7 @@ const SupportDashboard = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-white text-opacity-70 text-sm">En Revisión</p>
-                  <p className="text-2xl font-bold text-white">{reports.filter(r => r.estado === 'en revisión').length}</p>
+                  <p className="text-2xl font-bold text-white">{stats.inReview}</p>
                 </div>
               </div>
             </div>
@@ -195,7 +231,7 @@ const SupportDashboard = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-white text-opacity-70 text-sm">Cerrados</p>
-                  <p className="text-2xl font-bold text-white">{reports.filter(r => r.estado === 'cerrado').length}</p>
+                  <p className="text-2xl font-bold text-white">{stats.closed}</p>
                 </div>
               </div>
             </div>
@@ -276,35 +312,43 @@ const SupportDashboard = () => {
                         </span>
                       </div>
                       <div className="text-right">
-                        <p className="text-white text-sm font-semibold">{getEventTypeLabel(report.tipo_evento)}</p>
-                        <p className="text-white text-opacity-50 text-xs">{report.ubicacion}</p>
+                        <p className="text-white text-sm font-semibold">{getEventTypeLabel(report.tipo_reporte)}</p>
+                        <p className="text-white text-opacity-50 text-xs">{getLocationText(report)}</p>
                       </div>
                     </div>
                     
                     <div className="mb-4">
-                      <p className="text-white text-opacity-90 mb-2">{report.descripcion}</p>
+                      <p className="text-white text-opacity-90 mb-2">{getDescriptionText(report)}</p>
                       <div className="flex justify-between text-sm text-white text-opacity-60">
-                        <span>Reportado por: {report.reportado_por}</span>
-                        <span>Fecha: {new Date(report.fecha_evento).toLocaleString()}</span>
+                        <span>Reportado por: {report.nombre_usuario}</span>
+                        <span>Fecha: {new Date(report.fecha_evento || report.creado_en).toLocaleString()}</span>
                       </div>
                     </div>
                     
                     <div className="flex justify-end space-x-2">
                       {report.estado === 'pendiente' && (
                         <button
-                          onClick={() => handleStatusChange(report.id, 'en revisión')}
+                          onClick={() => handleStatusChange(report.id, 'en_revision')}
                           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
                         >
                           Tomar Caso
                         </button>
                       )}
-                      {report.estado === 'en revisión' && (
-                        <button
-                          onClick={() => handleStatusChange(report.id, 'cerrado')}
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
-                        >
-                          Cerrar Caso
-                        </button>
+                      {report.estado === 'en_revision' && (
+                        <>
+                          <button
+                            onClick={() => handleStatusChange(report.id, 'aprobado')}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
+                          >
+                            Aprobar
+                          </button>
+                          <button
+                            onClick={() => handleStatusChange(report.id, 'rechazado')}
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
+                          >
+                            Rechazar
+                          </button>
+                        </>
                       )}
                       <button className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200">
                         Ver Detalles

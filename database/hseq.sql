@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 18-07-2025 a las 16:08:30
+-- Tiempo de generación: 21-07-2025 a las 17:58:23
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.0.30
 
@@ -30,10 +30,20 @@ SET time_zone = "+00:00";
 CREATE TABLE `evidencias` (
   `id` int(11) NOT NULL,
   `id_reporte` int(11) NOT NULL,
-  `tipo_archivo` varchar(20) DEFAULT NULL,
-  `url_archivo` text NOT NULL,
-  `subido_en` timestamp NOT NULL DEFAULT current_timestamp()
+  `tipo_archivo` varchar(50) DEFAULT 'image',
+  `url_archivo` varchar(255) NOT NULL,
+  `creado_en` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `evidencias`
+--
+
+INSERT INTO `evidencias` (`id`, `id_reporte`, `tipo_archivo`, `url_archivo`, `creado_en`) VALUES
+(1, 9, 'image/png', 'evidencia_9_1753110883_687e596326797.png', '2025-07-21 15:14:43'),
+(2, 10, 'image/png', 'evidencia_10_1753110984_687e59c898146.png', '2025-07-21 15:16:24'),
+(3, 11, 'image/png', 'evidencia_11_1753111009_687e59e14cc40.png', '2025-07-21 15:16:49'),
+(4, 12, 'image/png', 'evidencia_12_1753111346_687e5b3217f50.png', '2025-07-21 15:22:26');
 
 -- --------------------------------------------------------
 
@@ -59,43 +69,46 @@ CREATE TABLE `reportes` (
   `id` int(11) NOT NULL,
   `id_usuario` int(11) NOT NULL,
   `tipo_reporte` enum('hallazgos','incidentes','conversaciones') NOT NULL,
-  `estado` enum('pendiente','en_revision','cerrado') DEFAULT 'pendiente',
-  `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
-  `actualizado_en` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  
-  -- Campos comunes para todos los tipos de reporte
   `asunto` varchar(255) DEFAULT NULL,
   `descripcion_general` text DEFAULT NULL,
   `fecha_evento` date DEFAULT NULL,
-  
-  -- Campos específicos para Hallazgos y Condiciones Inseguras
   `lugar_hallazgo` varchar(100) DEFAULT NULL,
   `lugar_hallazgo_otro` varchar(255) DEFAULT NULL,
-  `tipo_hallazgo` enum('accion_mejoramiento','aspecto_positivo','condicion_insegura','acto_inseguro') DEFAULT NULL,
+  `tipo_hallazgo` varchar(50) DEFAULT NULL,
   `descripcion_hallazgo` text DEFAULT NULL,
   `recomendaciones` text DEFAULT NULL,
   `estado_condicion` enum('abierta','cerrada') DEFAULT NULL,
-  
-  -- Campos específicos para Incidentes HSE
   `grado_criticidad` enum('bajo','medio','alto','critico') DEFAULT NULL,
   `ubicacion_incidente` varchar(255) DEFAULT NULL,
   `hora_evento` time DEFAULT NULL,
-  `tipo_afectacion` enum('personas','medio_ambiente','instalaciones','vehiculos','seguridad_procesos','operaciones') DEFAULT NULL,
+  `tipo_afectacion` varchar(50) DEFAULT NULL,
   `descripcion_incidente` text DEFAULT NULL,
-  
-  -- Campos específicos para Conversaciones y Reflexiones HSE
   `tipo_conversacion` enum('reflexion','conversacion') DEFAULT NULL,
   `sitio_evento_conversacion` varchar(255) DEFAULT NULL,
   `lugar_hallazgo_conversacion` varchar(100) DEFAULT NULL,
   `lugar_hallazgo_conversacion_otro` varchar(255) DEFAULT NULL,
   `descripcion_conversacion` text DEFAULT NULL,
   `asunto_conversacion` varchar(255) DEFAULT NULL,
-  
-  -- Campos de auditoría
+  `estado` enum('pendiente','en_revision','aprobado','rechazado') DEFAULT 'pendiente',
   `revisado_por` int(11) DEFAULT NULL,
-  `fecha_revision` timestamp NULL DEFAULT NULL,
-  `comentarios_revision` text DEFAULT NULL
+  `comentarios_revision` text DEFAULT NULL,
+  `fecha_revision` datetime DEFAULT NULL,
+  `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
+  `actualizado_en` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `reportes`
+--
+
+INSERT INTO `reportes` (`id`, `id_usuario`, `tipo_reporte`, `asunto`, `descripcion_general`, `fecha_evento`, `lugar_hallazgo`, `lugar_hallazgo_otro`, `tipo_hallazgo`, `descripcion_hallazgo`, `recomendaciones`, `estado_condicion`, `grado_criticidad`, `ubicacion_incidente`, `hora_evento`, `tipo_afectacion`, `descripcion_incidente`, `tipo_conversacion`, `sitio_evento_conversacion`, `lugar_hallazgo_conversacion`, `lugar_hallazgo_conversacion_otro`, `descripcion_conversacion`, `asunto_conversacion`, `estado`, `revisado_por`, `comentarios_revision`, `fecha_revision`, `creado_en`, `actualizado_en`) VALUES
+(6, 2, 'incidentes', 'test', NULL, '0222-02-12', NULL, NULL, NULL, NULL, NULL, NULL, 'alto', 'test', '00:00:00', 'vehiculos', 'tes', NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-07-21 14:45:02', '2025-07-21 14:45:02'),
+(7, 2, 'incidentes', 'test', NULL, '2025-07-22', NULL, NULL, NULL, NULL, NULL, NULL, 'critico', 'test', '01:05:00', 'seguridad_procesos', 'test', NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-07-21 15:06:01', '2025-07-21 15:06:01'),
+(8, 2, 'incidentes', 'test', NULL, '2025-07-22', NULL, NULL, NULL, NULL, NULL, NULL, 'critico', 'test', '01:05:00', 'seguridad_procesos', 'test', NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-07-21 15:14:08', '2025-07-21 15:14:08'),
+(9, 2, 'incidentes', 'test con evidencia', NULL, '2025-07-22', NULL, NULL, NULL, NULL, NULL, NULL, 'critico', 'test', '01:05:00', 'seguridad_procesos', 'test', NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-07-21 15:14:43', '2025-07-21 15:14:43'),
+(10, 2, 'incidentes', 'test', NULL, '2025-07-22', NULL, NULL, NULL, NULL, NULL, NULL, 'alto', 'test', '02:16:00', 'instalaciones', 'test', NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-07-21 15:16:24', '2025-07-21 15:16:24'),
+(11, 2, 'incidentes', 'test', NULL, '2025-07-17', NULL, NULL, NULL, NULL, NULL, NULL, 'alto', 'test', '02:16:00', 'vehiculos', 'test', NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-07-21 15:16:49', '2025-07-21 15:16:49'),
+(12, 2, 'incidentes', 'test', NULL, '2025-07-16', NULL, NULL, NULL, NULL, NULL, NULL, 'critico', 'tes', '01:21:00', 'instalaciones', 'test', NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-07-21 15:22:26', '2025-07-21 15:22:26');
 
 -- --------------------------------------------------------
 
@@ -150,10 +163,11 @@ ALTER TABLE `reportes`
   ADD KEY `id_usuario` (`id_usuario`),
   ADD KEY `tipo_reporte` (`tipo_reporte`),
   ADD KEY `estado` (`estado`),
-  ADD KEY `revisado_por` (`revisado_por`);
+  ADD KEY `revisado_por` (`revisado_por`),
+  ADD KEY `idx_fecha_evento` (`fecha_evento`);
 
 --
--- Índices de la tabla `usuarios`
+-- Indices de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
   ADD PRIMARY KEY (`id`),
@@ -167,7 +181,7 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de la tabla `evidencias`
 --
 ALTER TABLE `evidencias`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT de la tabla `notificaciones`
@@ -179,7 +193,7 @@ ALTER TABLE `notificaciones`
 -- AUTO_INCREMENT de la tabla `reportes`
 --
 ALTER TABLE `reportes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`
@@ -207,8 +221,8 @@ ALTER TABLE `notificaciones`
 -- Filtros para la tabla `reportes`
 --
 ALTER TABLE `reportes`
-  ADD CONSTRAINT `reportes_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`),
-  ADD CONSTRAINT `reportes_ibfk_2` FOREIGN KEY (`revisado_por`) REFERENCES `usuarios` (`id`);
+  ADD CONSTRAINT `reportes_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `reportes_ibfk_2` FOREIGN KEY (`revisado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
