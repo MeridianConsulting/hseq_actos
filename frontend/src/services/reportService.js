@@ -1,18 +1,88 @@
+// Cambia la URL base para usar la ruta correcta
 const API_BASE_URL = 'http://localhost/hseq/backend';
 
 class ReportService {
+    /**
+     * Validar y formatear datos antes de enviar
+     */
+    static validateAndFormatData(data) {
+        const formattedData = { ...data };
+        
+        // Validar y formatear fecha
+        if (formattedData.fecha_evento) {
+            // Asegurar formato YYYY-MM-DD
+            const date = new Date(formattedData.fecha_evento);
+            if (isNaN(date.getTime())) {
+                throw new Error('Formato de fecha inválido');
+            }
+            formattedData.fecha_evento = date.toISOString().split('T')[0];
+        }
+        
+        // Validar y formatear hora
+        if (formattedData.hora_evento) {
+            // Asegurar formato HH:MM:SS
+            if (!/^\d{2}:\d{2}(:\d{2})?$/.test(formattedData.hora_evento)) {
+                throw new Error('Formato de hora inválido');
+            }
+            // Agregar segundos si no están presentes
+            if (formattedData.hora_evento.length === 5) {
+                formattedData.hora_evento += ':00';
+            }
+        }
+        
+        // Validar campos requeridos según tipo de reporte
+        switch (formattedData.tipo_reporte) {
+            case 'incidentes':
+                if (!formattedData.asunto) throw new Error('El asunto es requerido');
+                if (!formattedData.grado_criticidad) throw new Error('El grado de criticidad es requerido');
+                if (!formattedData.ubicacion_incidente) throw new Error('La ubicación del incidente es requerida');
+                if (!formattedData.tipo_afectacion) throw new Error('El tipo de afectación es requerido');
+                if (!formattedData.descripcion_incidente) throw new Error('La descripción del incidente es requerida');
+                break;
+            case 'hallazgos':
+                if (!formattedData.asunto) throw new Error('El asunto es requerido');
+                if (!formattedData.lugar_hallazgo) throw new Error('El lugar del hallazgo es requerido');
+                if (!formattedData.tipo_hallazgo) throw new Error('El tipo de hallazgo es requerido');
+                if (!formattedData.descripcion_hallazgo) throw new Error('La descripción del hallazgo es requerida');
+                if (!formattedData.estado_condicion) throw new Error('El estado de la condición es requerido');
+                break;
+            case 'conversaciones':
+                if (!formattedData.asunto_conversacion) throw new Error('El asunto de la conversación es requerido');
+                if (!formattedData.tipo_conversacion) throw new Error('El tipo de conversación es requerido');
+                if (!formattedData.sitio_evento_conversacion) throw new Error('El sitio del evento es requerido');
+                if (!formattedData.descripcion_conversacion) throw new Error('La descripción de la conversación es requerida');
+                break;
+        }
+        
+        return formattedData;
+    }
+
     /**
      * Crear un nuevo reporte
      */
     static async createReport(reportData) {
         try {
+            // Validar y formatear datos
+            const formattedData = this.validateAndFormatData(reportData);
+            
+            console.log('Enviando datos al servidor:', formattedData);
+            
             const response = await fetch(`${API_BASE_URL}/api/reports`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(reportData)
+                body: JSON.stringify(formattedData)
             });
+
+            // Verificar si la respuesta es JSON válido
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                // Si no es JSON, obtener el texto de la respuesta para debug
+                const textResponse = await response.text();
+                console.error('Respuesta no JSON del servidor:', textResponse);
+                throw new Error('El servidor devolvió una respuesta no válida. Verifique la consola para más detalles.');
+            }
 
             const data = await response.json();
             

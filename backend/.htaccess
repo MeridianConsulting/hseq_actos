@@ -1,6 +1,8 @@
 RewriteEngine On
-RewriteBase /Evaluacion/backend/
 
+# Redirigir todas las peticiones a index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA,L]
+
+# NO configurar headers CORS aquí, ya se hace en PHP

@@ -40,10 +40,10 @@ set_exception_handler(function($exception) {
     exit;
 });
 
+require_once __DIR__ . '/middleware/cors.php';
+
 // Asegurar que siempre devuelva JSON
 header('Content-Type: application/json');
-
-require_once __DIR__ . '/middleware/cors.php';
 
 // Verificar que los archivos existan antes de incluirlos
 if (!file_exists(__DIR__ . '/controllers/employeeController.php')) {
@@ -61,23 +61,41 @@ if (!file_exists(__DIR__ . '/controllers/reportController.php')) {
     exit;
 }
 
+// Verificar que la base de datos esté disponible
+if (!file_exists(__DIR__ . '/config/db.php')) {
+    echo json_encode(['success' => false, 'message' => 'Configuración de base de datos no encontrada']);
+    exit;
+}
+
 require_once __DIR__ . '/controllers/employeeController.php';
 require_once __DIR__ . '/controllers/authController.php';
 require_once __DIR__ . '/controllers/reportController.php';
-
-define('BASE_PATH', '/hseq/backend');
 
 // Iniciar buffer de salida para capturar errores
 ob_start();
 
 $method = $_SERVER['REQUEST_METHOD'];
-$path = trim(str_replace(BASE_PATH, '', parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)), "/");
+$requestUri = $_SERVER['REQUEST_URI'];
+
+// Extraer el path de la URL correctamente
+$path = parse_url($requestUri, PHP_URL_PATH);
+
+// Remover el directorio base del path
+$scriptDir = dirname($_SERVER['SCRIPT_NAME']);
+if ($scriptDir !== '/') {
+    $path = str_replace($scriptDir, '', $path);
+}
+
+$path = trim($path, "/");
 
 function handleRequest($method, $path){
     // Limpiar buffer antes de procesar
     if (ob_get_length()) ob_clean();
     
     $path = trim($path, "/");
+    
+    // Debug temporal
+    error_log("Request: $method $path");
     
     // Ruta de login
     if($path === 'api/auth/login' && $method === "POST"){
@@ -182,6 +200,16 @@ function handleRequest($method, $path){
                 return;
             }
             
+            // Validar que los datos requeridos estén presentes
+            if (!isset($data['tipo_reporte']) || !isset($data['id_usuario'])) {
+                http_response_code(400);
+                echo json_encode([
+                    "success" => false, 
+                    "message" => "Faltan campos requeridos: tipo_reporte e id_usuario"
+                ]);
+                return;
+            }
+            
             $reportController = new ReportController();
             $result = $reportController->createReport($data);
             
@@ -199,6 +227,14 @@ function handleRequest($method, $path){
             echo json_encode([
                 "success" => false, 
                 "message" => "Error interno del servidor",
+                "error" => $e->getMessage()
+            ]);
+            return;
+        } catch (Error $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false, 
+                "message" => "Error fatal del servidor",
                 "error" => $e->getMessage()
             ]);
             return;
@@ -309,10 +345,12 @@ function handleRequest($method, $path){
             "requested_path" => $path,
             "original_uri" => $_SERVER['REQUEST_URI'],
             "method" => $method,
-            "base_path" => BASE_PATH,
+            "script_name" => $_SERVER['SCRIPT_NAME'],
+            "script_dir" => dirname($_SERVER['SCRIPT_NAME']),
             "debug_info" => [
                 "path_trimmed" => trim($path, "/"),
-                "expected" => "api/auth/login"
+                "document_root" => $_SERVER['DOCUMENT_ROOT'],
+                "current_dir" => __DIR__
             ]
         ]);
     }

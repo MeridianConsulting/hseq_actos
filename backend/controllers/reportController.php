@@ -4,9 +4,82 @@ require_once __DIR__ . '/../config/db.php';
 class ReportController {
     private $conn;
     
+    // Constantes para validación de ENUMs
+    private const TIPOS_REPORTE_VALIDOS = ['hallazgos', 'incidentes', 'conversaciones'];
+    private const ESTADOS_VALIDOS = ['pendiente', 'en_revision', 'cerrado'];
+    private const TIPOS_HALLAZGO_VALIDOS = ['accion_mejoramiento', 'aspecto_positivo', 'condicion_insegura', 'acto_inseguro'];
+    private const ESTADOS_CONDICION_VALIDOS = ['abierta', 'cerrada'];
+    private const GRADOS_CRITICIDAD_VALIDOS = ['bajo', 'medio', 'alto', 'critico'];
+    private const TIPOS_AFECTACION_VALIDOS = ['personas', 'medio_ambiente', 'instalaciones', 'vehiculos', 'seguridad_procesos', 'operaciones'];
+    private const TIPOS_CONVERSACION_VALIDOS = ['reflexion', 'conversacion'];
+    
     public function __construct() {
         global $db;
+        if (!$db) {
+            throw new Exception("No se pudo establecer conexión con la base de datos");
+        }
         $this->conn = $db;
+        
+        // Verificar que la conexión esté activa
+        if ($this->conn->connect_error) {
+            throw new Exception("Error de conexión a la base de datos: " . $this->conn->connect_error);
+        }
+    }
+    
+    /**
+     * Validar campos ENUM según el tipo de reporte
+     */
+    private function validateEnumFields($data, $tipoReporte) {
+        $errors = [];
+        
+        // Validar tipo de reporte
+        if (!in_array($data['tipo_reporte'], self::TIPOS_REPORTE_VALIDOS)) {
+            $errors[] = "Tipo de reporte inválido. Valores permitidos: " . implode(', ', self::TIPOS_REPORTE_VALIDOS);
+        }
+        
+        // Validar campos específicos según tipo de reporte
+        switch ($tipoReporte) {
+            case 'hallazgos':
+                if (isset($data['tipo_hallazgo']) && !in_array($data['tipo_hallazgo'], self::TIPOS_HALLAZGO_VALIDOS)) {
+                    $errors[] = "Tipo de hallazgo inválido. Valores permitidos: " . implode(', ', self::TIPOS_HALLAZGO_VALIDOS);
+                }
+                if (isset($data['estado_condicion']) && !in_array($data['estado_condicion'], self::ESTADOS_CONDICION_VALIDOS)) {
+                    $errors[] = "Estado de condición inválido. Valores permitidos: " . implode(', ', self::ESTADOS_CONDICION_VALIDOS);
+                }
+                break;
+                
+            case 'incidentes':
+                if (isset($data['grado_criticidad']) && !in_array($data['grado_criticidad'], self::GRADOS_CRITICIDAD_VALIDOS)) {
+                    $errors[] = "Grado de criticidad inválido. Valores permitidos: " . implode(', ', self::GRADOS_CRITICIDAD_VALIDOS);
+                }
+                if (isset($data['tipo_afectacion']) && !in_array($data['tipo_afectacion'], self::TIPOS_AFECTACION_VALIDOS)) {
+                    $errors[] = "Tipo de afectación inválido. Valores permitidos: " . implode(', ', self::TIPOS_AFECTACION_VALIDOS);
+                }
+                break;
+                
+            case 'conversaciones':
+                if (isset($data['tipo_conversacion']) && !in_array($data['tipo_conversacion'], self::TIPOS_CONVERSACION_VALIDOS)) {
+                    $errors[] = "Tipo de conversación inválido. Valores permitidos: " . implode(', ', self::TIPOS_CONVERSACION_VALIDOS);
+                }
+                break;
+        }
+        
+        return $errors;
+    }
+    
+    /**
+     * Sanitizar datos de entrada
+     */
+    private function sanitizeInput($data) {
+        $sanitized = [];
+        foreach ($data as $key => $value) {
+            if (is_string($value)) {
+                $sanitized[$key] = htmlspecialchars(trim($value), ENT_QUOTES, 'UTF-8');
+            } else {
+                $sanitized[$key] = $value;
+            }
+        }
+        return $sanitized;
     }
     
     /**
@@ -14,6 +87,14 @@ class ReportController {
      */
     public function createReport($data) {
         try {
+            // Verificar conexión a la base de datos
+            if (!$this->conn || $this->conn->connect_error) {
+                throw new Exception("Error de conexión a la base de datos");
+            }
+            
+            // Sanitizar datos de entrada
+            $data = $this->sanitizeInput($data);
+            
             // Validar datos requeridos
             if (!isset($data['tipo_reporte']) || !isset($data['id_usuario'])) {
                 return [
@@ -22,12 +103,21 @@ class ReportController {
                 ];
             }
             
-            // Validar tipo de reporte
-            $tiposValidos = ['hallazgos', 'incidentes', 'conversaciones'];
-            if (!in_array($data['tipo_reporte'], $tiposValidos)) {
+            // Validar campos ENUM
+            $enumErrors = $this->validateEnumFields($data, $data['tipo_reporte']);
+            if (!empty($enumErrors)) {
                 return [
                     'success' => false,
-                    'message' => 'Tipo de reporte inválido'
+                    'message' => 'Errores de validación: ' . implode(', ', $enumErrors)
+                ];
+            }
+            
+            // Validar campos específicos según tipo de reporte
+            $validationErrors = $this->validateReportFields($data, $data['tipo_reporte']);
+            if (!empty($validationErrors)) {
+                return [
+                    'success' => false,
+                    'message' => 'Errores de validación: ' . implode(', ', $validationErrors)
                 ];
             }
             
@@ -36,6 +126,7 @@ class ReportController {
                 id_usuario, 
                 tipo_reporte, 
                 asunto, 
+                descripcion_general,
                 fecha_evento,
                 lugar_hallazgo,
                 lugar_hallazgo_otro,
@@ -54,7 +145,7 @@ class ReportController {
                 lugar_hallazgo_conversacion_otro,
                 descripcion_conversacion,
                 asunto_conversacion
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = $this->conn->prepare($sql);
             
@@ -62,29 +153,54 @@ class ReportController {
                 throw new Exception("Error preparando la consulta: " . $this->conn->error);
             }
             
-            // Bind de parámetros
-            $stmt->bind_param("issssssssssssssssssss",
-                $data['id_usuario'],
-                $data['tipo_reporte'],
-                $data['asunto'] ?? null,
-                $data['fecha_evento'] ?? null,
-                $data['lugar_hallazgo'] ?? null,
-                $data['lugar_hallazgo_otro'] ?? null,
-                $data['tipo_hallazgo'] ?? null,
-                $data['descripcion_hallazgo'] ?? null,
-                $data['recomendaciones'] ?? null,
-                $data['estado_condicion'] ?? null,
-                $data['grado_criticidad'] ?? null,
-                $data['ubicacion_incidente'] ?? null,
-                $data['hora_evento'] ?? null,
-                $data['tipo_afectacion'] ?? null,
-                $data['descripcion_incidente'] ?? null,
-                $data['tipo_conversacion'] ?? null,
-                $data['sitio_evento_conversacion'] ?? null,
-                $data['lugar_hallazgo_conversacion'] ?? null,
-                $data['lugar_hallazgo_conversacion_otro'] ?? null,
-                $data['descripcion_conversacion'] ?? null,
-                $data['asunto_conversacion'] ?? null
+            // Extraer valores a variables para bind_param (SOLUCIÓN AL PROBLEMA)
+            $id_usuario = $data['id_usuario'];
+            $tipo_reporte = $data['tipo_reporte'];
+            $asunto = $data['asunto'] ?? $data['asunto_conversacion'] ?? null;
+            $descripcion_general = $data['descripcion_general'] ?? null;
+            $fecha_evento = $data['fecha_evento'] ?? null;
+            $lugar_hallazgo = $data['lugar_hallazgo'] ?? null;
+            $lugar_hallazgo_otro = $data['lugar_hallazgo_otro'] ?? null;
+            $tipo_hallazgo = $data['tipo_hallazgo'] ?? null;
+            $descripcion_hallazgo = $data['descripcion_hallazgo'] ?? null;
+            $recomendaciones = $data['recomendaciones'] ?? null;
+            $estado_condicion = $data['estado_condicion'] ?? null;
+            $grado_criticidad = $data['grado_criticidad'] ?? null;
+            $ubicacion_incidente = $data['ubicacion_incidente'] ?? null;
+            $hora_evento = $data['hora_evento'] ?? null;
+            $tipo_afectacion = $data['tipo_afectacion'] ?? null;
+            $descripcion_incidente = $data['descripcion_incidente'] ?? null;
+            $tipo_conversacion = $data['tipo_conversacion'] ?? null;
+            $sitio_evento_conversacion = $data['sitio_evento_conversacion'] ?? null;
+            $lugar_hallazgo_conversacion = $data['lugar_hallazgo_conversacion'] ?? null;
+            $lugar_hallazgo_conversacion_otro = $data['lugar_hallazgo_conversacion_otro'] ?? null;
+            $descripcion_conversacion = $data['descripcion_conversacion'] ?? null;
+            $asunto_conversacion = $data['asunto_conversacion'] ?? null;
+            
+            // Bind de parámetros usando variables (no expresiones de array)
+            $stmt->bind_param("isssssssssssssssssssss",
+                $id_usuario,
+                $tipo_reporte,
+                $asunto,
+                $descripcion_general,
+                $fecha_evento,
+                $lugar_hallazgo,
+                $lugar_hallazgo_otro,
+                $tipo_hallazgo,
+                $descripcion_hallazgo,
+                $recomendaciones,
+                $estado_condicion,
+                $grado_criticidad,
+                $ubicacion_incidente,
+                $hora_evento,
+                $tipo_afectacion,
+                $descripcion_incidente,
+                $tipo_conversacion,
+                $sitio_evento_conversacion,
+                $lugar_hallazgo_conversacion,
+                $lugar_hallazgo_conversacion_otro,
+                $descripcion_conversacion,
+                $asunto_conversacion
             );
             
             // Ejecutar la consulta
@@ -93,11 +209,6 @@ class ReportController {
             }
             
             $reportId = $this->conn->insert_id;
-            
-            // Procesar evidencia si existe
-            if (isset($data['evidencia']) && !empty($data['evidencia'])) {
-                $this->saveEvidence($reportId, $data['evidencia']);
-            }
             
             $stmt->close();
             
@@ -116,38 +227,197 @@ class ReportController {
     }
     
     /**
-     * Guardar evidencia del reporte
+     * Validar campos específicos según tipo de reporte
      */
-    private function saveEvidence($reportId, $evidenceData) {
+    private function validateReportFields($data, $tipoReporte) {
+        $errors = [];
+        
+        // Validar fecha_evento (formato YYYY-MM-DD)
+        if (isset($data['fecha_evento']) && !empty($data['fecha_evento'])) {
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data['fecha_evento'])) {
+                $errors[] = "Formato de fecha inválido. Use YYYY-MM-DD";
+            }
+        }
+        
+        // Validar hora_evento (formato HH:MM:SS)
+        if (isset($data['hora_evento']) && !empty($data['hora_evento'])) {
+            if (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $data['hora_evento'])) {
+                $errors[] = "Formato de hora inválido. Use HH:MM:SS";
+            }
+        }
+        
+        // Validar campos específicos según tipo
+        switch ($tipoReporte) {
+            case 'hallazgos':
+                if (empty($data['asunto'])) {
+                    $errors[] = "El campo 'asunto' es requerido para hallazgos";
+                }
+                if (empty($data['lugar_hallazgo'])) {
+                    $errors[] = "El campo 'lugar_hallazgo' es requerido para hallazgos";
+                }
+                if (empty($data['tipo_hallazgo'])) {
+                    $errors[] = "El campo 'tipo_hallazgo' es requerido para hallazgos";
+                }
+                if (empty($data['descripcion_hallazgo'])) {
+                    $errors[] = "El campo 'descripcion_hallazgo' es requerido para hallazgos";
+                }
+                if (empty($data['estado_condicion'])) {
+                    $errors[] = "El campo 'estado_condicion' es requerido para hallazgos";
+                }
+                break;
+                
+            case 'incidentes':
+                if (empty($data['asunto'])) {
+                    $errors[] = "El campo 'asunto' es requerido para incidentes";
+                }
+                if (empty($data['grado_criticidad'])) {
+                    $errors[] = "El campo 'grado_criticidad' es requerido para incidentes";
+                }
+                if (empty($data['ubicacion_incidente'])) {
+                    $errors[] = "El campo 'ubicacion_incidente' es requerido para incidentes";
+                }
+                if (empty($data['tipo_afectacion'])) {
+                    $errors[] = "El campo 'tipo_afectacion' es requerido para incidentes";
+                }
+                if (empty($data['descripcion_incidente'])) {
+                    $errors[] = "El campo 'descripcion_incidente' es requerido para incidentes";
+                }
+                break;
+                
+            case 'conversaciones':
+                if (empty($data['asunto_conversacion'])) {
+                    $errors[] = "El campo 'asunto_conversacion' es requerido para conversaciones";
+                }
+                if (empty($data['tipo_conversacion'])) {
+                    $errors[] = "El campo 'tipo_conversacion' es requerido para conversaciones";
+                }
+                if (empty($data['sitio_evento_conversacion'])) {
+                    $errors[] = "El campo 'sitio_evento_conversacion' es requerido para conversaciones";
+                }
+                if (empty($data['descripcion_conversacion'])) {
+                    $errors[] = "El campo 'descripcion_conversacion' es requerido para conversaciones";
+                }
+                break;
+        }
+        
+        return $errors;
+    }
+    
+    /**
+     * Subir evidencia para un reporte
+     */
+    public function uploadEvidence($reportId, $file) {
         try {
-            // Decodificar datos base64 si es necesario
-            $fileData = $evidenceData;
-            if (isset($evidenceData['data'])) {
-                $fileData = base64_decode($evidenceData['data']);
+            // Validar que el reporte existe
+            $sql = "SELECT id FROM reportes WHERE id = ?";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param("i", $reportId);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows === 0) {
+                return [
+                    'success' => false,
+                    'message' => 'Reporte no encontrado'
+                ];
+            }
+            $stmt->close();
+            
+            // Validar archivo
+            if ($file['error'] !== UPLOAD_ERR_OK) {
+                return [
+                    'success' => false,
+                    'message' => 'Error al subir archivo: ' . $this->getUploadErrorMessage($file['error'])
+                ];
+            }
+            
+            // Validar tipo de archivo
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+            if (!in_array($file['type'], $allowedTypes)) {
+                return [
+                    'success' => false,
+                    'message' => 'Tipo de archivo no permitido. Solo se permiten: JPG, PNG, GIF, PDF, DOC, DOCX'
+                ];
+            }
+            
+            // Validar tamaño (máximo 10MB)
+            $maxSize = 10 * 1024 * 1024; // 10MB
+            if ($file['size'] > $maxSize) {
+                return [
+                    'success' => false,
+                    'message' => 'El archivo es demasiado grande. Máximo 10MB'
+                ];
+            }
+            
+            // Crear directorio si no existe
+            $uploadDir = __DIR__ . '/../uploads/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
             }
             
             // Generar nombre único para el archivo
-            $fileName = 'evidencia_' . $reportId . '_' . time() . '.' . ($evidenceData['extension'] ?? 'jpg');
-            $uploadPath = __DIR__ . '/../uploads/' . $fileName;
+            $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+            $fileName = 'evidencia_' . $reportId . '_' . time() . '_' . uniqid() . '.' . $extension;
+            $uploadPath = $uploadDir . $fileName;
             
-            // Crear directorio si no existe
-            if (!is_dir(__DIR__ . '/../uploads/')) {
-                mkdir(__DIR__ . '/../uploads/', 0777, true);
+            // Mover archivo
+            if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
+                return [
+                    'success' => false,
+                    'message' => 'Error al guardar el archivo'
+                ];
             }
             
-            // Guardar archivo
-            if (file_put_contents($uploadPath, $fileData)) {
                 // Guardar referencia en base de datos
                 $sql = "INSERT INTO evidencias (id_reporte, tipo_archivo, url_archivo) VALUES (?, ?, ?)";
                 $stmt = $this->conn->prepare($sql);
-                $stmt->bind_param("iss", $reportId, $evidenceData['type'] ?? 'image', $fileName);
-                $stmt->execute();
-                $stmt->close();
+            $stmt->bind_param("iss", $reportId, $file['type'], $fileName);
+            
+            if (!$stmt->execute()) {
+                // Si falla la inserción, eliminar el archivo
+                unlink($uploadPath);
+                throw new Exception("Error guardando referencia en base de datos: " . $stmt->error);
             }
             
+            $evidenceId = $this->conn->insert_id;
+                $stmt->close();
+            
+            return [
+                'success' => true,
+                'message' => 'Evidencia subida exitosamente',
+                'evidence_id' => $evidenceId,
+                'file_name' => $fileName
+            ];
+            
         } catch (Exception $e) {
-            // Log del error pero no fallar el reporte completo
-            error_log("Error guardando evidencia: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error al subir evidencia: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Obtener mensaje de error de subida de archivo
+     */
+    private function getUploadErrorMessage($errorCode) {
+        switch ($errorCode) {
+            case UPLOAD_ERR_INI_SIZE:
+                return 'El archivo excede el tamaño máximo permitido por el servidor';
+            case UPLOAD_ERR_FORM_SIZE:
+                return 'El archivo excede el tamaño máximo permitido por el formulario';
+            case UPLOAD_ERR_PARTIAL:
+                return 'El archivo se subió parcialmente';
+            case UPLOAD_ERR_NO_FILE:
+                return 'No se subió ningún archivo';
+            case UPLOAD_ERR_NO_TMP_DIR:
+                return 'Falta la carpeta temporal';
+            case UPLOAD_ERR_CANT_WRITE:
+                return 'Error al escribir el archivo en disco';
+            case UPLOAD_ERR_EXTENSION:
+                return 'Una extensión de PHP detuvo la subida del archivo';
+            default:
+                return 'Error desconocido al subir archivo';
         }
     }
     
@@ -304,6 +574,14 @@ class ReportController {
      */
     public function updateReportStatus($reportId, $status, $revisorId = null, $comentarios = null) {
         try {
+            // Validar estado
+            if (!in_array($status, self::ESTADOS_VALIDOS)) {
+                return [
+                    'success' => false,
+                    'message' => 'Estado inválido. Valores permitidos: ' . implode(', ', self::ESTADOS_VALIDOS)
+                ];
+            }
+            
             $sql = "UPDATE reportes SET 
                     estado = ?, 
                     revisado_por = ?, 
@@ -316,6 +594,13 @@ class ReportController {
             
             if (!$stmt->execute()) {
                 throw new Exception("Error actualizando reporte: " . $stmt->error);
+            }
+            
+            if ($stmt->affected_rows === 0) {
+                return [
+                    'success' => false,
+                    'message' => 'Reporte no encontrado'
+                ];
             }
             
             $stmt->close();
