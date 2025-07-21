@@ -46,63 +46,103 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     }
   };
 
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'pendiente':
+        return 'Pendiente de Revisión';
+      case 'en_revision':
+        return 'En Revisión';
+      case 'aprobado':
+        return 'Aprobado';
+      case 'rechazado':
+        return 'Rechazado';
+      default:
+        return status;
+    }
+  };
+
   const getEventTypeLabel = (type) => {
     const labels = {
-      'hallazgos': 'Hallazgos',
-      'incidentes': 'Incidentes',
-      'conversaciones': 'Conversaciones'
+      'hallazgos': 'Hallazgos y Condiciones',
+      'incidentes': 'Incidentes HSE',
+      'conversaciones': 'Conversaciones y Reflexiones'
     };
     return labels[type] || type;
   };
 
-  const getFieldLabel = (field) => {
-    const labels = {
-      'tipo_hallazgo': 'Tipo de Hallazgo',
-      'estado_condicion': 'Estado de la Condición',
-      'grado_criticidad': 'Grado de Criticidad',
-      'tipo_afectacion': 'Tipo de Afectación',
-      'tipo_conversacion': 'Tipo de Conversación',
-      'lugar_hallazgo': 'Lugar del Hallazgo',
-      'ubicacion_incidente': 'Ubicación del Incidente',
-      'sitio_evento_conversacion': 'Sitio del Evento',
-      'descripcion_hallazgo': 'Descripción del Hallazgo',
-      'descripcion_incidente': 'Descripción del Incidente',
-      'descripcion_conversacion': 'Descripción de la Conversación',
-      'recomendaciones': 'Recomendaciones',
-      'asunto_conversacion': 'Asunto de la Conversación'
-    };
-    return labels[field] || field;
+  const getEventTypeIcon = (type) => {
+    switch (type) {
+      case 'hallazgos':
+        return (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        );
+      case 'incidentes':
+        return (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+          </svg>
+        );
+      case 'conversaciones':
+        return (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+          </svg>
+        );
+      default:
+        return null;
+    }
   };
 
   const formatFieldValue = (field, value) => {
     if (!value) return 'No especificado';
     
-    // Formatear valores específicos
     switch (field) {
       case 'fecha_evento':
-        return new Date(value).toLocaleDateString('es-ES');
+        return new Date(value).toLocaleDateString('es-ES', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
       case 'hora_evento':
         return value;
       case 'creado_en':
       case 'actualizado_en':
       case 'fecha_revision':
-        return new Date(value).toLocaleString('es-ES');
+        return new Date(value).toLocaleString('es-ES', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
       default:
         return value;
     }
   };
 
-  const renderField = (label, value, fieldName = null) => {
+  const renderField = (label, value, fieldName = null, icon = null) => {
     if (!value && value !== 0) return null;
     
     return (
-      <div className="mb-4">
-        <dt className="text-sm font-medium text-white text-opacity-70 mb-1">
-          {label}
-        </dt>
-        <dd className="text-white">
-          {formatFieldValue(fieldName, value)}
-        </dd>
+      <div className="flex items-start space-x-3 p-4 bg-white bg-opacity-5 rounded-lg">
+        {icon && (
+          <div className="flex-shrink-0 mt-1">
+            <div className="w-5 h-5 text-blue-400">
+              {icon}
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <dt className="text-sm font-medium text-white text-opacity-70 mb-1">
+            {label}
+          </dt>
+          <dd className="text-white leading-relaxed">
+            {formatFieldValue(fieldName, value)}
+          </dd>
+        </div>
       </div>
     );
   };
@@ -110,36 +150,55 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   const renderEvidence = (evidencias) => {
     if (!evidencias || evidencias.length === 0) {
       return (
-        <div className="text-center py-8">
-          <svg className="w-12 h-12 mx-auto text-white text-opacity-30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-          </svg>
-          <p className="text-white text-opacity-50">No hay evidencias adjuntas</p>
+        <div className="text-center py-12">
+          <div className="w-16 h-16 mx-auto mb-4 bg-white bg-opacity-10 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-white text-opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <p className="text-white text-opacity-50 text-lg">No hay evidencias adjuntas</p>
+          <p className="text-white text-opacity-30 text-sm mt-2">Este reporte no incluye archivos multimedia</p>
         </div>
       );
     }
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {evidencias.map((evidencia, index) => (
-          <div key={evidencia.id} className="bg-white bg-opacity-5 rounded-lg p-4">
-            <div className="aspect-w-16 aspect-h-9 mb-3">
+          <div key={evidencia.id} className="group relative bg-white bg-opacity-5 rounded-xl overflow-hidden hover:bg-opacity-10 transition-all duration-300">
+            <div className="aspect-w-16 aspect-h-9">
               <img
                 src={`http://localhost/hseq/backend/uploads/${evidencia.url_archivo}`}
                 alt={`Evidencia ${index + 1}`}
-                className="w-full h-48 object-cover rounded-lg"
+                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                 onError={(e) => {
                   e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik01MCAxMDBDNTAgNzIuODM2IDcyLjgzNiA1MCAxMDAgNTBDMTI3LjE2NCA1MCAxNTAgNzIuODM2IDE1MCAxMDBDMTUwIDEyNy4xNjQgMTI3LjE2NCAxNTAgMTAwIDE1MEM3Mi44MzYgMTUwIDUwIDEyNy4xNjQgNTAgMTAwWiIgZmlsbD0iIzZCNzM4MCIvPgo8cGF0aCBkPSJNMTI1IDEwMEMxMjUgODkuNTQ4IDExNi40NTIgODEgMTA2IDgxQzk1LjU0NzkgODEgODcgODkuNTQ3OSA4NyAxMDBDOCA5NS41NDc5IDg3IDEwNC40NTIgODcgMTE1Qzg3IDEyNS40NTIgOTUuNTQ3OSAxMzQgMTA2IDEzNEMxMTYuNDUyIDEzNCAxMjUgMTI1LjQ1MiAxMjUgMTE1QzEyNSAxMDQuNDUyIDEyNSAxMDAgMTI1IDEwMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
                 }}
               />
             </div>
-            <div className="text-center">
-              <p className="text-white text-sm">
-                Evidencia {index + 1}
-              </p>
-              <p className="text-white text-opacity-50 text-xs">
-                {new Date(evidencia.creado_en).toLocaleString('es-ES')}
-              </p>
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white font-medium">
+                    Evidencia {index + 1}
+                  </p>
+                  <p className="text-white text-opacity-50 text-sm">
+                    {new Date(evidencia.creado_en).toLocaleDateString('es-ES', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                <div className="w-8 h-8 bg-blue-500 bg-opacity-20 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
         ))}
@@ -150,19 +209,33 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
         {/* Header */}
-        <div className="sticky top-0 bg-gray-900 rounded-t-3xl p-6 border-b border-gray-700">
+        <div className="sticky top-0 bg-gradient-to-r from-gray-900 to-gray-800 rounded-t-3xl p-6 border-b border-gray-700">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-white">
-              Detalles del Reporte
-            </h2>
+            <div className="flex items-center space-x-4">
+              {report && (
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getStatusColor(report.estado)}`}>
+                  {getEventTypeIcon(report.tipo_reporte)}
+                </div>
+              )}
+              <div>
+                <h2 className="text-2xl font-bold text-white">
+                  Detalles del Reporte
+                </h2>
+                {report && (
+                  <p className="text-white text-opacity-60 text-sm">
+                    {getEventTypeLabel(report.tipo_reporte)}
+                  </p>
+                )}
+              </div>
+            </div>
             <button
               onClick={onClose}
-              className="text-white hover:text-gray-300 transition-colors duration-200"
+              className="w-10 h-10 bg-white bg-opacity-10 hover:bg-opacity-20 rounded-full flex items-center justify-center transition-all duration-200"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
             </button>
@@ -172,75 +245,173 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         {/* Content */}
         <div className="p-6">
           {isLoading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
-              <p className="text-white text-opacity-70 mt-4">Cargando detalles...</p>
+            <div className="text-center py-16">
+              <div className="w-16 h-16 mx-auto mb-6">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent"></div>
+              </div>
+              <p className="text-white text-opacity-70 text-lg">Cargando detalles del reporte...</p>
             </div>
           ) : error ? (
-            <div className="text-center py-12">
-              <div className="bg-red-500 bg-opacity-20 border border-red-500 rounded-lg p-4">
-                <p className="text-red-300">{error}</p>
+            <div className="text-center py-16">
+              <div className="w-16 h-16 mx-auto mb-6 bg-red-500 bg-opacity-20 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
               </div>
+              <p className="text-red-300 text-lg mb-2">Error al cargar el reporte</p>
+              <p className="text-white text-opacity-50">{error}</p>
             </div>
           ) : report ? (
-            <div className="space-y-6">
-              {/* Información General */}
-              <div className="bg-white bg-opacity-5 rounded-xl p-6">
-                <h3 className="text-xl font-bold text-white mb-4">Información General</h3>
-                <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {renderField('ID del Reporte', report.id)}
-                  {renderField('Tipo de Reporte', getEventTypeLabel(report.tipo_reporte))}
-                  {renderField('Estado', report.estado, 'estado')}
-                  {renderField('Asunto', report.asunto || report.asunto_conversacion)}
-                  {renderField('Fecha del Evento', report.fecha_evento, 'fecha_evento')}
-                  {renderField('Hora del Evento', report.hora_evento, 'hora_evento')}
-                  {renderField('Reportado por', report.nombre_usuario)}
-                  {renderField('Fecha de Creación', report.creado_en, 'creado_en')}
-                  {renderField('Última Actualización', report.actualizado_en, 'actualizado_en')}
-                  {report.fecha_revision && renderField('Fecha de Revisión', report.fecha_revision, 'fecha_revision')}
-                  {report.comentarios_revision && renderField('Comentarios de Revisión', report.comentarios_revision)}
-                </dl>
+            <div className="space-y-8">
+              {/* Estado y Asunto */}
+              <div className="bg-gradient-to-r from-blue-500 bg-opacity-10 to-purple-500 bg-opacity-10 rounded-2xl p-6 border border-blue-500 border-opacity-20">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-4 py-2 rounded-full text-sm font-semibold text-white ${getStatusColor(report.estado)}`}>
+                      {getStatusLabel(report.estado)}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-white text-opacity-60 text-sm">Reportado por</p>
+                    <p className="text-white font-semibold">{report.nombre_usuario}</p>
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  {report.asunto || report.asunto_conversacion || 'Sin asunto'}
+                </h3>
+                <p className="text-white text-opacity-80">
+                  {formatFieldValue('fecha_evento', report.fecha_evento)}
+                  {report.hora_evento && ` • ${report.hora_evento}`}
+                </p>
               </div>
 
               {/* Información Específica según Tipo */}
-              <div className="bg-white bg-opacity-5 rounded-xl p-6">
-                <h3 className="text-xl font-bold text-white mb-4">
-                  Información Específica - {getEventTypeLabel(report.tipo_reporte)}
+              <div className="bg-white bg-opacity-5 rounded-2xl p-6">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center">
+                  <svg className="w-6 h-6 mr-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  Información del Evento
                 </h3>
-                <dl className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {report.tipo_reporte === 'hallazgos' && (
                     <>
-                      {renderField('Lugar del Hallazgo', report.lugar_hallazgo || report.lugar_hallazgo_otro)}
-                      {renderField('Tipo de Hallazgo', report.tipo_hallazgo)}
-                      {renderField('Descripción del Hallazgo', report.descripcion_hallazgo)}
-                      {renderField('Estado de la Condición', report.estado_condicion)}
-                      {renderField('Recomendaciones', report.recomendaciones)}
+                      {renderField('Lugar del Hallazgo', report.lugar_hallazgo || report.lugar_hallazgo_otro, null, 
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                      )}
+                      {renderField('Tipo de Hallazgo', report.tipo_hallazgo, null,
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                      )}
+                      {renderField('Estado de la Condición', report.estado_condicion, null,
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                      )}
+                      {renderField('Descripción', report.descripcion_hallazgo, null,
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                      )}
+                      {renderField('Recomendaciones', report.recomendaciones, null,
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        </svg>
+                      )}
                     </>
                   )}
                   
                   {report.tipo_reporte === 'incidentes' && (
                     <>
-                      {renderField('Ubicación del Incidente', report.ubicacion_incidente)}
-                      {renderField('Grado de Criticidad', report.grado_criticidad)}
-                      {renderField('Tipo de Afectación', report.tipo_afectacion)}
-                      {renderField('Descripción del Incidente', report.descripcion_incidente)}
+                      {renderField('Ubicación', report.ubicacion_incidente, null,
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                      )}
+                      {renderField('Grado de Criticidad', report.grado_criticidad, null,
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                      )}
+                      {renderField('Tipo de Afectación', report.tipo_afectacion, null,
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                      )}
+                      {renderField('Descripción', report.descripcion_incidente, null,
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                      )}
                     </>
                   )}
                   
                   {report.tipo_reporte === 'conversaciones' && (
                     <>
-                      {renderField('Tipo de Conversación', report.tipo_conversacion)}
-                      {renderField('Sitio del Evento', report.sitio_evento_conversacion)}
-                      {renderField('Lugar del Hallazgo', report.lugar_hallazgo_conversacion || report.lugar_hallazgo_conversacion_otro)}
-                      {renderField('Descripción de la Conversación', report.descripcion_conversacion)}
+                      {renderField('Tipo de Conversación', report.tipo_conversacion, null,
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                      )}
+                      {renderField('Sitio del Evento', report.sitio_evento_conversacion, null,
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                      )}
+                      {renderField('Lugar del Hallazgo', report.lugar_hallazgo_conversacion || report.lugar_hallazgo_conversacion_otro, null,
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                      )}
+                      {renderField('Descripción', report.descripcion_conversacion, null,
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                      )}
                     </>
                   )}
-                </dl>
+                </div>
               </div>
 
+              {/* Información de Revisión */}
+              {(report.fecha_revision || report.comentarios_revision) && (
+                <div className="bg-white bg-opacity-5 rounded-2xl p-6">
+                  <h3 className="text-xl font-bold text-white mb-6 flex items-center">
+                    <svg className="w-6 h-6 mr-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Información de Revisión
+                  </h3>
+                  <div className="space-y-4">
+                    {renderField('Fecha de Revisión', report.fecha_revision, 'fecha_revision',
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                      </svg>
+                    )}
+                    {renderField('Comentarios', report.comentarios_revision, null,
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Evidencias */}
-              <div className="bg-white bg-opacity-5 rounded-xl p-6">
-                <h3 className="text-xl font-bold text-white mb-4">Evidencias</h3>
+              <div className="bg-white bg-opacity-5 rounded-2xl p-6">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center">
+                  <svg className="w-6 h-6 mr-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                  Evidencias Adjuntas
+                </h3>
                 {renderEvidence(report.evidencias)}
               </div>
             </div>
