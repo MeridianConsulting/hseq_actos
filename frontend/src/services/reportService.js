@@ -313,6 +313,84 @@ class ReportService {
             throw error;
         }
     }
+
+    /**
+     * Actualizar un reporte existente
+     */
+    static async updateReport(reportId, reportData) {
+        try {
+            // Validar y formatear datos
+            const formattedData = this.validateAndFormatData(reportData);
+            
+            console.log('Actualizando reporte:', reportId, formattedData);
+            
+            const response = await fetch(`${API_BASE_URL}/api/reports/${reportId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formattedData)
+            });
+
+            // Verificar si la respuesta es JSON válido
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const textResponse = await response.text();
+                console.error('Respuesta no JSON del servidor:', textResponse);
+                throw new Error('El servidor devolvió una respuesta no válida');
+            }
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al actualizar el reporte');
+            }
+            
+            return data;
+        } catch (error) {
+            console.error('Error en updateReport:', error);
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                throw new Error('Error de conexión con el servidor');
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Eliminar un reporte
+     */
+    static async deleteReport(reportId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/reports/${reportId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            // Verificar si la respuesta es JSON válido
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const textResponse = await response.text();
+                console.error('Respuesta no JSON del servidor:', textResponse);
+                throw new Error('El servidor devolvió una respuesta no válida');
+            }
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al eliminar el reporte');
+            }
+            
+            return data;
+        } catch (error) {
+            console.error('Error en deleteReport:', error);
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                throw new Error('Error de conexión con el servidor');
+            }
+            throw error;
+        }
+    }
 }
 
 export default ReportService; 

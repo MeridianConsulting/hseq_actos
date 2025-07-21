@@ -414,6 +414,83 @@ function handleRequest($method, $path){
         }
     }
 
+    // Endpoint para actualizar un reporte
+    if(preg_match('/^api\/reports\/(\d+)$/', $path, $matches) && $method === "PUT"){
+        try {
+            $reportId = $matches[1];
+            $input = file_get_contents("php://input");
+            
+            if (empty($input)) {
+                http_response_code(400);
+                echo json_encode([
+                    "success" => false, 
+                    "message" => "No se recibieron datos"
+                ]);
+                return;
+            }
+            
+            $data = json_decode($input, true);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                http_response_code(400);
+                echo json_encode([
+                    "success" => false, 
+                    "message" => "Datos JSON inválidos: " . json_last_error_msg()
+                ]);
+                return;
+            }
+            
+            $reportController = new ReportController();
+            $result = $reportController->updateReport($reportId, $data);
+            
+            if($result['success']){
+                http_response_code(200);
+            } else {
+                http_response_code(400);
+            }
+            
+            echo json_encode($result);
+            return;
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false, 
+                "message" => "Error interno del servidor",
+                "error" => $e->getMessage()
+            ]);
+            return;
+        }
+    }
+
+    // Endpoint para eliminar un reporte
+    if(preg_match('/^api\/reports\/(\d+)$/', $path, $matches) && $method === "DELETE"){
+        try {
+            $reportId = $matches[1];
+            
+            $reportController = new ReportController();
+            $result = $reportController->deleteReport($reportId);
+            
+            if($result['success']){
+                http_response_code(200);
+            } else {
+                http_response_code(400);
+            }
+            
+            echo json_encode($result);
+            return;
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false, 
+                "message" => "Error interno del servidor",
+                "error" => $e->getMessage()
+            ]);
+            return;
+        }
+    }
+
     // Rutas existentes de empleados
     if($path === 'api/employees' && $method === "GET"){
         $controller = new EmployeeController();

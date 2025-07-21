@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { getUser } from '../../utils/auth';
 import ReportService from '../../services/reportService';
-import ReportDetailsModal from '../ReportDetailsModal';
+import SuccessAnimation from '../SuccessAnimation';
+import EditReportModal from '../forms/EditReportModal';
 
-const ReportHistory = () => {
+const CollaboratorReportHistory = () => {
   const [reports, setReports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedReportId, setSelectedReportId] = useState(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [user, setUser] = useState(null);
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const userData = getUser();
@@ -39,14 +44,52 @@ const ReportHistory = () => {
     }
   };
 
-  const handleViewDetails = (reportId) => {
-    setSelectedReportId(reportId);
-    setShowDetailsModal(true);
+  const handleEditReport = (report) => {
+    setSelectedReport(report);
+    setShowEditModal(true);
   };
 
-  const handleCloseDetails = () => {
-    setShowDetailsModal(false);
-    setSelectedReportId(null);
+  const handleEditSuccess = () => {
+    // Recargar la lista de reportes después de una edición exitosa
+    if (user?.id) {
+      loadUserReports(user.id);
+    }
+  };
+
+  const handleDeleteReport = (report) => {
+    setSelectedReport(report);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedReport) return;
+
+    setIsDeleting(true);
+    try {
+      const result = await ReportService.deleteReport(selectedReport.id);
+      
+      if (result.success) {
+        setReports(prev => prev.filter(report => report.id !== selectedReport.id));
+        setSuccessMessage('Reporte eliminado exitosamente');
+        setShowSuccessAnimation(true);
+        setShowDeleteModal(false);
+        setSelectedReport(null);
+      } else {
+        throw new Error(result.message || 'Error al eliminar el reporte');
+      }
+    } catch (error) {
+      console.error('Error al eliminar reporte:', error);
+      setError('Error al eliminar el reporte: ' + error.message);
+      setShowDeleteModal(false);
+      setSelectedReport(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleSuccessAnimationComplete = () => {
+    setShowSuccessAnimation(false);
+    setSuccessMessage('');
   };
 
   const getStatusColor = (status) => {
@@ -67,7 +110,7 @@ const ReportHistory = () => {
   const getStatusLabel = (status) => {
     switch (status) {
       case 'pendiente':
-        return 'Pendiente de Revisión';
+        return 'Pendiente';
       case 'en_revision':
         return 'En Revisión';
       case 'aprobado':
@@ -81,9 +124,9 @@ const ReportHistory = () => {
 
   const getEventTypeLabel = (type) => {
     const labels = {
-      'hallazgos': 'Hallazgos y Condiciones',
-      'incidentes': 'Incidentes HSE',
-      'conversaciones': 'Conversaciones y Reflexiones'
+      'hallazgos': 'Hallazgos',
+      'incidentes': 'Incidentes',
+      'conversaciones': 'Conversaciones'
     };
     return labels[type] || type;
   };
@@ -113,40 +156,12 @@ const ReportHistory = () => {
     }
   };
 
-  const getLocationText = (report) => {
-    switch (report.tipo_reporte) {
-      case 'hallazgos':
-        return report.lugar_hallazgo || report.lugar_hallazgo_otro || 'No especificada';
-      case 'incidentes':
-        return report.ubicacion_incidente || 'No especificada';
-      case 'conversaciones':
-        return report.sitio_evento_conversacion || 'No especificada';
-      default:
-        return 'No especificada';
-    }
-  };
-
-  const getDescriptionText = (report) => {
-    switch (report.tipo_reporte) {
-      case 'hallazgos':
-        return report.descripcion_hallazgo || report.asunto || 'Sin descripción';
-      case 'incidentes':
-        return report.descripcion_incidente || report.asunto || 'Sin descripción';
-      case 'conversaciones':
-        return report.descripcion_conversacion || report.asunto_conversacion || 'Sin descripción';
-      default:
-        return report.asunto || 'Sin descripción';
-    }
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return 'No especificada';
     return new Date(dateString).toLocaleDateString('es-ES', {
       year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      month: 'short',
+      day: 'numeric'
     });
   };
 
@@ -215,6 +230,14 @@ const ReportHistory = () => {
           </div>
         </div>
         
+        {/* Información sobre estados */}
+        <div className="bg-white bg-opacity-5 rounded-lg p-4 mb-6">
+          <p className="text-white text-opacity-80 text-sm">
+            <span className="font-semibold">Nota:</span> Solo puedes editar y eliminar reportes con estado "Pendiente". 
+            Los reportes en revisión, aprobados o rechazados no pueden ser modificados.
+          </p>
+        </div>
+        
         {reports.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 mx-auto mb-4 bg-white bg-opacity-10 rounded-full flex items-center justify-center">
@@ -259,24 +282,51 @@ const ReportHistory = () => {
                     {report.asunto || report.asunto_conversacion || 'Sin asunto'}
                   </h4>
                   <p className="text-white text-opacity-90 mb-2 line-clamp-2">
-                    {getDescriptionText(report)}
+                    {report.descripcion_hallazgo || report.descripcion_incidente || report.descripcion_conversacion || 'Sin descripción'}
                   </p>
                   <div className="flex justify-between text-sm text-white text-opacity-60">
-                    <span>Ubicación: {getLocationText(report)}</span>
                     <span>Fecha evento: {formatDate(report.fecha_evento)}</span>
+                    {report.evidencias && report.evidencias.length > 0 && (
+                      <span className="flex items-center">
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        {report.evidencias.length} evidencia{report.evidencias.length !== 1 ? 's' : ''}
+                      </span>
+                    )}
                   </div>
                 </div>
                 
                 <div className="flex justify-end space-x-2">
                   <button 
-                    onClick={() => handleViewDetails(report.id)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200 flex items-center space-x-2"
+                    onClick={() => handleEditReport(report)}
+                    className={`px-4 py-2 rounded-lg text-sm transition-colors duration-200 flex items-center space-x-2 ${
+                      report.estado === 'pendiente'
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    }`}
+                    disabled={report.estado !== 'pendiente'}
+                    title={report.estado !== 'pendiente' ? 'Solo se pueden editar reportes pendientes' : 'Editar reporte'}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                     </svg>
-                    <span>Ver Detalles</span>
+                    <span>Editar</span>
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteReport(report)}
+                    className={`px-4 py-2 rounded-lg text-sm transition-colors duration-200 flex items-center space-x-2 ${
+                      report.estado === 'pendiente'
+                        ? 'bg-red-600 hover:bg-red-700 text-white'
+                        : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    }`}
+                    disabled={report.estado !== 'pendiente'}
+                    title={report.estado !== 'pendiente' ? 'Solo se pueden eliminar reportes pendientes' : 'Eliminar reporte'}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    <span>Eliminar</span>
                   </button>
                 </div>
               </div>
@@ -285,14 +335,85 @@ const ReportHistory = () => {
         )}
       </div>
 
-      {/* Report Details Modal */}
-      <ReportDetailsModal
-        isOpen={showDetailsModal}
-        onClose={handleCloseDetails}
-        reportId={selectedReportId}
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && selectedReport && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl max-w-md w-full shadow-2xl border border-gray-700">
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 mx-auto mb-4 bg-red-500 bg-opacity-20 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  ¿Eliminar reporte?
+                </h3>
+                <p className="text-white text-opacity-70">
+                  ¿Estás seguro de que quieres eliminar este reporte? Esta acción no se puede deshacer.
+                </p>
+              </div>
+              
+              <div className="bg-white bg-opacity-5 rounded-lg p-4 mb-6">
+                <p className="text-white font-semibold">
+                  {selectedReport.asunto || selectedReport.asunto_conversacion || 'Sin asunto'}
+                </p>
+                <p className="text-white text-opacity-60 text-sm">
+                  {getEventTypeLabel(selectedReport.tipo_reporte)} • {formatDate(selectedReport.creado_en)}
+                </p>
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className={`flex-1 px-4 py-2 rounded-lg transition-colors duration-200 ${
+                    isDeleting 
+                      ? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
+                      : 'bg-red-600 hover:bg-red-700 text-white'
+                  }`}
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline"></div>
+                      Eliminando...
+                    </>
+                  ) : (
+                    'Eliminar'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Report Modal */}
+      <EditReportModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        report={selectedReport}
+        onSuccess={handleEditSuccess}
+      />
+
+      {/* Success Animation */}
+      <SuccessAnimation
+        isVisible={showSuccessAnimation}
+        onComplete={handleSuccessAnimationComplete}
+        message={successMessage}
+        showConfetti={true}
+        size="medium"
+        duration={1000}
+        fadeOutDuration={2000}
       />
     </>
   );
 };
 
-export default ReportHistory; 
+export default CollaboratorReportHistory; 

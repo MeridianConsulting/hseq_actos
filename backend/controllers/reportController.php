@@ -662,5 +662,239 @@ class ReportController {
             ];
         }
     }
+
+    /**
+     * Actualizar un reporte existente
+     */
+    public function updateReport($reportId, $data) {
+        try {
+            // Debug: Log de datos recibidos
+            error_log("Datos recibidos en updateReport: " . json_encode($data));
+            
+            // Verificar conexión a la base de datos
+            if (!$this->conn || $this->conn->connect_error) {
+                throw new Exception("Error de conexión a la base de datos");
+            }
+            
+            // Verificar que el reporte existe y está pendiente, y obtener su tipo
+            $sqlCheck = "SELECT id, estado, tipo_reporte FROM reportes WHERE id = ?";
+            $stmtCheck = $this->conn->prepare($sqlCheck);
+            $stmtCheck->bind_param("i", $reportId);
+            $stmtCheck->execute();
+            $resultCheck = $stmtCheck->get_result();
+            
+            if ($resultCheck->num_rows === 0) {
+                return [
+                    'success' => false,
+                    'message' => 'Reporte no encontrado'
+                ];
+            }
+            
+            $report = $resultCheck->fetch_assoc();
+            if ($report['estado'] !== 'pendiente') {
+                return [
+                    'success' => false,
+                    'message' => 'Solo se pueden editar reportes pendientes'
+                ];
+            }
+            
+            $tipoReporte = $report['tipo_reporte'];
+            $stmtCheck->close();
+            
+            // Sanitizar datos de entrada
+            $data = $this->sanitizeInput($data);
+            
+            // Agregar el tipo de reporte a los datos para validación
+            $data['tipo_reporte'] = $tipoReporte;
+            
+            // Validar campos ENUM
+            $enumErrors = $this->validateEnumFields($data, $tipoReporte);
+            if (!empty($enumErrors)) {
+                return [
+                    'success' => false,
+                    'message' => 'Errores de validación: ' . implode(', ', $enumErrors)
+                ];
+            }
+            
+            // Validar campos específicos según tipo de reporte
+            $validationErrors = $this->validateReportFields($data, $tipoReporte);
+            if (!empty($validationErrors)) {
+                return [
+                    'success' => false,
+                    'message' => 'Errores de validación: ' . implode(', ', $validationErrors)
+                ];
+            }
+            
+            // Preparar la consulta SQL de actualización
+            $sql = "UPDATE reportes SET 
+                    asunto = ?, 
+                    descripcion_general = ?,
+                    fecha_evento = ?,
+                    lugar_hallazgo = ?,
+                    lugar_hallazgo_otro = ?,
+                    tipo_hallazgo = ?,
+                    descripcion_hallazgo = ?,
+                    recomendaciones = ?,
+                    estado_condicion = ?,
+                    grado_criticidad = ?,
+                    ubicacion_incidente = ?,
+                    hora_evento = ?,
+                    tipo_afectacion = ?,
+                    descripcion_incidente = ?,
+                    tipo_conversacion = ?,
+                    sitio_evento_conversacion = ?,
+                    lugar_hallazgo_conversacion = ?,
+                    lugar_hallazgo_conversacion_otro = ?,
+                    descripcion_conversacion = ?,
+                    asunto_conversacion = ?,
+                    actualizado_en = CURRENT_TIMESTAMP
+                    WHERE id = ?";
+            
+            $stmt = $this->conn->prepare($sql);
+            
+            if (!$stmt) {
+                throw new Exception("Error preparando la consulta: " . $this->conn->error);
+            }
+            
+            // Extraer valores a variables para bind_param
+            $asunto = $data['asunto'] ?? $data['asunto_conversacion'] ?? null;
+            $descripcion_general = $data['descripcion_general'] ?? null;
+            $fecha_evento = $data['fecha_evento'] ?? null;
+            $lugar_hallazgo = $data['lugar_hallazgo'] ?? null;
+            $lugar_hallazgo_otro = $data['lugar_hallazgo_otro'] ?? null;
+            $tipo_hallazgo = $data['tipo_hallazgo'] ?? null;
+            $descripcion_hallazgo = $data['descripcion_hallazgo'] ?? null;
+            $recomendaciones = $data['recomendaciones'] ?? null;
+            $estado_condicion = $data['estado_condicion'] ?? null;
+            $grado_criticidad = $data['grado_criticidad'] ?? null;
+            $ubicacion_incidente = $data['ubicacion_incidente'] ?? null;
+            $hora_evento = $data['hora_evento'] ?? null;
+            $tipo_afectacion = $data['tipo_afectacion'] ?? null;
+            $descripcion_incidente = $data['descripcion_incidente'] ?? null;
+            $tipo_conversacion = $data['tipo_conversacion'] ?? null;
+            $sitio_evento_conversacion = $data['sitio_evento_conversacion'] ?? null;
+            $lugar_hallazgo_conversacion = $data['lugar_hallazgo_conversacion'] ?? null;
+            $lugar_hallazgo_conversacion_otro = $data['lugar_hallazgo_conversacion_otro'] ?? null;
+            $descripcion_conversacion = $data['descripcion_conversacion'] ?? null;
+            $asunto_conversacion = $data['asunto_conversacion'] ?? null;
+            
+            // Bind de parámetros
+            $stmt->bind_param("ssssssssssssssssssssi",
+                $asunto,
+                $descripcion_general,
+                $fecha_evento,
+                $lugar_hallazgo,
+                $lugar_hallazgo_otro,
+                $tipo_hallazgo,
+                $descripcion_hallazgo,
+                $recomendaciones,
+                $estado_condicion,
+                $grado_criticidad,
+                $ubicacion_incidente,
+                $hora_evento,
+                $tipo_afectacion,
+                $descripcion_incidente,
+                $tipo_conversacion,
+                $sitio_evento_conversacion,
+                $lugar_hallazgo_conversacion,
+                $lugar_hallazgo_conversacion_otro,
+                $descripcion_conversacion,
+                $asunto_conversacion,
+                $reportId
+            );
+            
+            // Ejecutar la consulta
+            if (!$stmt->execute()) {
+                throw new Exception("Error ejecutando la consulta: " . $stmt->error);
+            }
+            
+            if ($stmt->affected_rows === 0) {
+                return [
+                    'success' => false,
+                    'message' => 'No se realizaron cambios en el reporte'
+                ];
+            }
+            
+            $stmt->close();
+            
+            return [
+                'success' => true,
+                'message' => 'Reporte actualizado exitosamente'
+            ];
+            
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al actualizar el reporte: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Eliminar un reporte
+     */
+    public function deleteReport($reportId) {
+        try {
+            // Verificar que el reporte existe y está pendiente
+            $sqlCheck = "SELECT id, estado FROM reportes WHERE id = ?";
+            $stmtCheck = $this->conn->prepare($sqlCheck);
+            $stmtCheck->bind_param("i", $reportId);
+            $stmtCheck->execute();
+            $resultCheck = $stmtCheck->get_result();
+            
+            if ($resultCheck->num_rows === 0) {
+                return [
+                    'success' => false,
+                    'message' => 'Reporte no encontrado'
+                ];
+            }
+            
+            $report = $resultCheck->fetch_assoc();
+            if ($report['estado'] !== 'pendiente') {
+                return [
+                    'success' => false,
+                    'message' => 'Solo se pueden eliminar reportes pendientes'
+                ];
+            }
+            
+            $stmtCheck->close();
+            
+            // Eliminar evidencias asociadas primero
+            $sqlEvidencias = "DELETE FROM evidencias WHERE id_reporte = ?";
+            $stmtEvidencias = $this->conn->prepare($sqlEvidencias);
+            $stmtEvidencias->bind_param("i", $reportId);
+            $stmtEvidencias->execute();
+            $stmtEvidencias->close();
+            
+            // Eliminar el reporte
+            $sql = "DELETE FROM reportes WHERE id = ?";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param("i", $reportId);
+            
+            if (!$stmt->execute()) {
+                throw new Exception("Error eliminando reporte: " . $stmt->error);
+            }
+            
+            if ($stmt->affected_rows === 0) {
+                return [
+                    'success' => false,
+                    'message' => 'No se pudo eliminar el reporte'
+                ];
+            }
+            
+            $stmt->close();
+            
+            return [
+                'success' => true,
+                'message' => 'Reporte eliminado exitosamente'
+            ];
+            
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al eliminar el reporte: ' . $e->getMessage()
+            ];
+        }
+    }
 }
 ?> 

@@ -7,7 +7,7 @@ import ReportTypeSelector from '../components/forms/ReportTypeSelector';
 import HallazgosForm from '../components/forms/HallazgosForm';
 import IncidentesForm from '../components/forms/IncidentesForm';
 import ConversacionesForm from '../components/forms/ConversacionesForm';
-import ReportHistory from '../components/dashboard/ReportHistory';
+import CollaboratorReportHistory from '../components/dashboard/CollaboratorReportHistory';
 import '../assets/css/styles.css';
 
 const CollaboratorDashboard = () => {
@@ -161,6 +161,10 @@ const CollaboratorDashboard = () => {
     setShowSuccessAnimation(false);
     // Volver a la pantalla inicial después de la animación
     setSelectedReportType(null);
+    // Recargar el historial de reportes
+    if (window.reportHistoryRefresh) {
+      window.reportHistoryRefresh();
+    }
   };
 
   const handleLogout = () => {
@@ -297,7 +301,7 @@ const CollaboratorDashboard = () => {
           )}
 
           {/* History Tab */}
-          {activeTab === 'history' && <ReportHistory />}
+          {activeTab === 'history' && <CollaboratorReportHistory key={activeTab} />}
         </div>
       </main>
 
