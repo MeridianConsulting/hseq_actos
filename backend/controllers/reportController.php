@@ -87,6 +87,9 @@ class ReportController {
      */
     public function createReport($data) {
         try {
+            // Debug: Log de datos recibidos
+            error_log("Datos recibidos en createReport: " . json_encode($data));
+            
             // Verificar conexión a la base de datos
             if (!$this->conn || $this->conn->connect_error) {
                 throw new Exception("Error de conexión a la base de datos");
@@ -306,8 +309,11 @@ class ReportController {
     /**
      * Subir evidencia para un reporte
      */
-    public function uploadEvidence($reportId, $file) {
+    public function uploadEvidence($reportId, $evidenceData) {
         try {
+            // Debug: Log de datos de evidencia recibidos
+            error_log("Datos de evidencia recibidos para reporte $reportId: " . json_encode(array_keys($evidenceData)));
+            
             // Validar que el reporte existe
             $sql = "SELECT id FROM reportes WHERE id = ?";
             $stmt = $this->conn->prepare($sql);
@@ -323,17 +329,17 @@ class ReportController {
             }
             $stmt->close();
             
-            // Validar archivo
-            if ($file['error'] !== UPLOAD_ERR_OK) {
+            // Validar que tenemos los datos necesarios
+            if (!isset($evidenceData['data']) || !isset($evidenceData['type']) || !isset($evidenceData['extension'])) {
                 return [
                     'success' => false,
-                    'message' => 'Error al subir archivo: ' . $this->getUploadErrorMessage($file['error'])
+                    'message' => 'Datos de evidencia incompletos'
                 ];
             }
             
             // Validar tipo de archivo
             $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-            if (!in_array($file['type'], $allowedTypes)) {
+            if (!in_array($evidenceData['type'], $allowedTypes)) {
                 return [
                     'success' => false,
                     'message' => 'Tipo de archivo no permitido. Solo se permiten: JPG, PNG, GIF, PDF, DOC, DOCX'
@@ -342,7 +348,7 @@ class ReportController {
             
             // Validar tamaño (máximo 10MB)
             $maxSize = 10 * 1024 * 1024; // 10MB
-            if ($file['size'] > $maxSize) {
+            if (isset($evidenceData['size']) && $evidenceData['size'] > $maxSize) {
                 return [
                     'success' => false,
                     'message' => 'El archivo es demasiado grande. Máximo 10MB'
@@ -356,22 +362,29 @@ class ReportController {
             }
             
             // Generar nombre único para el archivo
-            $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-            $fileName = 'evidencia_' . $reportId . '_' . time() . '_' . uniqid() . '.' . $extension;
+            $fileName = 'evidencia_' . $reportId . '_' . time() . '_' . uniqid() . '.' . $evidenceData['extension'];
             $uploadPath = $uploadDir . $fileName;
             
-            // Mover archivo
-            if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
+            // Decodificar y guardar archivo base64
+            $fileData = base64_decode($evidenceData['data']);
+            if ($fileData === false) {
+                return [
+                    'success' => false,
+                    'message' => 'Error al decodificar datos base64'
+                ];
+            }
+            
+            if (file_put_contents($uploadPath, $fileData) === false) {
                 return [
                     'success' => false,
                     'message' => 'Error al guardar el archivo'
                 ];
             }
             
-                // Guardar referencia en base de datos
-                $sql = "INSERT INTO evidencias (id_reporte, tipo_archivo, url_archivo) VALUES (?, ?, ?)";
-                $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param("iss", $reportId, $file['type'], $fileName);
+            // Guardar referencia en base de datos
+            $sql = "INSERT INTO evidencias (id_reporte, tipo_archivo, url_archivo) VALUES (?, ?, ?)";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param("iss", $reportId, $evidenceData['type'], $fileName);
             
             if (!$stmt->execute()) {
                 // Si falla la inserción, eliminar el archivo
@@ -380,7 +393,7 @@ class ReportController {
             }
             
             $evidenceId = $this->conn->insert_id;
-                $stmt->close();
+            $stmt->close();
             
             return [
                 'success' => true,

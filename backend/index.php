@@ -213,6 +213,15 @@ function handleRequest($method, $path){
             $reportController = new ReportController();
             $result = $reportController->createReport($data);
             
+            // Si el reporte se creó exitosamente y hay evidencia, procesarla
+            if($result['success'] && isset($data['evidencia']) && !empty($data['evidencia'])){
+                $evidenceResult = $reportController->uploadEvidence($result['report_id'], $data['evidencia']);
+                if(!$evidenceResult['success']){
+                    // Si falla la subida de evidencia, agregar advertencia pero no fallar el reporte
+                    $result['evidence_warning'] = $evidenceResult['message'];
+                }
+            }
+            
             if($result['success']){
                 http_response_code(201);
             } else {
@@ -336,6 +345,29 @@ function handleRequest($method, $path){
         $controller = new EmployeeController();
         $result = $controller->deleteEmployee($_GET['id']);
         echo json_encode($result);
+    }
+    // Endpoint de prueba para verificar funcionamiento
+    elseif($path === 'api/test' && $method === "POST"){
+        try {
+            $input = file_get_contents("php://input");
+            $data = json_decode($input, true);
+            
+            echo json_encode([
+                "success" => true,
+                "message" => "Endpoint de prueba funcionando",
+                "received_data" => $data,
+                "timestamp" => date('Y-m-d H:i:s')
+            ]);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Error en endpoint de prueba",
+                "error" => $e->getMessage()
+            ]);
+            return;
+        }
     }
     else{
         http_response_code(404);
