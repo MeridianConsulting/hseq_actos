@@ -10,12 +10,15 @@ import { ResponsiveBar } from '@nivo/bar';
 import { ResponsivePie } from '@nivo/pie';
 import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveRadar } from '@nivo/radar';
+import { useDashboardStats } from '../hooks/useDashboardStats';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [user, setUser] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
+
+  const { stats, loading, error } = useDashboardStats();
 
   useEffect(() => {
     const userData = getUser();
@@ -33,58 +36,67 @@ const Dashboard = () => {
     navigate('/home');
   };
 
-  // Datos de ejemplo para los gráficos
-  const incidentsByMonth = [
-    { month: 'Ene', incidentes: 12, reportes: 45, capacitaciones: 8 },
-    { month: 'Feb', incidentes: 8, reportes: 52, capacitaciones: 12 },
-    { month: 'Mar', incidentes: 15, reportes: 38, capacitaciones: 6 },
-    { month: 'Abr', incidentes: 6, reportes: 61, capacitaciones: 15 },
-    { month: 'May', incidentes: 11, reportes: 49, capacitaciones: 9 },
-    { month: 'Jun', incidentes: 4, reportes: 58, capacitaciones: 18 }
-  ];
+  // Bar chart: Incidentes por mes
+  const incidentsByMonth = stats?.incidentesPorMes?.map(m => ({
+    month: m.mes_corto || m.mes,
+    incidentes: Number(m.incidentes),
+    hallazgos: Number(m.hallazgos),
+    conversaciones: Number(m.conversaciones),
+    total: Number(m.total_reportes)
+  })) || [];
 
-  const incidentsByType = [
-    { id: 'Accidentes', label: 'Accidentes', value: 23, color: '#ef4444' },
-    { id: 'Casi Accidentes', label: 'Casi Accidentes', value: 45, color: '#f97316' },
-    { id: 'Condiciones Inseguras', label: 'Condiciones Inseguras', value: 32, color: '#eab308' },
-    { id: 'Actos Inseguros', label: 'Actos Inseguros', value: 28, color: '#22c55e' },
-    { id: 'Ambientales', label: 'Ambientales', value: 15, color: '#3b82f6' }
-  ];
+  // Pie chart: Distribución por tipo
+  const incidentsByType = stats?.distribucionTipo?.map(t => ({
+    id: t.tipo_reporte,
+    label: t.tipo_reporte.charAt(0).toUpperCase() + t.tipo_reporte.slice(1),
+    value: Number(t.cantidad),
+    color: t.color
+  })) || [];
 
+  // Line chart: Tendencias mensuales
   const monthlyTrends = [
     {
       id: 'Incidentes',
       color: '#ef4444',
-      data: [
-        { x: 'Ene', y: 12 },
-        { x: 'Feb', y: 8 },
-        { x: 'Mar', y: 15 },
-        { x: 'Abr', y: 6 },
-        { x: 'May', y: 11 },
-        { x: 'Jun', y: 4 }
-      ]
+      data: (stats?.tendencias || []).map(m => ({
+        x: m.mes_corto || m.mes,
+        y: Number(m.incidentes)
+      }))
     },
     {
-      id: 'Reportes',
-      color: '#22c55e',
-      data: [
-        { x: 'Ene', y: 45 },
-        { x: 'Feb', y: 52 },
-        { x: 'Mar', y: 38 },
-        { x: 'Abr', y: 61 },
-        { x: 'May', y: 49 },
-        { x: 'Jun', y: 58 }
-      ]
+      id: 'Hallazgos',
+      color: '#eab308',
+      data: (stats?.tendencias || []).map(m => ({
+        x: m.mes_corto || m.mes,
+        y: Number(m.hallazgos)
+      }))
+    },
+    {
+      id: 'Conversaciones',
+      color: '#3b82f6',
+      data: (stats?.tendencias || []).map(m => ({
+        x: m.mes_corto || m.mes,
+        y: Number(m.conversaciones)
+      }))
     }
   ];
 
+  // Radar chart: Métricas de seguridad
   const safetyMetrics = [
-    { metric: 'Cumplimiento EPP', value: 85 },
-    { metric: 'Capacitación', value: 92 },
-    { metric: 'Inspecciones', value: 78 },
-    { metric: 'Documentación', value: 88 },
-    { metric: 'Procedimientos', value: 90 },
-    { metric: 'Auditorías', value: 82 }
+    { metric: 'Cumplimiento EPP', value: Number(stats?.metricasSeguridad?.cumplimiento_epp) || 0 },
+    { metric: 'Capacitación', value: Number(stats?.metricasSeguridad?.capacitacion) || 0 },
+    { metric: 'Inspecciones', value: Number(stats?.metricasSeguridad?.inspecciones) || 0 },
+    { metric: 'Documentación', value: Number(stats?.metricasSeguridad?.documentacion) || 0 },
+    { metric: 'Procedimientos', value: Number(stats?.metricasSeguridad?.procedimientos) || 0 },
+    { metric: 'Auditorías', value: Number(stats?.metricasSeguridad?.auditorias) || 0 }
+  ];
+
+  // KPIs
+  const kpis = [
+    { title: 'Total Incidentes', value: stats?.kpis?.total_incidentes ?? '-', color: '#ef4444', icon: '⚠️' },
+    { title: 'Reportes Procesados', value: stats?.kpis?.total_reportes ?? '-', color: '#22c55e', icon: '📋' },
+    { title: 'Capacitaciones', value: stats?.kpis?.total_conversaciones ?? '-', color: '#3b82f6', icon: '🎓' },
+    { title: 'Días sin Accidentes', value: stats?.diasSinAccidentes ?? '-', color: '#f59e0b', icon: '🏆' }
   ];
 
   return (
@@ -314,12 +326,9 @@ const Dashboard = () => {
 
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            {[
-              { title: 'Total Incidentes', value: '56', change: '-12%', color: '#ef4444', icon: '⚠️' },
-              { title: 'Reportes Procesados', value: '303', change: '+8%', color: '#22c55e', icon: '📋' },
-              { title: 'Capacitaciones', value: '68', change: '+15%', color: '#3b82f6', icon: '🎓' },
-              { title: 'Días sin Accidentes', value: '45', change: '+5', color: '#f59e0b', icon: '🏆' }
-            ].map((kpi, index) => (
+            {loading && <div className="text-center text-lg text-gray-300">Cargando KPIs...</div>}
+            {error && <div className="text-center text-lg text-red-500">{error}</div>}
+            {!loading && !error && kpis.map((kpi, index) => (
               <div 
                 key={index}
                 className="backdrop-blur-2xl rounded-2xl p-6 border hover:transform hover:scale-105 transition-all duration-300"
@@ -329,18 +338,6 @@ const Dashboard = () => {
                   boxShadow: '0 10px 30px -5px rgba(4, 8, 15, 0.3)'
                 }}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl">{kpi.icon}</span>
-                  <span 
-                    className="text-sm font-bold px-2 py-1 rounded"
-                    style={{ 
-                      backgroundColor: kpi.change.startsWith('+') ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                      color: kpi.change.startsWith('+') ? '#86efac' : '#fca5a5'
-                    }}
-                  >
-                    {kpi.change}
-                  </span>
-                </div>
                 <h3 className="text-3xl font-bold mb-1" style={{ color: kpi.color }}>
                   {kpi.value}
                 </h3>
@@ -353,385 +350,397 @@ const Dashboard = () => {
 
           {/* Charts Grid - Enhanced */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {/* Bar Chart - Incidentes por Mes */}
-            <div 
-              className="chart-container group"
-              style={{
-                background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
-                border: '1px solid rgba(252, 247, 255, 0.2)',
-                borderRadius: '1.5rem',
-                padding: '1.5rem',
-                height: '450px',
-                position: 'relative',
-                overflow: 'hidden',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
-                transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
-              }}
-            >
-              {/* Decorative elements */}
-              <div className="absolute top-0 right-0 w-32 h-32 opacity-5">
-                <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-accent), var(--color-tertiary))' }}></div>
-              </div>
-              
-              {/* Chart Header */}
-              <div className="relative z-10 mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div 
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ 
-                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
-                      }}
-                    >
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                        Incidentes y Reportes
-                      </h3>
-                      <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
-                        Análisis mensual
-                      </p>
+            {loading && <div className="text-center text-lg text-gray-300">Cargando gráficos...</div>}
+            {error && <div className="text-center text-lg text-red-500">{error}</div>}
+            {!loading && !error && (
+              <>
+                {/* Bar Chart - Incidentes por Mes */}
+                <div 
+                  className="chart-container group"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
+                    border: '1px solid rgba(252, 247, 255, 0.2)',
+                    borderRadius: '1.5rem',
+                    padding: '1.5rem',
+                    height: '450px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
+                    transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
+                  }}
+                >
+                  {/* Decorative elements */}
+                  <div className="absolute top-0 right-0 w-32 h-32 opacity-5">
+                    <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-accent), var(--color-tertiary))' }}></div>
+                  </div>
+                  
+                  {/* Chart Header */}
+                  <div className="relative z-10 mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div 
+                          className="w-10 h-10 rounded-xl flex items-center justify-center"
+                          style={{ 
+                            background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+                          }}
+                        >
+                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                            Incidentes y Reportes
+                          </h3>
+                          <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
+                            Análisis mensual
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
+                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Incidentes</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }}></div>
+                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Reportes</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <div className="flex items-center space-x-1">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
-                      <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Incidentes</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }}></div>
-                      <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Reportes</span>
-                    </div>
+                  
+                  {/* Chart Container */}
+                  <div className="relative" style={{ height: '320px' }}>
+                    <ResponsiveBar
+                      data={incidentsByMonth}
+                      keys={['incidentes', 'hallazgos', 'conversaciones']}
+                      indexBy="month"
+                      margin={{ top: 20, right: 80, bottom: 50, left: 60 }}
+                      padding={0.3}
+                      valueScale={{ type: 'linear' }}
+                      colors={['#ef4444', '#22c55e']}
+                      theme={{
+                        background: 'transparent',
+                        text: { fill: '#fcf7ff' },
+                        axis: { ticks: { text: { fill: '#fcf7ff' } } },
+                        grid: { line: { stroke: 'rgba(252, 247, 255, 0.1)' } }
+                      }}
+                      axisBottom={{
+                        tickSize: 5,
+                        tickPadding: 5,
+                        tickRotation: 0
+                      }}
+                      axisLeft={{
+                        tickSize: 5,
+                        tickPadding: 5,
+                        tickRotation: 0
+                      }}
+                      legends={[
+                        {
+                          dataFrom: 'keys',
+                          anchor: 'bottom-right',
+                          direction: 'column',
+                          translateX: 120,
+                          translateY: 0,
+                          itemsSpacing: 2,
+                          itemWidth: 100,
+                          itemHeight: 20,
+                          itemTextColor: '#fcf7ff'
+                        }
+                      ]}
+                    />
                   </div>
                 </div>
-              </div>
-              
-              {/* Chart Container */}
-              <div className="relative" style={{ height: '320px' }}>
-                <ResponsiveBar
-                  data={incidentsByMonth}
-                  keys={['incidentes', 'reportes']}
-                  indexBy="month"
-                  margin={{ top: 20, right: 80, bottom: 50, left: 60 }}
-                  padding={0.3}
-                  valueScale={{ type: 'linear' }}
-                  colors={['#ef4444', '#22c55e']}
-                  theme={{
-                    background: 'transparent',
-                    text: { fill: '#fcf7ff' },
-                    axis: { ticks: { text: { fill: '#fcf7ff' } } },
-                    grid: { line: { stroke: 'rgba(252, 247, 255, 0.1)' } }
-                  }}
-                  axisBottom={{
-                    tickSize: 5,
-                    tickPadding: 5,
-                    tickRotation: 0
-                  }}
-                  axisLeft={{
-                    tickSize: 5,
-                    tickPadding: 5,
-                    tickRotation: 0
-                  }}
-                  legends={[
-                    {
-                      dataFrom: 'keys',
-                      anchor: 'bottom-right',
-                      direction: 'column',
-                      translateX: 120,
-                      translateY: 0,
-                      itemsSpacing: 2,
-                      itemWidth: 100,
-                      itemHeight: 20,
-                      itemTextColor: '#fcf7ff'
-                    }
-                  ]}
-                />
-              </div>
-            </div>
 
-            {/* Pie Chart - Incidentes por Tipo */}
-            <div 
-              className="chart-container group"
-              style={{
-                background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
-                border: '1px solid rgba(252, 247, 255, 0.2)',
-                borderRadius: '1.5rem',
-                padding: '1.5rem',
-                height: '450px',
-                position: 'relative',
-                overflow: 'hidden',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
-                transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
-              }}
-            >
-              {/* Decorative elements */}
-              <div className="absolute top-0 left-0 w-24 h-24 opacity-5">
-                <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-tertiary), var(--color-accent))' }}></div>
-              </div>
-              
-              {/* Chart Header */}
-              <div className="relative z-10 mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div 
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ 
-                        background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                        boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)'
-                      }}
-                    >
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                        Distribución por Tipo
-                      </h3>
-                      <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
-                        Clasificación de incidentes
-                      </p>
+                {/* Pie Chart - Incidentes por Tipo */}
+                <div 
+                  className="chart-container group"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
+                    border: '1px solid rgba(252, 247, 255, 0.2)',
+                    borderRadius: '1.5rem',
+                    padding: '1.5rem',
+                    height: '450px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
+                    transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
+                  }}
+                >
+                  {/* Decorative elements */}
+                  <div className="absolute top-0 left-0 w-24 h-24 opacity-5">
+                    <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-tertiary), var(--color-accent))' }}></div>
+                  </div>
+                  
+                  {/* Chart Header */}
+                  <div className="relative z-10 mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div 
+                          className="w-10 h-10 rounded-xl flex items-center justify-center"
+                          style={{ 
+                            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                            boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)'
+                          }}
+                        >
+                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                            Distribución por Tipo
+                          </h3>
+                          <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
+                            Clasificación de incidentes
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold" style={{ color: 'var(--color-secondary)' }}>143</div>
+                        <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Total</div>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold" style={{ color: 'var(--color-secondary)' }}>143</div>
-                    <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Total</div>
+                  
+                  {/* Chart Container */}
+                  <div className="relative" style={{ height: '320px' }}>
+                    <ResponsivePie
+                      data={incidentsByType}
+                      margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
+                      innerRadius={0.5}
+                      padAngle={0.7}
+                      cornerRadius={3}
+                      activeOuterRadiusOffset={8}
+                      colors={{ datum: 'data.color' }}
+                      theme={{
+                        background: 'transparent',
+                        text: { fill: '#fcf7ff' }
+                      }}
+                      arcLinkLabelsSkipAngle={10}
+                      arcLinkLabelsTextColor="#fcf7ff"
+                      arcLinkLabelsThickness={2}
+                      arcLinkLabelsColor={{ from: 'color' }}
+                      arcLabelsSkipAngle={10}
+                      arcLabelsTextColor="#000"
+                      legends={[
+                        {
+                          anchor: 'bottom',
+                          direction: 'row',
+                          translateY: 56,
+                          itemWidth: 100,
+                          itemHeight: 18,
+                          itemTextColor: '#fcf7ff',
+                          symbolSize: 18,
+                          symbolShape: 'circle'
+                        }
+                      ]}
+                    />
                   </div>
                 </div>
-              </div>
-              
-              {/* Chart Container */}
-              <div className="relative" style={{ height: '320px' }}>
-                <ResponsivePie
-                  data={incidentsByType}
-                  margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
-                  innerRadius={0.5}
-                  padAngle={0.7}
-                  cornerRadius={3}
-                  activeOuterRadiusOffset={8}
-                  colors={{ datum: 'data.color' }}
-                  theme={{
-                    background: 'transparent',
-                    text: { fill: '#fcf7ff' }
-                  }}
-                  arcLinkLabelsSkipAngle={10}
-                  arcLinkLabelsTextColor="#fcf7ff"
-                  arcLinkLabelsThickness={2}
-                  arcLinkLabelsColor={{ from: 'color' }}
-                  arcLabelsSkipAngle={10}
-                  arcLabelsTextColor="#000"
-                  legends={[
-                    {
-                      anchor: 'bottom',
-                      direction: 'row',
-                      translateY: 56,
-                      itemWidth: 100,
-                      itemHeight: 18,
-                      itemTextColor: '#fcf7ff',
-                      symbolSize: 18,
-                      symbolShape: 'circle'
-                    }
-                  ]}
-                />
-              </div>
-            </div>
+              </>
+            )}
           </div>
 
           {/* Second Row Charts - Enhanced */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Line Chart - Tendencias Mensuales */}
-            <div 
-              className="chart-container group"
-              style={{
-                background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
-                border: '1px solid rgba(252, 247, 255, 0.2)',
-                borderRadius: '1.5rem',
-                padding: '1.5rem',
-                height: '450px',
-                position: 'relative',
-                overflow: 'hidden',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
-                transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
-              }}
-            >
-              {/* Decorative elements */}
-              <div className="absolute bottom-0 right-0 w-28 h-28 opacity-5">
-                <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-accent), var(--color-primary))' }}></div>
-              </div>
-              
-              {/* Chart Header */}
-              <div className="relative z-10 mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div 
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ 
-                        background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-                      }}
-                    >
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                        Tendencias Mensuales
-                      </h3>
-                      <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
-                        Evolución temporal
-                      </p>
+            {loading && <div className="text-center text-lg text-gray-300">Cargando gráficos...</div>}
+            {error && <div className="text-center text-lg text-red-500">{error}</div>}
+            {!loading && !error && (
+              <>
+                {/* Line Chart - Tendencias Mensuales */}
+                <div 
+                  className="chart-container group"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
+                    border: '1px solid rgba(252, 247, 255, 0.2)',
+                    borderRadius: '1.5rem',
+                    padding: '1.5rem',
+                    height: '450px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
+                    transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
+                  }}
+                >
+                  {/* Decorative elements */}
+                  <div className="absolute bottom-0 right-0 w-28 h-28 opacity-5">
+                    <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-accent), var(--color-primary))' }}></div>
+                  </div>
+                  
+                  {/* Chart Header */}
+                  <div className="relative z-10 mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div 
+                          className="w-10 h-10 rounded-xl flex items-center justify-center"
+                          style={{ 
+                            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                          }}
+                        >
+                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                            Tendencias Mensuales
+                          </h3>
+                          <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
+                            Evolución temporal
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
+                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Incidentes</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }}></div>
+                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Reportes</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <div className="flex items-center space-x-1">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
-                      <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Incidentes</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }}></div>
-                      <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Reportes</span>
-                    </div>
+                  
+                  {/* Chart Container */}
+                  <div className="relative" style={{ height: '320px' }}>
+                    <ResponsiveLine
+                      data={monthlyTrends}
+                      margin={{ top: 20, right: 80, bottom: 50, left: 60 }}
+                      xScale={{ type: 'point' }}
+                      yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: false }}
+                      curve="cardinal"
+                      axisTop={null}
+                      axisRight={null}
+                      theme={{
+                        background: 'transparent',
+                        text: { fill: '#fcf7ff' },
+                        axis: { ticks: { text: { fill: '#fcf7ff' } } },
+                        grid: { line: { stroke: 'rgba(252, 247, 255, 0.1)' } }
+                      }}
+                      pointSize={10}
+                      pointColor={{ theme: 'background' }}
+                      pointBorderWidth={2}
+                      pointBorderColor={{ from: 'serieColor' }}
+                      pointLabelYOffset={-12}
+                      useMesh={true}
+                      legends={[
+                        {
+                          anchor: 'bottom-right',
+                          direction: 'column',
+                          translateX: 100,
+                          translateY: 0,
+                          itemsSpacing: 0,
+                          itemDirection: 'left-to-right',
+                          itemWidth: 80,
+                          itemHeight: 20,
+                          itemTextColor: '#fcf7ff',
+                          symbolSize: 12,
+                          symbolShape: 'circle'
+                        }
+                      ]}
+                    />
                   </div>
                 </div>
-              </div>
-              
-              {/* Chart Container */}
-              <div className="relative" style={{ height: '320px' }}>
-                <ResponsiveLine
-                  data={monthlyTrends}
-                  margin={{ top: 20, right: 80, bottom: 50, left: 60 }}
-                  xScale={{ type: 'point' }}
-                  yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: false }}
-                  curve="cardinal"
-                  axisTop={null}
-                  axisRight={null}
-                  theme={{
-                    background: 'transparent',
-                    text: { fill: '#fcf7ff' },
-                    axis: { ticks: { text: { fill: '#fcf7ff' } } },
-                    grid: { line: { stroke: 'rgba(252, 247, 255, 0.1)' } }
-                  }}
-                  pointSize={10}
-                  pointColor={{ theme: 'background' }}
-                  pointBorderWidth={2}
-                  pointBorderColor={{ from: 'serieColor' }}
-                  pointLabelYOffset={-12}
-                  useMesh={true}
-                  legends={[
-                    {
-                      anchor: 'bottom-right',
-                      direction: 'column',
-                      translateX: 100,
-                      translateY: 0,
-                      itemsSpacing: 0,
-                      itemDirection: 'left-to-right',
-                      itemWidth: 80,
-                      itemHeight: 20,
-                      itemTextColor: '#fcf7ff',
-                      symbolSize: 12,
-                      symbolShape: 'circle'
-                    }
-                  ]}
-                />
-              </div>
-            </div>
 
-            {/* Radar Chart - Métricas de Seguridad */}
-            <div 
-              className="chart-container group"
-              style={{
-                background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
-                border: '1px solid rgba(252, 247, 255, 0.2)',
-                borderRadius: '1.5rem',
-                padding: '1.5rem',
-                height: '450px',
-                position: 'relative',
-                overflow: 'hidden',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
-                transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
-              }}
-            >
-              {/* Decorative elements */}
-              <div className="absolute top-0 left-0 w-20 h-20 opacity-5">
-                <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-primary), var(--color-tertiary))' }}></div>
-              </div>
-              
-              {/* Chart Header */}
-              <div className="relative z-10 mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div 
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ 
-                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                        boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
-                      }}
-                    >
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                        Métricas de Seguridad
-                      </h3>
-                      <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
-                        Indicadores clave
-                      </p>
+                {/* Radar Chart - Métricas de Seguridad */}
+                <div 
+                  className="chart-container group"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
+                    border: '1px solid rgba(252, 247, 255, 0.2)',
+                    borderRadius: '1.5rem',
+                    padding: '1.5rem',
+                    height: '450px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
+                    transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
+                  }}
+                >
+                  {/* Decorative elements */}
+                  <div className="absolute top-0 left-0 w-20 h-20 opacity-5">
+                    <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-primary), var(--color-tertiary))' }}></div>
+                  </div>
+                  
+                  {/* Chart Header */}
+                  <div className="relative z-10 mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div 
+                          className="w-10 h-10 rounded-xl flex items-center justify-center"
+                          style={{ 
+                            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
+                          }}
+                        >
+                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                            Métricas de Seguridad
+                          </h3>
+                          <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
+                            Indicadores clave
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold" style={{ color: '#22c55e' }}>85.8%</div>
+                        <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Promedio</div>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold" style={{ color: '#22c55e' }}>85.8%</div>
-                    <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Promedio</div>
+                  
+                  {/* Chart Container */}
+                  <div className="relative" style={{ height: '320px' }}>
+                    <ResponsiveRadar
+                      data={safetyMetrics}
+                      keys={['value']}
+                      indexBy="metric"
+                      maxValue={100}
+                      margin={{ top: 40, right: 80, bottom: 40, left: 80 }}
+                      curve="linearClosed"
+                      borderWidth={2}
+                      borderColor={{ from: 'color' }}
+                      gridLevels={5}
+                      gridShape="circular"
+                      gridLabelOffset={36}
+                      enableDots={true}
+                      dotSize={10}
+                      dotColor={{ theme: 'background' }}
+                      dotBorderWidth={2}
+                      dotBorderColor={{ from: 'color' }}
+                      enableDotLabel={true}
+                      dotLabel="value"
+                      dotLabelYOffset={-12}
+                      colors={['#22c55e']}
+                      theme={{
+                        background: 'transparent',
+                        text: { fill: '#fcf7ff' },
+                        grid: { line: { stroke: 'rgba(252, 247, 255, 0.2)' } }
+                      }}
+                    />
                   </div>
                 </div>
-              </div>
-              
-              {/* Chart Container */}
-              <div className="relative" style={{ height: '320px' }}>
-                <ResponsiveRadar
-                  data={safetyMetrics}
-                  keys={['value']}
-                  indexBy="metric"
-                  maxValue={100}
-                  margin={{ top: 40, right: 80, bottom: 40, left: 80 }}
-                  curve="linearClosed"
-                  borderWidth={2}
-                  borderColor={{ from: 'color' }}
-                  gridLevels={5}
-                  gridShape="circular"
-                  gridLabelOffset={36}
-                  enableDots={true}
-                  dotSize={10}
-                  dotColor={{ theme: 'background' }}
-                  dotBorderWidth={2}
-                  dotBorderColor={{ from: 'color' }}
-                  enableDotLabel={true}
-                  dotLabel="value"
-                  dotLabelYOffset={-12}
-                  colors={['#22c55e']}
-                  theme={{
-                    background: 'transparent',
-                    text: { fill: '#fcf7ff' },
-                    grid: { line: { stroke: 'rgba(252, 247, 255, 0.2)' } }
-                  }}
-                />
-              </div>
-            </div>
+              </>
+            )}
           </div>
 
           {/* Download Reports Section */}

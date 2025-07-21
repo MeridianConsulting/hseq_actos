@@ -537,6 +537,24 @@ function handleRequest($method, $path){
             return;
         }
     }
+
+    // Endpoint para obtener estadísticas del dashboard
+    elseif($path === 'api/reports/dashboard-stats' && $method === "GET"){
+        try {
+            $reportController = new ReportController();
+            $result = $reportController->getDashboardStats();
+            echo json_encode($result);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false, 
+                "message" => "Error interno del servidor",
+                "error" => $e->getMessage()
+            ]);
+            return;
+        }
+    }
     else{
         http_response_code(404);
         echo json_encode([

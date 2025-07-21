@@ -896,5 +896,144 @@ class ReportController {
             ];
         }
     }
+
+    public function getDashboardStats() {
+        try {
+            // 1. Incidentes por mes (últimos 6 meses) con formato mejorado
+            $sqlIncidentesPorMes = "
+                SELECT 
+                    DATE_FORMAT(fecha_evento, '%Y-%m') as mes,
+                    DATE_FORMAT(fecha_evento, '%b') as mes_corto,
+                    COUNT(CASE WHEN tipo_reporte = 'incidentes' THEN 1 END) as incidentes,
+                    COUNT(CASE WHEN tipo_reporte = 'hallazgos' THEN 1 END) as hallazgos,
+                    COUNT(CASE WHEN tipo_reporte = 'conversaciones' THEN 1 END) as conversaciones,
+                    COUNT(*) as total_reportes
+                FROM reportes 
+                WHERE fecha_evento >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                GROUP BY DATE_FORMAT(fecha_evento, '%Y-%m'), DATE_FORMAT(fecha_evento, '%b')
+                ORDER BY mes ASC
+            ";
+            $resultIncidentesPorMes = $this->conn->query($sqlIncidentesPorMes);
+            $incidentesPorMes = [];
+            while ($row = $resultIncidentesPorMes->fetch_assoc()) {
+                $incidentesPorMes[] = $row;
+            }
+
+            // 2. Distribución por tipo de incidente con colores
+            $sqlDistribucionTipo = "
+                SELECT 
+                    tipo_reporte,
+                    COUNT(*) as cantidad,
+                    ROUND((COUNT(*) * 100.0) / (SELECT COUNT(*) FROM reportes), 2) as porcentaje
+                FROM reportes 
+                GROUP BY tipo_reporte
+                ORDER BY cantidad DESC
+            ";
+            $resultDistribucionTipo = $this->conn->query($sqlDistribucionTipo);
+            $distribucionTipo = [];
+            $colores = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'];
+            $i = 0;
+            while ($row = $resultDistribucionTipo->fetch_assoc()) {
+                $row['color'] = $colores[$i % count($colores)];
+                $distribucionTipo[] = $row;
+                $i++;
+            }
+
+            // 3. Tendencias mensuales para gráfico de líneas
+            $sqlTendencias = "
+                SELECT 
+                    DATE_FORMAT(fecha_evento, '%Y-%m') as mes,
+                    DATE_FORMAT(fecha_evento, '%b') as mes_corto,
+                    COUNT(CASE WHEN tipo_reporte = 'incidentes' THEN 1 END) as incidentes,
+                    COUNT(CASE WHEN tipo_reporte = 'hallazgos' THEN 1 END) as hallazgos,
+                    COUNT(CASE WHEN tipo_reporte = 'conversaciones' THEN 1 END) as conversaciones
+                FROM reportes 
+                WHERE fecha_evento >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                GROUP BY DATE_FORMAT(fecha_evento, '%Y-%m'), DATE_FORMAT(fecha_evento, '%b')
+                ORDER BY mes ASC
+            ";
+            $resultTendencias = $this->conn->query($sqlTendencias);
+            $tendencias = [];
+            while ($row = $resultTendencias->fetch_assoc()) {
+                $tendencias[] = $row;
+            }
+
+            // 4. KPIs principales mejorados
+            $sqlKPIs = "
+                SELECT 
+                    COUNT(*) as total_reportes,
+                    COUNT(CASE WHEN tipo_reporte = 'incidentes' THEN 1 END) as total_incidentes,
+                    COUNT(CASE WHEN tipo_reporte = 'hallazgos' THEN 1 END) as total_hallazgos,
+                    COUNT(CASE WHEN tipo_reporte = 'conversaciones' THEN 1 END) as total_conversaciones,
+                    COUNT(CASE WHEN estado = 'pendiente' THEN 1 END) as pendientes,
+                    COUNT(CASE WHEN estado = 'aprobado' THEN 1 END) as aprobados,
+                    COUNT(CASE WHEN estado = 'rechazado' THEN 1 END) as rechazados,
+                    COUNT(CASE WHEN estado = 'en_revision' THEN 1 END) as en_revision,
+                    ROUND((COUNT(CASE WHEN estado = 'aprobado' THEN 1 END) * 100.0) / COUNT(*), 2) as tasa_aprobacion
+                FROM reportes
+            ";
+            $resultKPIs = $this->conn->query($sqlKPIs);
+            $kpis = $resultKPIs->fetch_assoc();
+
+            // 5. Días sin accidentes (último incidente)
+            $sqlUltimoIncidente = "
+                SELECT 
+                    COALESCE(DATEDIFF(CURDATE(), MAX(fecha_evento)), 0) as dias_sin_accidentes,
+                    MAX(fecha_evento) as ultimo_incidente
+                FROM reportes 
+                WHERE tipo_reporte = 'incidentes'
+            ";
+            $resultUltimoIncidente = $this->conn->query($sqlUltimoIncidente);
+            $ultimoIncidente = $resultUltimoIncidente->fetch_assoc();
+
+            // 6. Métricas de seguridad (simuladas basadas en datos reales)
+            $sqlMetricasSeguridad = "
+                SELECT 
+                    ROUND((COUNT(CASE WHEN estado = 'aprobado' THEN 1 END) * 100.0) / COUNT(*), 0) as cumplimiento_epp,
+                    ROUND((COUNT(CASE WHEN tipo_reporte = 'hallazgos' THEN 1 END) * 100.0) / COUNT(*), 0) as inspecciones,
+                    ROUND((COUNT(CASE WHEN tipo_reporte = 'conversaciones' THEN 1 END) * 100.0) / COUNT(*), 0) as capacitacion,
+                    ROUND((COUNT(CASE WHEN estado != 'rechazado' THEN 1 END) * 100.0) / COUNT(*), 0) as documentacion,
+                    ROUND((COUNT(CASE WHEN estado = 'en_revision' THEN 1 END) * 100.0) / COUNT(*), 0) as procedimientos,
+                    ROUND((COUNT(CASE WHEN estado = 'aprobado' THEN 1 END) * 100.0) / COUNT(*), 0) as auditorias
+                FROM reportes
+            ";
+            $resultMetricasSeguridad = $this->conn->query($sqlMetricasSeguridad);
+            $metricasSeguridad = $resultMetricasSeguridad->fetch_assoc();
+
+            // 7. Estadísticas por criticidad (si existe el campo)
+            $sqlCriticidad = "
+                SELECT 
+                    COALESCE(grado_criticidad, 'No especificada') as criticidad,
+                    COUNT(*) as cantidad
+                FROM reportes 
+                GROUP BY grado_criticidad
+                ORDER BY cantidad DESC
+            ";
+            $resultCriticidad = $this->conn->query($sqlCriticidad);
+            $criticidad = [];
+            while ($row = $resultCriticidad->fetch_assoc()) {
+                $criticidad[] = $row;
+            }
+
+            return [
+                'success' => true,
+                'data' => [
+                    'incidentesPorMes' => $incidentesPorMes,
+                    'distribucionTipo' => $distribucionTipo,
+                    'tendencias' => $tendencias,
+                    'kpis' => $kpis,
+                    'diasSinAccidentes' => $ultimoIncidente['dias_sin_accidentes'] ?? 0,
+                    'ultimoIncidente' => $ultimoIncidente['ultimo_incidente'] ?? null,
+                    'metricasSeguridad' => $metricasSeguridad,
+                    'criticidad' => $criticidad
+                ]
+            ];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al obtener estadísticas del dashboard: ' . $e->getMessage()
+            ];
+        }
+    }
 }
 ?> 

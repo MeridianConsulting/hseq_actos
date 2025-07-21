@@ -152,6 +152,45 @@ export const reportService = {
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener estadísticas');
         }
+    },
+
+    /**
+     * Obtener estadísticas del dashboard
+     * @returns {Promise<Object>}
+     */
+    fetchDashboardStats: async () => {
+        try {
+            const response = await api.get('/api/reports/dashboard-stats');
+            return response.data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Error al obtener estadísticas del dashboard');
+        }
+    },
+
+    /**
+     * Obtener estadísticas por criticidad
+     * @returns {Promise<Object>}
+     */
+    fetchCriticalityStats: async () => {
+        try {
+            const response = await api.get('/api/reports/criticality-stats');
+            return response.data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Error al obtener estadísticas por criticidad');
+        }
+    },
+
+    /**
+     * Obtener estadísticas por afectación
+     * @returns {Promise<Object>}
+     */
+    fetchAffectationStats: async () => {
+        try {
+            const response = await api.get('/api/reports/affectation-stats');
+            return response.data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Error al obtener estadísticas por afectación');
+        }
     }
 };
 
