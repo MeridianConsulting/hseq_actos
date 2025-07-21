@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReportService from '../../services/reportService';
 import SuccessAnimation from '../SuccessAnimation';
 
@@ -7,6 +7,8 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const firstInputRef = useRef(null);
 
   useEffect(() => {
     if (isOpen && report) {
@@ -42,8 +44,39 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
         evidencia: null
       });
       setError(null);
+      
+      // Mostrar modal con transición
+      setIsVisible(true);
+      
+      // Enfocar el primer campo después de que el modal se abra
+      setTimeout(() => {
+        if (firstInputRef.current) {
+          firstInputRef.current.focus();
+        }
+      }, 500);
+    } else {
+      setIsVisible(false);
     }
   }, [isOpen, report]);
+
+  // Manejar tecla ESC y trap focus
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, onClose]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -106,372 +139,501 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
     }
   };
 
+  const getEventTypeLabel = (type) => {
+    const labels = {
+      'hallazgos': 'Hallazgos y Condiciones',
+      'incidentes': 'Incidentes HSE',
+      'conversaciones': 'Conversaciones y Reflexiones'
+    };
+    return labels[type] || type;
+  };
+
+  const getEventTypeIcon = (type) => {
+    switch (type) {
+      case 'hallazgos':
+        return (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        );
+      case 'incidentes':
+        return (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+          </svg>
+        );
+      case 'conversaciones':
+        return (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
+
   const renderFormFields = () => {
     switch (report?.tipo_reporte) {
       case 'hallazgos':
         return (
-          <>
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Asunto *
-              </label>
-              <input
-                type="text"
-                name="asunto"
-                value={formData.asunto || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Describe brevemente el hallazgo"
-                required
-              />
-            </div>
+          <div className="space-y-6">
+            <div className="bg-white bg-opacity-5 rounded-xl p-6 border border-white border-opacity-10">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Información General
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="asunto" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Asunto *
+                  </label>
+                  <input
+                    ref={firstInputRef}
+                    id="asunto"
+                    type="text"
+                    name="asunto"
+                    value={formData.asunto || ''}
+                    onChange={handleInputChange}
+                    placeholder="Describe brevemente el hallazgo"
+                    required
+                    autoComplete="off"
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
 
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Fecha del Evento *
-              </label>
-              <input
-                type="date"
-                name="fecha_evento"
-                value={formData.fecha_evento || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Lugar del Hallazgo *
-              </label>
-              <select
-                name="lugar_hallazgo"
-                value={formData.lugar_hallazgo || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Selecciona un lugar</option>
-                <option value="oficina">Oficina</option>
-                <option value="taller">Taller</option>
-                <option value="campo">Campo</option>
-                <option value="otro">Otro</option>
-              </select>
-            </div>
-
-            {formData.lugar_hallazgo === 'otro' && (
-              <div className="mb-4">
-                <label className="block text-white text-sm font-medium mb-2">
-                  Especificar Lugar
-                </label>
-                <input
-                  type="text"
-                  name="lugar_hallazgo_otro"
-                  value={formData.lugar_hallazgo_otro || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Especifica el lugar del hallazgo"
-                />
+                <div>
+                  <label htmlFor="fecha_evento" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Fecha del Evento *
+                  </label>
+                  <input
+                    id="fecha_evento"
+                    type="date"
+                    name="fecha_evento"
+                    value={formData.fecha_evento || ''}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
               </div>
-            )}
-
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Tipo de Hallazgo *
-              </label>
-              <select
-                name="tipo_hallazgo"
-                value={formData.tipo_hallazgo || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Selecciona el tipo</option>
-                <option value="condicion_insegura">Condición Insegura</option>
-                <option value="acto_inseguro">Acto Inseguro</option>
-                <option value="subestandar">Subestándar</option>
-              </select>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Estado de la Condición *
-              </label>
-              <select
-                name="estado_condicion"
-                value={formData.estado_condicion || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Selecciona el estado</option>
-                <option value="abierto">Abierto</option>
-                <option value="en_proceso">En Proceso</option>
-                <option value="cerrado">Cerrado</option>
-              </select>
+            <div className="bg-white bg-opacity-5 rounded-xl p-6 border border-white border-opacity-10">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Ubicación y Tipo
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="lugar_hallazgo" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Lugar del Hallazgo *
+                  </label>
+                  <select
+                    id="lugar_hallazgo"
+                    name="lugar_hallazgo"
+                    value={formData.lugar_hallazgo || ''}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  >
+                    <option value="">Selecciona un lugar</option>
+                    <option value="oficina">Oficina</option>
+                    <option value="taller">Taller</option>
+                    <option value="campo">Campo</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </div>
+
+                {formData.lugar_hallazgo === 'otro' && (
+                  <div>
+                    <label htmlFor="lugar_hallazgo_otro" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                      Especificar Lugar
+                    </label>
+                    <input
+                      id="lugar_hallazgo_otro"
+                      type="text"
+                      name="lugar_hallazgo_otro"
+                      value={formData.lugar_hallazgo_otro || ''}
+                      onChange={handleInputChange}
+                      placeholder="Especifica el lugar del hallazgo"
+                      className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label htmlFor="tipo_hallazgo" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Tipo de Hallazgo *
+                  </label>
+                  <select
+                    id="tipo_hallazgo"
+                    name="tipo_hallazgo"
+                    value={formData.tipo_hallazgo || ''}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  >
+                    <option value="">Selecciona el tipo</option>
+                    <option value="condicion_insegura">Condición Insegura</option>
+                    <option value="acto_inseguro">Acto Inseguro</option>
+                    <option value="subestandar">Subestándar</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="estado_condicion" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Estado de la Condición *
+                  </label>
+                  <select
+                    id="estado_condicion"
+                    name="estado_condicion"
+                    value={formData.estado_condicion || ''}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  >
+                    <option value="">Selecciona el estado</option>
+                    <option value="abierto">Abierto</option>
+                    <option value="en_proceso">En Proceso</option>
+                    <option value="cerrado">Cerrado</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Descripción del Hallazgo *
-              </label>
-              <textarea
-                name="descripcion_hallazgo"
-                value={formData.descripcion_hallazgo || ''}
-                onChange={handleInputChange}
-                rows="4"
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Describe detalladamente el hallazgo encontrado"
-                required
-              />
-            </div>
+            <div className="bg-white bg-opacity-5 rounded-xl p-6 border border-white border-opacity-10">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Descripción y Recomendaciones
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="descripcion_hallazgo" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Descripción del Hallazgo *
+                  </label>
+                  <textarea
+                    id="descripcion_hallazgo"
+                    name="descripcion_hallazgo"
+                    value={formData.descripcion_hallazgo || ''}
+                    onChange={handleInputChange}
+                    rows="4"
+                    placeholder="Describe detalladamente el hallazgo encontrado"
+                    required
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
+                  />
+                </div>
 
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Recomendaciones
-              </label>
-              <textarea
-                name="recomendaciones"
-                value={formData.recomendaciones || ''}
-                onChange={handleInputChange}
-                rows="3"
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Sugiere acciones para corregir el hallazgo"
-              />
+                <div>
+                  <label htmlFor="recomendaciones" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Recomendaciones
+                  </label>
+                  <textarea
+                    id="recomendaciones"
+                    name="recomendaciones"
+                    value={formData.recomendaciones || ''}
+                    onChange={handleInputChange}
+                    rows="3"
+                    placeholder="Sugiere acciones para corregir el hallazgo"
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
+                  />
+                </div>
+              </div>
             </div>
-          </>
+          </div>
         );
 
       case 'incidentes':
         return (
-          <>
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Asunto *
-              </label>
-              <input
-                type="text"
-                name="asunto"
-                value={formData.asunto || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Describe brevemente el incidente"
-                required
-              />
+          <div className="space-y-6">
+            <div className="bg-white bg-opacity-5 rounded-xl p-6 border border-white border-opacity-10">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+                Información del Incidente
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="asunto-incidente" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Asunto *
+                  </label>
+                  <input
+                    ref={firstInputRef}
+                    id="asunto-incidente"
+                    type="text"
+                    name="asunto"
+                    value={formData.asunto || ''}
+                    onChange={handleInputChange}
+                    placeholder="Describe brevemente el incidente"
+                    required
+                    autoComplete="off"
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="fecha_evento_incidente" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Fecha del Evento *
+                  </label>
+                  <input
+                    id="fecha_evento_incidente"
+                    type="date"
+                    name="fecha_evento"
+                    value={formData.fecha_evento || ''}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="hora_evento" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Hora del Evento
+                  </label>
+                  <input
+                    id="hora_evento"
+                    type="time"
+                    name="hora_evento"
+                    value={formData.hora_evento || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="ubicacion_incidente" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Ubicación del Incidente *
+                  </label>
+                  <input
+                    id="ubicacion_incidente"
+                    type="text"
+                    name="ubicacion_incidente"
+                    value={formData.ubicacion_incidente || ''}
+                    onChange={handleInputChange}
+                    placeholder="Especifica la ubicación exacta"
+                    required
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="grado_criticidad" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Grado de Criticidad *
+                  </label>
+                  <select
+                    id="grado_criticidad"
+                    name="grado_criticidad"
+                    value={formData.grado_criticidad || ''}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  >
+                    <option value="">Selecciona el grado</option>
+                    <option value="bajo">Bajo</option>
+                    <option value="medio">Medio</option>
+                    <option value="alto">Alto</option>
+                    <option value="critico">Crítico</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="tipo_afectacion" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Tipo de Afectación *
+                  </label>
+                  <select
+                    id="tipo_afectacion"
+                    name="tipo_afectacion"
+                    value={formData.tipo_afectacion || ''}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  >
+                    <option value="">Selecciona el tipo</option>
+                    <option value="personas">Personas</option>
+                    <option value="equipos">Equipos</option>
+                    <option value="medio_ambiente">Medio Ambiente</option>
+                    <option value="proceso">Proceso</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Fecha del Evento *
-              </label>
-              <input
-                type="date"
-                name="fecha_evento"
-                value={formData.fecha_evento || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
+            <div className="bg-white bg-opacity-5 rounded-xl p-6 border border-white border-opacity-10">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Descripción del Incidente
+              </h3>
+              <div>
+                <label htmlFor="descripcion_incidente" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                  Descripción del Incidente *
+                </label>
+                <textarea
+                  id="descripcion_incidente"
+                  name="descripcion_incidente"
+                  value={formData.descripcion_incidente || ''}
+                  onChange={handleInputChange}
+                  rows="4"
+                  placeholder="Describe detalladamente lo que sucedió"
+                  required
+                  className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
+                />
+              </div>
             </div>
-
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Hora del Evento
-              </label>
-              <input
-                type="time"
-                name="hora_evento"
-                value={formData.hora_evento || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Ubicación del Incidente *
-              </label>
-              <input
-                type="text"
-                name="ubicacion_incidente"
-                value={formData.ubicacion_incidente || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Especifica la ubicación exacta"
-                required
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Grado de Criticidad *
-              </label>
-              <select
-                name="grado_criticidad"
-                value={formData.grado_criticidad || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Selecciona el grado</option>
-                <option value="bajo">Bajo</option>
-                <option value="medio">Medio</option>
-                <option value="alto">Alto</option>
-                <option value="critico">Crítico</option>
-              </select>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Tipo de Afectación *
-              </label>
-              <select
-                name="tipo_afectacion"
-                value={formData.tipo_afectacion || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Selecciona el tipo</option>
-                <option value="personas">Personas</option>
-                <option value="equipos">Equipos</option>
-                <option value="medio_ambiente">Medio Ambiente</option>
-                <option value="proceso">Proceso</option>
-              </select>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Descripción del Incidente *
-              </label>
-              <textarea
-                name="descripcion_incidente"
-                value={formData.descripcion_incidente || ''}
-                onChange={handleInputChange}
-                rows="4"
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Describe detalladamente lo que sucedió"
-                required
-              />
-            </div>
-          </>
+          </div>
         );
 
       case 'conversaciones':
         return (
-          <>
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Asunto de la Conversación *
-              </label>
-              <input
-                type="text"
-                name="asunto_conversacion"
-                value={formData.asunto_conversacion || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Título de la conversación"
-                required
-              />
+          <div className="space-y-6">
+            <div className="bg-white bg-opacity-5 rounded-xl p-6 border border-white border-opacity-10">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+                Información de la Conversación
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="asunto-conversacion" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Asunto de la Conversación *
+                  </label>
+                  <input
+                    ref={firstInputRef}
+                    id="asunto-conversacion"
+                    type="text"
+                    name="asunto_conversacion"
+                    value={formData.asunto_conversacion || ''}
+                    onChange={handleInputChange}
+                    placeholder="Título de la conversación"
+                    required
+                    autoComplete="off"
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="fecha_evento_conversacion" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Fecha del Evento *
+                  </label>
+                  <input
+                    id="fecha_evento_conversacion"
+                    type="date"
+                    name="fecha_evento"
+                    value={formData.fecha_evento || ''}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="tipo_conversacion" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Tipo de Conversación *
+                  </label>
+                  <select
+                    id="tipo_conversacion"
+                    name="tipo_conversacion"
+                    value={formData.tipo_conversacion || ''}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  >
+                    <option value="">Selecciona el tipo</option>
+                    <option value="reflexion">Reflexión HSE</option>
+                    <option value="observacion">Observación de Comportamiento</option>
+                    <option value="capacitacion">Capacitación</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="sitio_evento_conversacion" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Sitio del Evento *
+                  </label>
+                  <input
+                    id="sitio_evento_conversacion"
+                    type="text"
+                    name="sitio_evento_conversacion"
+                    value={formData.sitio_evento_conversacion || ''}
+                    onChange={handleInputChange}
+                    placeholder="Ubicación donde se realizó la conversación"
+                    required
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="lugar_hallazgo_conversacion" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                    Lugar del Hallazgo (si aplica)
+                  </label>
+                  <select
+                    id="lugar_hallazgo_conversacion"
+                    name="lugar_hallazgo_conversacion"
+                    value={formData.lugar_hallazgo_conversacion || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  >
+                    <option value="">Selecciona un lugar</option>
+                    <option value="oficina">Oficina</option>
+                    <option value="taller">Taller</option>
+                    <option value="campo">Campo</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </div>
+
+                {formData.lugar_hallazgo_conversacion === 'otro' && (
+                  <div>
+                    <label htmlFor="lugar_hallazgo_conversacion_otro" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                      Especificar Lugar
+                    </label>
+                    <input
+                      id="lugar_hallazgo_conversacion_otro"
+                      type="text"
+                      name="lugar_hallazgo_conversacion_otro"
+                      value={formData.lugar_hallazgo_conversacion_otro || ''}
+                      onChange={handleInputChange}
+                      placeholder="Especifica el lugar"
+                      className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Fecha del Evento *
-              </label>
-              <input
-                type="date"
-                name="fecha_evento"
-                value={formData.fecha_evento || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Tipo de Conversación *
-              </label>
-              <select
-                name="tipo_conversacion"
-                value={formData.tipo_conversacion || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Selecciona el tipo</option>
-                <option value="reflexion">Reflexión HSE</option>
-                <option value="observacion">Observación de Comportamiento</option>
-                <option value="capacitacion">Capacitación</option>
-                <option value="otro">Otro</option>
-              </select>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Sitio del Evento *
-              </label>
-              <input
-                type="text"
-                name="sitio_evento_conversacion"
-                value={formData.sitio_evento_conversacion || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Ubicación donde se realizó la conversación"
-                required
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Lugar del Hallazgo (si aplica)
-              </label>
-              <select
-                name="lugar_hallazgo_conversacion"
-                value={formData.lugar_hallazgo_conversacion || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Selecciona un lugar</option>
-                <option value="oficina">Oficina</option>
-                <option value="taller">Taller</option>
-                <option value="campo">Campo</option>
-                <option value="otro">Otro</option>
-              </select>
-            </div>
-
-            {formData.lugar_hallazgo_conversacion === 'otro' && (
-              <div className="mb-4">
-                <label className="block text-white text-sm font-medium mb-2">
-                  Especificar Lugar
+            <div className="bg-white bg-opacity-5 rounded-xl p-6 border border-white border-opacity-10">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+                Descripción de la Conversación
+              </h3>
+              <div>
+                <label htmlFor="descripcion_conversacion" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                  Descripción de la Conversación *
                 </label>
-                <input
-                  type="text"
-                  name="lugar_hallazgo_conversacion_otro"
-                  value={formData.lugar_hallazgo_conversacion_otro || ''}
+                <textarea
+                  id="descripcion_conversacion"
+                  name="descripcion_conversacion"
+                  value={formData.descripcion_conversacion || ''}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Especifica el lugar"
+                  rows="4"
+                  placeholder="Describe el contenido y resultado de la conversación"
+                  required
+                  className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
                 />
               </div>
-            )}
-
-            <div className="mb-4">
-              <label className="block text-white text-sm font-medium mb-2">
-                Descripción de la Conversación *
-              </label>
-              <textarea
-                name="descripcion_conversacion"
-                value={formData.descripcion_conversacion || ''}
-                onChange={handleInputChange}
-                rows="4"
-                className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Describe el contenido y resultado de la conversación"
-                required
-              />
             </div>
-          </>
+          </div>
         );
 
       default:
@@ -483,88 +645,136 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
-          {/* Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-gray-900 to-gray-800 rounded-t-3xl p-6 border-b border-gray-700">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold text-white">
-                  Editar Reporte
-                </h2>
-                <p className="text-white text-opacity-60 text-sm mt-1">
-                  {report?.tipo_reporte === 'hallazgos' && 'Hallazgos y Condiciones'}
-                  {report?.tipo_reporte === 'incidentes' && 'Incidentes HSE'}
-                  {report?.tipo_reporte === 'conversaciones' && 'Conversaciones y Reflexiones'}
-                </p>
+      <div
+        className="fixed inset-0 z-50 bg-black bg-opacity-60 backdrop-blur-sm"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
+      >
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <div className="w-full sm:max-w-md md:max-w-lg lg:max-w-2xl max-h-[90vh] bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl border border-gray-700 flex flex-col">
+            {/* Header - Fixed */}
+            <div className="flex-shrink-0 bg-gradient-to-r from-gray-900 to-gray-800 rounded-t-2xl p-4 sm:p-6 border-b border-gray-700">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-3">
+                  {report && (
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500">
+                      {getEventTypeIcon(report.tipo_reporte)}
+                    </div>
+                  )}
+                  <div>
+                    <h2 id="modal-title" className="text-xl font-bold text-white">
+                      Editar Reporte
+                    </h2>
+                    {report && (
+                      <p id="modal-description" className="text-white text-opacity-60 text-xs">
+                        {getEventTypeLabel(report.tipo_reporte)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="w-8 h-8 bg-white bg-opacity-10 hover:bg-opacity-20 rounded-full flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+                  aria-label="Cerrar modal"
+                  tabIndex={0}
+                >
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
               </div>
-              <button
-                onClick={onClose}
-                className="w-10 h-10 bg-white bg-opacity-10 hover:bg-opacity-20 rounded-full flex items-center justify-center transition-all duration-200"
-              >
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
             </div>
-          </div>
 
-          {/* Content */}
-          <div className="p-6">
-            {error && (
-              <div className="mb-6 bg-red-500 bg-opacity-20 border border-red-500 rounded-lg p-4">
-                <p className="text-red-300">{error}</p>
-              </div>
-            )}
+            {/* Body - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+              {error && (
+                <div className="p-3 bg-red-500 bg-opacity-20 border border-red-500 border-opacity-30 rounded-lg" role="alert" aria-live="polite">
+                  <div className="flex items-center">
+                    <svg className="w-4 h-4 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p className="text-red-300 text-sm">{error}</p>
+                  </div>
+                </div>
+              )}
 
-            <form onSubmit={handleSubmit}>
-              {renderFormFields()}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {renderFormFields()}
 
-              <div className="mb-6">
-                <label className="block text-white text-sm font-medium mb-2">
-                  Nueva Evidencia (opcional)
-                </label>
-                <input
-                  type="file"
-                  name="evidencia"
-                  onChange={handleFileChange}
-                  accept="image/*,.pdf,.doc,.docx"
-                  className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="text-white text-opacity-50 text-xs mt-1">
-                  Solo se pueden editar reportes pendientes. Formatos permitidos: imágenes, PDF, Word.
-                </p>
-              </div>
+                {/* Evidencia */}
+                <div className="bg-white bg-opacity-5 rounded-lg p-4 border border-white border-opacity-10">
+                  <h3 className="text-base font-semibold text-white mb-3 flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Nueva Evidencia (opcional)
+                  </h3>
+                  <div>
+                    <label htmlFor="evidencia" className="block text-sm font-medium text-white text-opacity-80 mb-2">
+                      Archivo de Evidencia
+                    </label>
+                    <input
+                      id="evidencia"
+                      type="file"
+                      name="evidencia"
+                      onChange={handleFileChange}
+                      accept="image/*,.pdf,.doc,.docx"
+                      className="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white file:mr-3 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    />
+                    <p className="mt-1 text-xs text-white text-opacity-60">
+                      Solo se pueden editar reportes pendientes. Formatos permitidos: imágenes, PDF, Word.
+                    </p>
+                  </div>
+                </div>
+              </form>
+            </div>
 
-              <div className="flex space-x-3">
+            {/* Footer - Fixed */}
+            <div className="flex-shrink-0 bg-gradient-to-r from-gray-900 to-gray-800 rounded-b-2xl p-4 sm:p-6 border-t border-gray-700">
+              <div className="flex justify-end space-x-3">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+                  className="px-4 py-2 bg-white bg-opacity-10 hover:bg-opacity-20 text-white rounded-lg text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+                  tabIndex={0}
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
+                  form="edit-report-form"
                   disabled={isLoading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  tabIndex={0}
+                  aria-describedby={isLoading ? "loading-description" : undefined}
                 >
                   {isLoading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Actualizando...
+                      <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" aria-hidden="true"></div>
+                      <span id="loading-description">Actualizando...</span>
                     </>
                   ) : (
-                    'Actualizar Reporte'
+                    <>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+                      </svg>
+                      <span>Actualizar Reporte</span>
+                    </>
                   )}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Success Animation */}
       <SuccessAnimation
         isVisible={showSuccessAnimation}
         onComplete={() => setShowSuccessAnimation(false)}
