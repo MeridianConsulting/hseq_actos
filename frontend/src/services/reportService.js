@@ -288,6 +288,31 @@ class ReportService {
             throw error;
         }
     }
+
+    /**
+     * Obtener un reporte específico por ID
+     */
+    static async getReportById(reportId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/reports/${reportId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al obtener el reporte');
+            }
+            
+            return data;
+        } catch (error) {
+            console.error('Error en getReportById:', error);
+            throw error;
+        }
+    }
 }
 
 export default ReportService; 

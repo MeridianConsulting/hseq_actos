@@ -386,6 +386,34 @@ function handleRequest($method, $path){
         }
     }
 
+    // Endpoint para obtener un reporte específico por ID
+    if(preg_match('/^api\/reports\/(\d+)$/', $path, $matches) && $method === "GET"){
+        try {
+            $reportId = $matches[1];
+            
+            $reportController = new ReportController();
+            $result = $reportController->getReportById($reportId);
+            
+            if($result['success']){
+                http_response_code(200);
+            } else {
+                http_response_code(404);
+            }
+            
+            echo json_encode($result);
+            return;
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false, 
+                "message" => "Error interno del servidor",
+                "error" => $e->getMessage()
+            ]);
+            return;
+        }
+    }
+
     // Rutas existentes de empleados
     if($path === 'api/employees' && $method === "GET"){
         $controller = new EmployeeController();

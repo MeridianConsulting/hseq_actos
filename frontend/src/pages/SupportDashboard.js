@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUser, logout } from '../utils/auth';
 import ReportService from '../services/reportService';
+import ReportDetailsModal from '../components/ReportDetailsModal';
 import '../assets/css/styles.css';
 
 const SupportDashboard = () => {
@@ -12,6 +13,8 @@ const SupportDashboard = () => {
   const [reports, setReports] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [selectedReportId, setSelectedReportId] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
     const userData = getUser();
@@ -70,6 +73,16 @@ const SupportDashboard = () => {
       console.error('Error al actualizar estado:', error);
       setMessage('Error al actualizar el estado: ' + error.message);
     }
+  };
+
+  const handleViewDetails = (reportId) => {
+    setSelectedReportId(reportId);
+    setShowDetailsModal(true);
+  };
+
+  const handleCloseDetails = () => {
+    setShowDetailsModal(false);
+    setSelectedReportId(null);
   };
 
   const handleLogout = () => {
@@ -350,7 +363,10 @@ const SupportDashboard = () => {
                           </button>
                         </>
                       )}
-                      <button className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200">
+                      <button 
+                        onClick={() => handleViewDetails(report.id)}
+                        className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
+                      >
                         Ver Detalles
                       </button>
                     </div>
@@ -361,6 +377,13 @@ const SupportDashboard = () => {
           </div>
         </div>
       </main>
+
+      {/* Report Details Modal */}
+      <ReportDetailsModal
+        isOpen={showDetailsModal}
+        onClose={handleCloseDetails}
+        reportId={selectedReportId}
+      />
     </div>
   );
 };
