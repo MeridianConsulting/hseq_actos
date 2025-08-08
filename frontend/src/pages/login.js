@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/img/logo_meridian_blanco.png';
 import '../assets/css/styles.css';
 import { getRoleRoute } from '../utils/auth';
+import api, { authService } from '../services/api';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -40,39 +41,15 @@ const Login = () => {
     setSuccessMessage('');
 
     try {
-      const response = await fetch('http://localhost/hseq/backend/login.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          cedula: formData.cedula,
-          password: formData.password
-        })
-      });
-
-      // Obtener el texto crudo de la respuesta
-      const responseText = await response.text();
-      
-      // Intentar parsear como JSON
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        throw new Error('El servidor devolvió una respuesta inválida (no JSON)');
-      }
-
+      const data = await authService.login(formData.cedula, formData.password);
       if (data.success) {
         setSuccessMessage('Login exitoso. Redirigiendo...');
         
-        // Guardar información del usuario en localStorage si "Recordarme" está marcado
-        if (formData.rememberMe) {
-          localStorage.setItem('user', JSON.stringify(data.user));
-          localStorage.setItem('isLoggedIn', 'true');
-        } else {
-          sessionStorage.setItem('user', JSON.stringify(data.user));
-          sessionStorage.setItem('isLoggedIn', 'true');
-        }
+        // Guardar token y usuario
+        const storage = formData.rememberMe ? localStorage : sessionStorage;
+        storage.setItem('user', JSON.stringify(data.user));
+        storage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('token', data.token);
 
         // Redirigir después de un breve delay para mostrar el mensaje de éxito
         setTimeout(() => {
@@ -84,7 +61,7 @@ const Login = () => {
         setError(data.message || 'Error en el inicio de sesión');
       }
     } catch (error) {
-      setError('Error de conexión con el servidor. Verifica tu conexión a internet.');
+      setError(error.message || 'Error de conexión con el servidor. Verifica tu conexión a internet.');
     } finally {
       setIsLoading(false);
     }

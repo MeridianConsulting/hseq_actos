@@ -6,7 +6,7 @@ class ReportController {
     
     // Constantes para validación de ENUMs
     private const TIPOS_REPORTE_VALIDOS = ['hallazgos', 'incidentes', 'conversaciones'];
-    private const ESTADOS_VALIDOS = ['pendiente', 'en_revision', 'cerrado'];
+    private const ESTADOS_VALIDOS = ['pendiente', 'en_revision', 'aprobado', 'rechazado'];
     private const TIPOS_HALLAZGO_VALIDOS = ['accion_mejoramiento', 'aspecto_positivo', 'condicion_insegura', 'acto_inseguro'];
     private const ESTADOS_CONDICION_VALIDOS = ['abierta', 'cerrada'];
     private const GRADOS_CRITICIDAD_VALIDOS = ['bajo', 'medio', 'alto', 'critico'];

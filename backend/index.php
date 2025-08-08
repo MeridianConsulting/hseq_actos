@@ -41,6 +41,7 @@ set_exception_handler(function($exception) {
 });
 
 require_once __DIR__ . '/middleware/cors.php';
+require_once __DIR__ . '/utils/jwt.php';
 
 // Asegurar que siempre devuelva JSON
 header('Content-Type: application/json');
@@ -175,6 +176,47 @@ function handleRequest($method, $path){
         }
     }
     
+    // Middleware simple de autenticación para rutas protegidas
+    $protectedPaths = [
+        'api/reports',
+        'api/users',
+    ];
+
+    $requiresAuth = false;
+    foreach ($protectedPaths as $pp) {
+        if ($path === $pp || str_starts_with($path, $pp . '/')) { $requiresAuth = true; break; }
+    }
+
+    if ($requiresAuth) {
+        try {
+            $token = jwt_from_authorization_header();
+            if (!$token) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'No autorizado: falta token']);
+                return;
+            }
+            $claims = jwt_decode($token);
+            // Opcional: exponer claims a handlers siguientes
+            $GLOBALS['auth_user_id'] = (int)($claims['sub'] ?? 0);
+            $GLOBALS['auth_user_role'] = $claims['rol'] ?? null;
+        } catch (Exception $e) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Token inválido: ' . $e->getMessage()]);
+            return;
+        }
+    }
+
+    // Helper para autorización por rol
+    $requireRole = function(array $roles) {
+        $role = $GLOBALS['auth_user_role'] ?? null;
+        if (!$role || !in_array($role, $roles, true)) {
+            http_response_code(403);
+            echo json_encode(['success'=>false,'message'=>'Prohibido: rol no autorizado']);
+            return false;
+        }
+        return true;
+    };
+
     // Rutas de reportes
     if($path === 'api/reports' && $method === "POST"){
         try {
@@ -325,6 +367,7 @@ function handleRequest($method, $path){
     
     // Endpoint para actualizar estado de reportes
     if($path === 'api/reports/status' && $method === "PUT"){
+        if (!$requireRole(['soporte','admin'])) { return; }
         try {
             $input = file_get_contents("php://input");
             
@@ -386,6 +429,59 @@ function handleRequest($method, $path){
         }
     }
 
+    // Endpoint para subir evidencia multipart
+    if (preg_match('/^api\/reports\/(\d+)\/evidencias$/', $path, $m)) {
+        if ($method !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success'=>false,'message'=>'Método no permitido']);
+            return;
+        }
+        if (!$requireRole(['soporte','admin'])) { return; }
+        $reportId = (int)$m[1];
+        if (!isset($reportId)) {
+            http_response_code(400);
+            echo json_encode(['success'=>false,'message'=>'Reporte inválido']);
+            return;
+        }
+
+        // Validar archivo
+        if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+            http_response_code(400);
+            echo json_encode(['success'=>false,'message'=>'Archivo no recibido o con error']);
+            return;
+        }
+
+        $file = $_FILES['file'];
+        $tmpPath = $file['tmp_name'];
+        $mime = mime_content_type($tmpPath);
+        $allowed = ['image/jpeg','image/png','image/gif','application/pdf', 'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        if (!in_array($mime, $allowed)) {
+            http_response_code(400);
+            echo json_encode(['success'=>false,'message'=>'Tipo de archivo no permitido']);
+            return;
+        }
+        $size = filesize($tmpPath);
+        if ($size === false || $size > 10 * 1024 * 1024) {
+            http_response_code(400);
+            echo json_encode(['success'=>false,'message'=>'Archivo demasiado grande (max 10MB)']);
+            return;
+        }
+
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION) ?: 'bin';
+        // Reusar lógica de ReportController vía método base64: construir estructura
+        $evidenceData = [
+            'data' => base64_encode(file_get_contents($tmpPath)),
+            'type' => $mime,
+            'extension' => $ext,
+            'size' => $size,
+        ];
+        $controller = new ReportController();
+        $result = $controller->uploadEvidence($reportId, $evidenceData);
+        http_response_code($result['success'] ? 200 : 400);
+        echo json_encode($result);
+        return;
+    }
+
     // Endpoint para obtener un reporte específico por ID
     if(preg_match('/^api\/reports\/(\d+)$/', $path, $matches) && $method === "GET"){
         try {
@@ -416,6 +512,7 @@ function handleRequest($method, $path){
 
     // Endpoint para actualizar un reporte
     if(preg_match('/^api\/reports\/(\d+)$/', $path, $matches) && $method === "PUT"){
+        if (!$requireRole(['soporte','admin'])) { return; }
         try {
             $reportId = $matches[1];
             $input = file_get_contents("php://input");
@@ -465,6 +562,7 @@ function handleRequest($method, $path){
 
     // Endpoint para eliminar un reporte
     if(preg_match('/^api\/reports\/(\d+)$/', $path, $matches) && $method === "DELETE"){
+        if (!$requireRole(['admin'])) { return; }
         try {
             $reportId = $matches[1];
             
@@ -493,6 +591,7 @@ function handleRequest($method, $path){
 
     // Rutas de administración de usuarios
     if($path === 'api/users' && $method === 'GET'){
+        if (!$requireRole(['admin'])) { return; }
         try {
             $controller = new EmployeeController();
             $filters = [];
@@ -509,6 +608,7 @@ function handleRequest($method, $path){
         }
     }
     elseif(preg_match('/^api\/users\/(\d+)$/', $path, $m) && $method === 'GET'){
+        if (!$requireRole(['admin'])) { return; }
         try {
             $controller = new EmployeeController();
             $result = $controller->getUserById((int)$m[1]);
@@ -521,6 +621,7 @@ function handleRequest($method, $path){
         }
     }
     elseif($path === 'api/users' && $method === 'POST'){
+        if (!$requireRole(['admin'])) { return; }
         try {
             $data = json_decode(file_get_contents('php://input'), true);
             if(!$data){ http_response_code(400); echo json_encode(['success'=>false,'message'=>'Datos inválidos']); return; }
@@ -536,6 +637,7 @@ function handleRequest($method, $path){
         }
     }
     elseif(preg_match('/^api\/users\/(\d+)$/', $path, $m) && $method === 'PUT'){
+        if (!$requireRole(['admin'])) { return; }
         try {
             $data = json_decode(file_get_contents('php://input'), true);
             if(!$data){ http_response_code(400); echo json_encode(['success'=>false,'message'=>'Datos inválidos']); return; }
@@ -551,6 +653,7 @@ function handleRequest($method, $path){
         }
     }
     elseif(preg_match('/^api\/users\/(\d+)$/', $path, $m) && $method === 'DELETE'){
+        if (!$requireRole(['admin'])) { return; }
         try {
             $controller = new EmployeeController();
             $result = $controller->deleteUser((int)$m[1]);
@@ -564,7 +667,28 @@ function handleRequest($method, $path){
         }
     }
     elseif(preg_match('/^api\/users\/(\d+)\/reset-password$/', $path, $m) && $method === 'POST'){
+        if (!$requireRole(['admin'])) { return; }
         try {
+    // Descargar evidencia de forma segura
+    if (preg_match('/^api\/evidencias\/(\d+)$/', $path, $m) && $method === 'GET') {
+        if (!$requireRole(['soporte','admin'])) { return; }
+        $evidenceId = (int)$m[1];
+        $conn = (new Database())->getConnection();
+        $stmt = $conn->prepare('SELECT id_reporte, tipo_archivo, url_archivo FROM evidencias WHERE id = ?');
+        if (!$stmt) { http_response_code(500); echo json_encode(['success'=>false,'message'=>'Error interno']); return; }
+        $stmt->bind_param('i', $evidenceId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $row = $res->fetch_assoc();
+        if (!$row) { http_response_code(404); echo json_encode(['success'=>false,'message'=>'Evidencia no encontrada']); return; }
+        $filePath = __DIR__ . '/uploads/' . $row['url_archivo'];
+        if (!is_file($filePath)) { http_response_code(404); echo json_encode(['success'=>false,'message'=>'Archivo no encontrado']); return; }
+        header('Content-Type: ' . $row['tipo_archivo']);
+        header('Content-Disposition: attachment; filename="' . basename($row['url_archivo']) . '"');
+        header('Content-Length: ' . filesize($filePath));
+        readfile($filePath);
+        return;
+    }
             $controller = new EmployeeController();
             $result = $controller->resetPassword((int)$m[1]);
             http_response_code($result['success'] ? 200 : 400);

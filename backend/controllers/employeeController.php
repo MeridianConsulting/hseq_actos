@@ -92,7 +92,9 @@ class EmployeeController {
         }
 
         $activo = strtolower($data['estado']) === 'inactivo' ? 0 : 1;
-        $contrasena = isset($data['contrasena']) && $data['contrasena'] !== '' ? $data['contrasena'] : $data['cedula'];
+        // Hash seguro; si no viene contraseña, usar la cédula y hashearla
+        $plain = isset($data['contrasena']) && $data['contrasena'] !== '' ? $data['contrasena'] : $data['cedula'];
+        $contrasena = password_hash($plain, PASSWORD_BCRYPT);
 
         $sql = 'INSERT INTO usuarios (nombre, cedula, correo, contrasena, rol, activo, creado_en) VALUES (?, ?, ?, ?, ?, ?, NOW())';
         $stmt = $this->db->prepare($sql);
@@ -149,6 +151,9 @@ class EmployeeController {
         if (!$stmt->execute()) {
             throw new Exception('Error al eliminar usuario: ' . $stmt->error);
         }
+        if ($stmt->affected_rows === 0) {
+            return [ 'success' => false, 'message' => 'Usuario no encontrado' ];
+        }
         return [ 'success' => true, 'message' => 'Usuario eliminado' ];
     }
 
@@ -165,7 +170,8 @@ class EmployeeController {
 
         $upd = $this->db->prepare('UPDATE usuarios SET contrasena = ? WHERE id = ?');
         if (!$upd) throw new Exception('Error al preparar actualización: ' . $this->db->error);
-        $upd->bind_param('si', $newPassword, $id);
+        $newHash = password_hash($newPassword, PASSWORD_BCRYPT);
+        $upd->bind_param('si', $newHash, $id);
         if (!$upd->execute()) {
             throw new Exception('Error al reiniciar contraseña: ' . $upd->error);
         }

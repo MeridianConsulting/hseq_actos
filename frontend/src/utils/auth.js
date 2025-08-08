@@ -35,6 +35,7 @@ export const getUser = () => {
 export const logout = () => {
   localStorage.removeItem('user');
   localStorage.removeItem('isLoggedIn');
+  localStorage.removeItem('token');
   sessionStorage.removeItem('user');
   sessionStorage.removeItem('isLoggedIn');
   
