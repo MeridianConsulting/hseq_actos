@@ -108,23 +108,27 @@ class ReportService {
      */
     static async getAllReports(filters = {}) {
         try {
-            const queryParams = new URLSearchParams();
-            if (filters.tipo_reporte) queryParams.append('tipo_reporte', filters.tipo_reporte);
-            if (filters.estado) queryParams.append('estado', filters.estado);
+            const params = new URLSearchParams();
+            const allowed = ['tipo_reporte','estado','user_id','grado_criticidad','tipo_afectacion','date_from','date_to','q','sort_by','sort_dir','page','per_page'];
+            Object.entries(filters).forEach(([k, v]) => {
+                if (v !== undefined && v !== null && v !== '' && allowed.includes(k)) {
+                    params.append(k, v);
+                }
+            });
+            const qs = params.toString();
+            const url = `${API_BASE_URL}/api/reports${qs ? `?${qs}` : ''}`;
 
-            const url = `${API_BASE_URL}/api/reports${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-            
             const response = await fetch(url, {
                 method: 'GET',
                 headers: getAuthHeaders()
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.message || 'Error al obtener reportes');
             }
-            
+
             return data;
         } catch (error) {
             console.error('Error en getAllReports:', error);

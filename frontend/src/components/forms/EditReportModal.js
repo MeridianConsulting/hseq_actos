@@ -274,15 +274,16 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
                     className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   >
                     <option value="">Selecciona el tipo</option>
-                    <option value="condicion_insegura">Condición Insegura</option>
-                    <option value="acto_inseguro">Acto Inseguro</option>
-                    <option value="subestandar">Subestándar</option>
+                    <option value="accion_mejoramiento">Acción de mejoramiento</option>
+                    <option value="aspecto_positivo">Aspecto positivo</option>
+                    <option value="condicion_insegura">Condición insegura</option>
+                    <option value="acto_inseguro">Acto inseguro</option>
                   </select>
                 </div>
 
                 <div>
                   <label htmlFor="estado_condicion" className="block text-sm font-medium text-white text-opacity-80 mb-2">
-                    Estado de la Condición *
+                    Estado de la condición *
                   </label>
                   <select
                     id="estado_condicion"
@@ -293,9 +294,8 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
                     className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   >
                     <option value="">Selecciona el estado</option>
-                    <option value="abierto">Abierto</option>
-                    <option value="en_proceso">En Proceso</option>
-                    <option value="cerrado">Cerrado</option>
+                    <option value="abierta">Abierta</option>
+                    <option value="cerrada">Cerrada</option>
                   </select>
                 </div>
               </div>

@@ -4,6 +4,7 @@ import { getUser, logout } from '../utils/auth';
 import ReportService from '../services/reportService';
 import ReportDetailsModal from '../components/ReportDetailsModal';
 import '../assets/css/styles.css';
+import { gradosCriticidad, tiposAfectacion, reportTypes } from '../config/formOptions';
 
 const SupportDashboard = () => {
   const navigate = useNavigate();
@@ -15,6 +16,21 @@ const SupportDashboard = () => {
   const [message, setMessage] = useState('');
   const [selectedReportId, setSelectedReportId] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  // Filtros y paginación
+  const [filters, setFilters] = useState({
+    tipo_reporte: '',
+    estado: '',
+    grado_criticidad: '',
+    tipo_afectacion: '',
+    date_from: '',
+    date_to: '',
+    q: '',
+    page: 1,
+    per_page: 10,
+    sort_by: 'creado_en',
+    sort_dir: 'desc'
+  });
+  const [meta, setMeta] = useState(null);
 
   useEffect(() => {
     const userData = getUser();
@@ -29,11 +45,18 @@ const SupportDashboard = () => {
   const loadReports = async () => {
     setIsLoading(true);
     try {
-      // Cargar todos los reportes desde el backend
-      const result = await ReportService.getAllReports();
+      // Armar filtros a enviar; para pestaña 'closed' no filtramos por estado (se filtra local por 2 valores)
+      const apiFilters = { ...filters };
+      // Reflejar pestañas en filtros de estado solo cuando aplica
+      if (activeTab === 'pending') apiFilters.estado = 'pendiente';
+      else if (activeTab === 'in_review') apiFilters.estado = 'en_revision';
+      else if (activeTab === 'closed') delete apiFilters.estado;
+
+      const result = await ReportService.getAllReports(apiFilters);
       
       if (result.success) {
-        setReports(result.reports);
+        setReports(result.reports || []);
+        setMeta(result.meta || null);
       } else {
         setMessage('Error al cargar reportes: ' + result.message);
       }
@@ -73,6 +96,36 @@ const SupportDashboard = () => {
       console.error('Error al actualizar estado:', error);
       setMessage('Error al actualizar el estado: ' + error.message);
     }
+  };
+
+  // Manejadores de filtros
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value, page: 1 }));
+  };
+  const handleSearch = (e) => {
+    e.preventDefault();
+    loadReports();
+  };
+  const handleReset = () => {
+    setFilters({
+      tipo_reporte: '', estado: '', grado_criticidad: '', tipo_afectacion: '',
+      date_from: '', date_to: '', q: '', page: 1, per_page: 10, sort_by: 'creado_en', sort_dir: 'desc'
+    });
+    // Vuelve a cargar con filtros limpios
+    setTimeout(loadReports, 0);
+  };
+  const handlePageChange = (nextPage) => {
+    if (!meta) return;
+    const totalPages = meta.total_pages || 1;
+    const page = Math.min(Math.max(1, nextPage), totalPages);
+    if (page !== filters.page) {
+      setFilters((p) => ({ ...p, page }));
+    }
+  };
+  const handlePerPageChange = (e) => {
+    const per = parseInt(e.target.value || '10', 10);
+    setFilters((p) => ({ ...p, per_page: per, page: 1 }));
   };
 
   const handleViewDetails = (reportId) => {
@@ -167,22 +220,22 @@ const SupportDashboard = () => {
       background: `linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 35%, var(--color-tertiary-dark) 100%)`
     }}>
       {/* Header */}
-      <header className="bg-white bg-opacity-10 backdrop-blur-md shadow-lg">
+      <header className="bg-gray-900/80 backdrop-blur-md shadow-lg border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold text-white drop-shadow">
                 Panel de Soporte
               </h1>
               {user && (
-                <span className="ml-4 text-sm bg-white bg-opacity-20 px-3 py-1 rounded-full text-white">
+                <span className="ml-4 text-sm bg-white/10 px-3 py-1 rounded-full text-gray-200 border border-gray-600">
                   {user.nombre}
                 </span>
               )}
             </div>
             <button
               onClick={handleLogout}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
             >
               Cerrar Sesión
             </button>
@@ -194,12 +247,12 @@ const SupportDashboard = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           {/* Welcome Card */}
-          <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-3xl p-8 mb-8 shadow-2xl">
+          <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-8 mb-8 shadow-2xl border border-gray-700">
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-white mb-4">
+              <h2 className="text-3xl font-bold text-white mb-4 drop-shadow">
                 ¡Bienvenido, {user?.nombre}!
               </h2>
-              <p className="text-white text-opacity-90 text-lg">
+              <p className="text-gray-200 text-lg">
                 Gestiona y revisa los reportes de seguridad para mantener un ambiente de trabajo seguro
               </p>
             </div>
@@ -207,7 +260,7 @@ const SupportDashboard = () => {
 
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-2xl p-6 shadow-xl">
+            <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-gray-700">
               <div className="flex items-center">
                 <div className="bg-yellow-500 p-3 rounded-full">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,13 +268,13 @@ const SupportDashboard = () => {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-white text-opacity-70 text-sm">Pendientes</p>
-                  <p className="text-2xl font-bold text-white">{stats.pending}</p>
+                  <p className="text-gray-300 text-sm">Pendientes</p>
+                  <p className="text-2xl font-bold text-white drop-shadow">{stats.pending}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-2xl p-6 shadow-xl">
+            <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-gray-700">
               <div className="flex items-center">
                 <div className="bg-blue-500 p-3 rounded-full">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -229,13 +282,13 @@ const SupportDashboard = () => {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-white text-opacity-70 text-sm">En Revisión</p>
-                  <p className="text-2xl font-bold text-white">{stats.inReview}</p>
+                  <p className="text-gray-300 text-sm">En Revisión</p>
+                  <p className="text-2xl font-bold text-white drop-shadow">{stats.inReview}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-2xl p-6 shadow-xl">
+            <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-gray-700">
               <div className="flex items-center">
                 <div className="bg-green-500 p-3 rounded-full">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,8 +296,8 @@ const SupportDashboard = () => {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-white text-opacity-70 text-sm">Cerrados</p>
-                  <p className="text-2xl font-bold text-white">{stats.closed}</p>
+                  <p className="text-gray-300 text-sm">Cerrados</p>
+                  <p className="text-2xl font-bold text-white drop-shadow">{stats.closed}</p>
                 </div>
               </div>
             </div>
@@ -284,6 +337,57 @@ const SupportDashboard = () => {
             </button>
           </div>
 
+          {/* Filter Bar */}
+          <form onSubmit={handleSearch} className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-4 mb-6 grid grid-cols-1 md:grid-cols-6 gap-3 border border-gray-700">
+            <div>
+              <label className="block text-gray-300 text-xs mb-1">Tipo de reporte</label>
+              <select name="tipo_reporte" value={filters.tipo_reporte} onChange={handleFilterChange} className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Todos</option>
+                {reportTypes.map(rt => (
+                  <option key={rt.id} value={rt.id}>{rt.title.replace(/^\d+\.\s*/,'')}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-gray-300 text-xs mb-1">Criticidad</label>
+              <select name="grado_criticidad" value={filters.grado_criticidad} onChange={handleFilterChange} className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Todas</option>
+                {gradosCriticidad.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-gray-300 text-xs mb-1">Afectación</label>
+              <select name="tipo_afectacion" value={filters.tipo_afectacion} onChange={handleFilterChange} className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Todas</option>
+                {tiposAfectacion.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-gray-300 text-xs mb-1">Desde</label>
+              <input type="date" name="date_from" value={filters.date_from} onChange={handleFilterChange} className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-gray-300 text-xs mb-1">Hasta</label>
+              <input type="date" name="date_to" value={filters.date_to} onChange={handleFilterChange} className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-gray-300 text-xs mb-1">Buscar</label>
+              <input type="text" name="q" placeholder="Texto libre" value={filters.q} onChange={handleFilterChange} className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="md:col-span-6 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Aplicar</button>
+                <button type="button" onClick={handleReset} className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">Limpiar</button>
+              </div>
+              <div className="flex items-center space-x-2 text-gray-200 text-sm">
+                <span>Por página</span>
+                <select value={filters.per_page} onChange={handlePerPageChange} className="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  {[10,20,50,100].map(n => (<option key={n} value={n}>{n}</option>))}
+                </select>
+              </div>
+            </div>
+          </form>
+
           {/* Message */}
           {message && (
             <div className="mb-6 p-4 rounded-lg bg-blue-500 bg-opacity-20 text-blue-100 border border-blue-500">
@@ -292,7 +396,7 @@ const SupportDashboard = () => {
           )}
 
           {/* Reports List */}
-          <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-3xl p-8 shadow-2xl">
+          <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-gray-700">
             <h3 className="text-2xl font-bold text-white mb-6">
               Reportes {activeTab === 'pending' ? 'Pendientes' : activeTab === 'in_review' ? 'En Revisión' : 'Cerrados'}
             </h3>
@@ -314,25 +418,25 @@ const SupportDashboard = () => {
             ) : (
               <div className="space-y-4">
                 {filteredReports.map(report => (
-                  <div key={report.id} className="bg-white bg-opacity-5 rounded-xl p-6 border border-white border-opacity-10">
+                  <div key={report.id} className="bg-gray-800/90 rounded-xl p-6 border border-gray-700">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center space-x-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(report.estado)}`}>
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(report.estado)} drop-shadow`}>
                           {report.estado}
                         </span>
-                        <span className="text-white text-opacity-70 text-sm">
+                        <span className="text-gray-300 text-sm">
                           ID: {report.id}
                         </span>
                       </div>
                       <div className="text-right">
-                        <p className="text-white text-sm font-semibold">{getEventTypeLabel(report.tipo_reporte)}</p>
-                        <p className="text-white text-opacity-50 text-xs">{getLocationText(report)}</p>
+                        <p className="text-white text-sm font-semibold drop-shadow">{getEventTypeLabel(report.tipo_reporte)}</p>
+                        <p className="text-gray-400 text-xs">{getLocationText(report)}</p>
                       </div>
                     </div>
                     
                     <div className="mb-4">
-                      <p className="text-white text-opacity-90 mb-2">{getDescriptionText(report)}</p>
-                      <div className="flex justify-between text-sm text-white text-opacity-60">
+                      <p className="text-gray-200 mb-2 leading-relaxed">{getDescriptionText(report)}</p>
+                      <div className="flex justify-between text-sm text-gray-300">
                         <span>Reportado por: {report.nombre_usuario}</span>
                         <span>Fecha: {new Date(report.fecha_evento || report.creado_en).toLocaleString()}</span>
                       </div>
@@ -365,13 +469,27 @@ const SupportDashboard = () => {
                       )}
                       <button 
                         onClick={() => handleViewDetails(report.id)}
-                        className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
+                        className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
                       >
                         Ver Detalles
                       </button>
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+            {/* Paginación */}
+            {meta && meta.total_pages > 1 && (
+              <div className="flex items-center justify-between mt-6 text-gray-200">
+                <button disabled={filters.page <= 1} onClick={() => handlePageChange(filters.page - 1)} className={`px-4 py-2 rounded ${filters.page <= 1 ? 'bg-gray-700 cursor-not-allowed' : 'bg-gray-800 hover:bg-gray-700'}`}>
+                  Anterior
+                </button>
+                <div>
+                  Página {meta.page} de {meta.total_pages} • Total: {meta.total}
+                </div>
+                <button disabled={meta.page >= meta.total_pages} onClick={() => handlePageChange(filters.page + 1)} className={`px-4 py-2 rounded ${meta.page >= meta.total_pages ? 'bg-gray-700 cursor-not-allowed' : 'bg-gray-800 hover:bg-gray-700'}`}>
+                  Siguiente
+                </button>
               </div>
             )}
           </div>
