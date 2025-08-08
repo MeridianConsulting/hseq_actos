@@ -134,6 +134,40 @@ const SupportDashboard = () => {
     setFilters((p) => ({ ...p, per_page: per, page: 1 }));
   };
 
+  // Exportación CSV (página actual)
+  const exportCsv = () => {
+    const rows = filteredReports.map((r) => ({
+      id: r.id,
+      tipo_reporte: r.tipo_reporte,
+      asunto: r.asunto || r.asunto_conversacion || '',
+      estado: r.estado,
+      fecha_evento: r.fecha_evento || '',
+      grado_criticidad: r.grado_criticidad || '',
+      tipo_afectacion: r.tipo_afectacion || '',
+      nombre_usuario: r.nombre_usuario || '',
+      creado_en: r.creado_en
+    }));
+    const headers = Object.keys(rows[0] || {
+      id: '', tipo_reporte: '', asunto: '', estado: '', fecha_evento: '', grado_criticidad: '', tipo_afectacion: '', nombre_usuario: '', creado_en: ''
+    });
+    const escape = (v) => {
+      const s = (v ?? '').toString();
+      const needsQuote = /[",\n;]/.test(s);
+      const inner = s.replace(/"/g, '""');
+      return needsQuote ? `"${inner}"` : inner;
+    };
+    const csv = [headers.join(','), ...rows.map(row => headers.map(h => escape(row[h])).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `reportes_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   const handleViewDetails = (reportId) => {
     setSelectedReportId(reportId);
     setShowDetailsModal(true);
@@ -391,6 +425,7 @@ const SupportDashboard = () => {
               <div className="flex items-center space-x-3">
                 <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Aplicar</button>
                 <button type="button" onClick={handleReset} className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">Limpiar</button>
+                <button type="button" onClick={exportCsv} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg">Exportar CSV</button>
               </div>
               <div className="flex items-center space-x-2 text-gray-200 text-sm">
                 <span>Por página</span>
