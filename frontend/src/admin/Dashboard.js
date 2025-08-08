@@ -11,6 +11,7 @@ import { ResponsivePie } from '@nivo/pie';
 import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveRadar } from '@nivo/radar';
 import { useDashboardStats } from '../hooks/useDashboardStats';
+import { reportService } from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -135,6 +136,137 @@ const Dashboard = () => {
     w.document.open();
     w.document.write(html);
     w.document.close();
+  };
+
+  const handleDownloadExcel = async () => {
+    // Prepare data sets
+    const kpiRows = [
+      { KPI: kpis[0]?.title || 'Total Incidentes', Valor: kpis[0]?.value ?? '-' },
+      { KPI: kpis[1]?.title || 'Reportes Procesados', Valor: kpis[1]?.value ?? '-' },
+      { KPI: kpis[2]?.title || 'Capacitaciones', Valor: kpis[2]?.value ?? '-' },
+      { KPI: kpis[3]?.title || 'Días sin Accidentes', Valor: kpis[3]?.value ?? '-' }
+    ];
+
+    const porPeriodo = (incidentsByMonth || []).map(r => ({
+      Periodo: r.month,
+      Incidentes: r.incidentes,
+      Hallazgos: r.hallazgos,
+      Conversaciones: r.conversaciones
+    }));
+
+    const porTipo = (incidentsByType || []).map(r => ({
+      Tipo: r.label || r.id,
+      Cantidad: r.value
+    }));
+
+    const resumen = [
+      { Metrica: 'Total reportes', Valor: Number(totalReportes) },
+      { Metrica: 'Total cerrados', Valor: Number(totalCerrados) },
+      { Metrica: 'Abiertos Baja', Valor: Number(abiertosPorCriticidad.Baja) },
+      { Metrica: 'Abiertos Media', Valor: Number(abiertosPorCriticidad.Media) },
+      { Metrica: 'Abiertos Alta', Valor: Number(abiertosPorCriticidad.Alta) },
+      { Metrica: 'Abiertos Muy Alta', Valor: Number(abiertosPorCriticidad['Muy Alta']) },
+      { Metrica: 'Área/Proceso destacado', Valor: areaProcesoTop },
+      { Metrica: 'Hallazgo más reportado', Valor: hallazgoMasReportado },
+      { Metrica: 'Periodo', Valor: selectedPeriod === 'month' ? 'Mensual' : selectedPeriod === 'quarter' ? 'Trimestral' : 'Anual' }
+    ];
+
+    // Try to fetch detailed reports for an extra sheet
+    let detalles = [];
+    try {
+      const resp = await reportService.fetchReports();
+      if (resp?.success && Array.isArray(resp.data)) {
+        detalles = resp.data.map((r) => ({
+          ID: r.id,
+          Tipo: r.tipo_reporte,
+          Estado: r.estado,
+          UsuarioID: r.id_usuario,
+          Asunto: r.asunto || r.asunto_conversacion || '',
+          FechaEvento: r.fecha_evento || '',
+          GradoCriticidad: r.grado_criticidad || '',
+          AreaProceso: r.ubicacion_incidente || r.lugar_hallazgo || r.sitio_evento_conversacion || '',
+          Creado: r.creado_en || ''
+        }));
+      }
+    } catch (e) {
+      // Ignore; Excel will be generated without the details sheet
+    }
+
+    const periodLabel = selectedPeriod === 'month' ? 'mensual' : selectedPeriod === 'quarter' ? 'trimestral' : 'anual';
+    const fileName = `reporte_hseq_${periodLabel}_${new Date().toISOString().substring(0,10)}.xlsx`;
+
+    // Try ExcelJS for styled tables
+    try {
+      const ExcelJSModule = await import('exceljs');
+      const ExcelJS = ExcelJSModule.default || ExcelJSModule;
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'HSEQ';
+      wb.created = new Date();
+
+      const addTableSheet = (name, headerDefs, rows) => {
+        const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 1 }] });
+        ws.addTable({
+          name: `${name.replace(/\s+/g, '')}Table`,
+          ref: 'A1',
+          style: { theme: 'TableStyleMedium9', showRowStripes: true },
+          headerRow: true,
+          columns: headerDefs.map(h => ({ name: h })),
+          rows: rows.map(r => headerDefs.map(h => r[h]))
+        });
+        headerDefs.forEach((h, i) => {
+          const maxLen = Math.max(h.length, ...rows.map(r => (r[h] ? String(r[h]).length : 0)));
+          ws.getColumn(i + 1).width = Math.min(Math.max(10, maxLen + 2), 50);
+        });
+        ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+        ws.getRow(1).alignment = { vertical: 'middle' };
+        ws.getRow(1).height = 20;
+        return ws;
+      };
+
+      addTableSheet('KPIs', ['KPI','Valor'], kpiRows);
+      addTableSheet('PorPeriodo', ['Periodo','Incidentes','Hallazgos','Conversaciones'], porPeriodo);
+      addTableSheet('PorTipo', ['Tipo','Cantidad'], porTipo);
+      addTableSheet('Resumen', ['Metrica','Valor'], resumen);
+      if (detalles.length > 0) addTableSheet('Detalles', Object.keys(detalles[0]), detalles);
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    } catch (e) {
+      // continue to xlsx fallback
+    }
+
+    // Fallback: xlsx simple
+    try {
+      const XLSXModule = await import('xlsx');
+      const XLSX = XLSXModule.default || XLSXModule;
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kpiRows), 'KPIs');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(porPeriodo), 'PorPeriodo');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(porTipo), 'PorTipo');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumen), 'Resumen');
+      if (detalles.length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalles), 'Detalles');
+      XLSX.writeFile(wb, fileName);
+      return;
+    } catch (e) {
+      // Last-resort CSV
+      const header = Object.keys(porPeriodo[0] || { Periodo:'', Incidentes:'', Hallazgos:'', Conversaciones:'' });
+      const rows = [header.join(','), ...porPeriodo.map(r => header.map(h => `${(r[h] ?? '').toString().replaceAll('"','""')}`).join(','))];
+      const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName.replace('.xlsx','.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   // Bar chart: Reportes por periodo (dinámico por selectedPeriod)
@@ -987,6 +1119,7 @@ const Dashboard = () => {
                       boxShadow: '0 15px 35px -5px rgba(34, 197, 94, 0.5)',
                       '--focus-ring-color': 'rgba(34, 197, 94, 0.5)'
                     }}
+                    onClick={handleDownloadExcel}
                   >
                     <div 
                       className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
