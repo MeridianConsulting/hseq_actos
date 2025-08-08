@@ -40,6 +40,103 @@ const Dashboard = () => {
     navigate('/admin/users');
   };
 
+  const handleDownloadPDF = () => {
+    const title = 'Reporte Ejecutivo HSEQ';
+    const generatedAt = new Date().toLocaleString('es-ES');
+    const totalTipos = incidentsByType.reduce((a, d) => a + (Number(d.value) || 0), 0);
+    const estilos = `
+      <style>
+        * { box-sizing: border-box; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
+        body { margin: 24px; color: #0b1220; }
+        h1 { margin: 0 0 8px; font-size: 22px; }
+        h2 { margin: 16px 0 8px; font-size: 16px; }
+        p { margin: 0 0 8px; font-size: 12px; }
+        .muted { color: #5b6476; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .kpi { padding: 8px; border: 1px solid #e6e8ee; border-radius: 8px; background: #f8fafc; }
+        .kpi .val { font-size: 18px; font-weight: 700; }
+        .table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .table th, .table td { border: 1px solid #e6e8ee; padding: 6px 8px; text-align: left; }
+        .table th { background: #f1f5f9; }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .box { border: 1px solid #e6e8ee; border-radius: 8px; padding: 10px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background:#eef2ff; color:#3730a3; font-weight:600; font-size:10px; }
+        @media print { .no-print { display: none; } }
+      </style>`;
+
+    const kpiRows = `
+      <div class="kpi-grid">
+        <div class="kpi"><div class="val" style="color:#ef4444">${kpis[0]?.value ?? '-'}</div><div class="muted">${kpis[0]?.title}</div></div>
+        <div class="kpi"><div class="val" style="color:#22c55e">${kpis[1]?.value ?? '-'}</div><div class="muted">${kpis[1]?.title}</div></div>
+        <div class="kpi"><div class="val" style="color:#3b82f6">${kpis[2]?.value ?? '-'}</div><div class="muted">${kpis[2]?.title}</div></div>
+        <div class="kpi"><div class="val" style="color:#f59e0b">${kpis[3]?.value ?? '-'}</div><div class="muted">${kpis[3]?.title}</div></div>
+      </div>`;
+
+    const tablaIncMes = `
+      <table class="table">
+        <thead><tr><th>Periodo</th><th>Incidentes</th><th>Hallazgos</th><th>Conversaciones</th></tr></thead>
+        <tbody>
+          ${(incidentsByMonth || []).map(r => `<tr><td>${r.month}</td><td>${r.incidentes}</td><td>${r.hallazgos}</td><td>${r.conversaciones}</td></tr>`).join('')}
+        </tbody>
+      </table>`;
+
+    const tablaTipo = `
+      <table class="table">
+        <thead><tr><th>Tipo</th><th>Cantidad</th></tr></thead>
+        <tbody>
+          ${(incidentsByType || []).map(r => `<tr><td>${r.label || r.id}</td><td>${r.value}</td></tr>`).join('')}
+          <tr><th>Total</th><th>${totalTipos}</th></tr>
+        </tbody>
+      </table>`;
+
+    const abiertosCrit = `
+      <table class="table">
+        <thead><tr><th>Criterio</th><th>Valor</th></tr></thead>
+        <tbody>
+          <tr><td>Total reportes</td><td>${Number(totalReportes)}</td></tr>
+          <tr><td>Total cerrados</td><td>${Number(totalCerrados)}</td></tr>
+          <tr><td>Abiertos Baja</td><td>${Number(abiertosPorCriticidad.Baja)}</td></tr>
+          <tr><td>Abiertos Media</td><td>${Number(abiertosPorCriticidad.Media)}</td></tr>
+          <tr><td>Abiertos Alta</td><td>${Number(abiertosPorCriticidad.Alta)}</td></tr>
+          <tr><td>Abiertos Muy Alta</td><td>${Number(abiertosPorCriticidad['Muy Alta'])}</td></tr>
+        </tbody>
+      </table>`;
+
+    const html = `
+      <!doctype html><html><head><meta charset="utf-8"/>${estilos}</head>
+      <body>
+        <div class="no-print" style="text-align:right;margin-bottom:8px;">
+          <button onclick="window.print()" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#0ea5e9;color:#fff;">Imprimir / Guardar PDF</button>
+        </div>
+        <h1>${title}</h1>
+        <p class="muted">Generado: ${generatedAt} • Periodo: ${selectedPeriod === 'month' ? 'Mensual' : selectedPeriod === 'quarter' ? 'Trimestral' : 'Anual'}</p>
+        <p class="muted">Área/Proceso destacado: <span class="badge">${areaProcesoTop}</span> • Hallazgo más reportado: <span class="badge">${hallazgoMasReportado}</span></p>
+
+        <h2>Indicadores Clave</h2>
+        ${kpiRows}
+
+        <div class="grid2">
+          <div class="box">
+            <h2>Cantidad de reportes por periodo</h2>
+            ${tablaIncMes}
+          </div>
+          <div class="box">
+            <h2>Distribución por tipo</h2>
+            ${tablaTipo}
+          </div>
+        </div>
+
+        <h2 style="margin-top:12px">Resumen (Totales y abiertos por criticidad)</h2>
+        <div class="box">${abiertosCrit}</div>
+      </body></html>`;
+
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  };
+
   // Bar chart: Reportes por periodo (dinámico por selectedPeriod)
   const incidentsByMonth = (stats?.incidentesPorMes || []).map(m => ({
     month: m.mes_corto || m.mes,
@@ -815,6 +912,7 @@ const Dashboard = () => {
                   </div>
                   
                   <button 
+                    onClick={handleDownloadPDF}
                     className="w-full group relative font-bold py-4 px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
                     style={{
                       background: 'linear-gradient(45deg, var(--color-tertiary), var(--color-tertiary-light))',
