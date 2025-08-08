@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { isAdmin } from '../utils/auth';
+import { isAdmin, logout } from '../utils/auth';
 import { userService } from '../services/api';
 
 const emptyForm = {
@@ -140,6 +140,14 @@ const UsersAdmin = () => {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+  };
+
+  const goBack = () => {
+    navigate(-1);
+  };
+
   return (
     <>
       <Header />
@@ -198,7 +206,7 @@ const UsersAdmin = () => {
                     <tr><td className="px-6 py-6" colSpan="6" style={{ color: 'var(--color-secondary)' }}>Cargando...</td></tr>
                   )}
                   {error && !loading && (
-                    <tr><td className="px-6 py-6" colSpan="6" className="text-red-400">{error}</td></tr>
+                    <tr><td className="px-6 py-6 text-red-400" colSpan="6">{error}</td></tr>
                   )}
                   {!loading && !error && filteredUsers.length === 0 && (
                     <tr><td className="px-6 py-6" colSpan="6" style={{ color: 'var(--color-secondary)' }}>Sin resultados</td></tr>
@@ -337,6 +345,42 @@ const UsersAdmin = () => {
             </div>
           </div>
         )}
+
+        {/* Floating Action Buttons */}
+        <div className="floating-action-buttons">
+          <button 
+            onClick={goBack}
+            className="floating-button group"
+            style={{
+              backgroundColor: 'rgba(252, 247, 255, 0.9)',
+              color: 'var(--color-primary-dark)',
+              border: '2px solid rgba(252, 247, 255, 0.3)'
+            }}
+            title="Volver"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <div className="tooltip">Volver</div>
+          </button>
+
+          <button 
+            onClick={handleLogout}
+            className="floating-button group"
+            style={{
+              background: 'linear-gradient(45deg, #dc2626, #ef4444)',
+              color: 'white',
+              border: '2px solid rgba(220, 38, 38, 0.3)',
+              boxShadow: '0 8px 25px -5px rgba(220, 38, 38, 0.4)'
+            }}
+            title="Cerrar Sesión"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <div className="tooltip">Cerrar Sesión</div>
+          </button>
+        </div>
 
         <Footer />
       </div>
