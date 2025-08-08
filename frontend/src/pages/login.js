@@ -208,7 +208,7 @@ const Login = () => {
                 className="text-3xl font-bold mb-4 animate-text-shimmer"
                 style={{ color: 'var(--color-secondary)' }}
               >
-                HSEQ Platform
+                HSEQ Meridian
               </h1>
               <div className="text-sm space-y-3" style={{ color: 'rgba(252, 247, 255, 0.9)' }}>
                 <p className="font-semibold tracking-wide">
