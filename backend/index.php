@@ -42,6 +42,7 @@ set_exception_handler(function($exception) {
 
 require_once __DIR__ . '/middleware/cors.php';
 require_once __DIR__ . '/utils/jwt.php';
+require_once __DIR__ . '/config/db.php';
 
 // Asegurar que siempre devuelva JSON
 header('Content-Type: application/json');
@@ -298,11 +299,13 @@ function handleRequest($method, $path){
             
             // Obtener filtros de la URL
             $filters = [];
-            if (isset($_GET['tipo_reporte'])) {
-                $filters['tipo_reporte'] = $_GET['tipo_reporte'];
-            }
-            if (isset($_GET['estado'])) {
-                $filters['estado'] = $_GET['estado'];
+            foreach ([
+                'tipo_reporte','estado','user_id','grado_criticidad','tipo_afectacion',
+                'date_from','date_to','q','sort_by','sort_dir','page','per_page'
+            ] as $key) {
+                if (isset($_GET[$key]) && $_GET[$key] !== '') {
+                    $filters[$key] = $_GET[$key];
+                }
             }
             
             $result = $reportController->getAllReports($filters);
@@ -425,6 +428,95 @@ function handleRequest($method, $path){
                 "message" => "Error interno del servidor",
                 "error" => $e->getMessage()
             ]);
+            return;
+        }
+    }
+
+    // Endpoint para obtener reportes vencidos (>30 días)
+    if($path === 'api/reports/overdue' && $method === 'GET'){
+        try {
+            if (!$requireRole(['soporte','admin'])) { return; }
+            
+            $conn = (new Database())->getConnection();
+            $sql = "SELECT r.*, u.nombre as nombre_usuario, u.correo,
+                           DATEDIFF(CURDATE(), DATE(r.creado_en)) as dias_vencido
+                    FROM reportes r 
+                    JOIN usuarios u ON r.id_usuario = u.id 
+                    WHERE r.estado IN ('pendiente','en_revision') 
+                    AND DATEDIFF(CURDATE(), DATE(r.creado_en)) > 30
+                    ORDER BY r.creado_en ASC";
+            $res = $conn->query($sql);
+            $overdue = [];
+            while ($row = $res->fetch_assoc()) {
+                $overdue[] = $row;
+            }
+            echo json_encode(['success'=>true,'overdue'=>$overdue]);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success'=>false,'message'=>'Error al obtener reportes vencidos','error'=>$e->getMessage()]);
+            return;
+        }
+    }
+
+    // Endpoint para probar envío de correos
+    if($path === 'api/test-email' && $method === 'POST'){
+        try {
+            if (!$requireRole(['admin'])) { return; }
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+            if (!isset($data['to']) || !isset($data['subject']) || !isset($data['body'])) {
+                http_response_code(400);
+                echo json_encode(['success'=>false,'message'=>'Faltan campos: to, subject, body']);
+                return;
+            }
+            
+            // Configurar correo de prueba
+            putenv('MAIL_TEST_TO=desarrolloit@meridian.com.co');
+            
+            $result = send_email($data['to'], $data['subject'], $data['body']);
+            echo json_encode($result);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success'=>false,'message'=>'Error al enviar correo de prueba','error'=>$e->getMessage()]);
+            return;
+        }
+    }
+
+    // Endpoint para notificar reportes vencidos (>30 días sin cerrar)
+    if($path === 'api/reports/notify-overdue' && $method === 'POST'){
+        try {
+            // solo soporte/admin
+            if (!isset($GLOBALS['auth_user_role']) || !in_array($GLOBALS['auth_user_role'], ['soporte','admin'], true)) {
+                http_response_code(403);
+                echo json_encode(['success'=>false,'message'=>'Prohibido']);
+                return;
+            }
+            
+            // Configurar correo de prueba
+            putenv('MAIL_TEST_TO=desarrolloit@meridian.com.co');
+            
+            $conn = (new Database())->getConnection();
+            $sql = "SELECT r.id FROM reportes r WHERE r.estado IN ('pendiente','en_revision') AND DATEDIFF(CURDATE(), DATE(r.creado_en)) > 30";
+            $res = $conn->query($sql);
+            $rc = new ReportController();
+            $count = 0;
+            $results = [];
+            while ($row = $res->fetch_assoc()) {
+                try {
+                    $rc->notifyReportEvent((int)$row['id'], 'vencido', []);
+                    $count++;
+                    $results[] = ['id' => $row['id'], 'status' => 'sent'];
+                } catch (Exception $e) {
+                    $results[] = ['id' => $row['id'], 'status' => 'error', 'error' => $e->getMessage()];
+                }
+            }
+            echo json_encode(['success'=>true,'processed'=>$count,'results'=>$results]);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success'=>false,'message'=>'Error al notificar vencidos','error'=>$e->getMessage()]);
             return;
         }
     }

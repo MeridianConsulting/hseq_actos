@@ -1,6 +1,14 @@
 // Cambia la URL base para usar la ruta correcta
 const API_BASE_URL = 'http://localhost/hseq/backend';
 
+// Headers con token JWT si existe
+const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+};
+
 class ReportService {
     /**
      * Validar y formatear datos antes de enviar
@@ -69,9 +77,7 @@ class ReportService {
             
             const response = await fetch(`${API_BASE_URL}/api/reports`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(formattedData)
             });
 
@@ -110,9 +116,7 @@ class ReportService {
             
             const response = await fetch(url, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+                headers: getAuthHeaders()
             });
 
             const data = await response.json();
@@ -135,9 +139,7 @@ class ReportService {
         try {
             const response = await fetch(`${API_BASE_URL}/api/reports/user?user_id=${userId}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+                headers: getAuthHeaders()
             });
 
             const data = await response.json();
@@ -160,9 +162,7 @@ class ReportService {
         try {
             const response = await fetch(`${API_BASE_URL}/api/reports/stats`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+                headers: getAuthHeaders()
             });
 
             const data = await response.json();
@@ -265,9 +265,7 @@ class ReportService {
         try {
             const response = await fetch(`${API_BASE_URL}/api/reports/status`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
                     report_id: reportId,
                     status: status,
@@ -296,9 +294,7 @@ class ReportService {
         try {
             const response = await fetch(`${API_BASE_URL}/api/reports/${reportId}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+                headers: getAuthHeaders()
             });
 
             const data = await response.json();
@@ -326,9 +322,7 @@ class ReportService {
             
             const response = await fetch(`${API_BASE_URL}/api/reports/${reportId}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(formattedData)
             });
 
@@ -363,9 +357,7 @@ class ReportService {
         try {
             const response = await fetch(`${API_BASE_URL}/api/reports/${reportId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+                headers: getAuthHeaders()
             });
 
             // Verificar si la respuesta es JSON válido

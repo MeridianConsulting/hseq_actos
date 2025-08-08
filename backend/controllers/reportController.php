@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../utils/mailer.php';
 
 class ReportController {
     private $conn;
@@ -214,7 +215,10 @@ class ReportController {
             $reportId = $this->conn->insert_id;
             
             $stmt->close();
-            
+
+            // Notificar creación de reporte
+            $this->notifyReportEvent($reportId, 'creacion', $data);
+
             return [
                 'success' => true,
                 'message' => 'Reporte creado exitosamente',
@@ -471,54 +475,125 @@ class ReportController {
      */
     public function getAllReports($filters = []) {
         try {
-            $sql = "SELECT r.*, u.nombre as nombre_usuario 
-                    FROM reportes r 
-                    JOIN usuarios u ON r.id_usuario = u.id";
-            
+            // Base query
+            $baseSql = "FROM reportes r JOIN usuarios u ON r.id_usuario = u.id";
             $whereConditions = [];
             $params = [];
             $types = "";
-            
-            // Aplicar filtros
-            if (isset($filters['tipo_reporte'])) {
+
+            // Filtros exactos
+            if (!empty($filters['tipo_reporte'])) {
                 $whereConditions[] = "r.tipo_reporte = ?";
                 $params[] = $filters['tipo_reporte'];
                 $types .= "s";
             }
-            
-            if (isset($filters['estado'])) {
+            if (!empty($filters['estado'])) {
                 $whereConditions[] = "r.estado = ?";
                 $params[] = $filters['estado'];
                 $types .= "s";
             }
-            
-            if (!empty($whereConditions)) {
-                $sql .= " WHERE " . implode(" AND ", $whereConditions);
+            if (!empty($filters['user_id'])) {
+                $whereConditions[] = "r.id_usuario = ?";
+                $params[] = (int)$filters['user_id'];
+                $types .= "i";
             }
-            
-            $sql .= " ORDER BY r.creado_en DESC";
-            
-            $stmt = $this->conn->prepare($sql);
-            
+            if (!empty($filters['grado_criticidad'])) {
+                $whereConditions[] = "r.grado_criticidad = ?";
+                $params[] = $filters['grado_criticidad'];
+                $types .= "s";
+            }
+            if (!empty($filters['tipo_afectacion'])) {
+                $whereConditions[] = "r.tipo_afectacion = ?";
+                $params[] = $filters['tipo_afectacion'];
+                $types .= "s";
+            }
+
+            // Filtros por fecha (usamos creado_en)
+            if (!empty($filters['date_from'])) {
+                $whereConditions[] = "DATE(r.creado_en) >= ?";
+                $params[] = $filters['date_from'];
+                $types .= "s";
+            }
+            if (!empty($filters['date_to'])) {
+                $whereConditions[] = "DATE(r.creado_en) <= ?";
+                $params[] = $filters['date_to'];
+                $types .= "s";
+            }
+
+            // Búsqueda libre (q)
+            if (!empty($filters['q'])) {
+                $q = '%' . $filters['q'] . '%';
+                $whereConditions[] = "(r.asunto LIKE ? OR r.descripcion_general LIKE ? OR r.descripcion_incidente LIKE ? OR r.descripcion_hallazgo LIKE ? OR r.asunto_conversacion LIKE ?)";
+                array_push($params, $q, $q, $q, $q, $q);
+                $types .= "sssss";
+            }
+
+            $whereSql = '';
+            if (!empty($whereConditions)) {
+                $whereSql = ' WHERE ' . implode(' AND ', $whereConditions);
+            }
+
+            // Ordenamiento seguro
+            $allowedSortBy = ['creado_en','fecha_evento','grado_criticidad','estado'];
+            $sortByRequested = $filters['sort_by'] ?? 'creado_en';
+            $sortBy = in_array($sortByRequested, $allowedSortBy, true) ? $sortByRequested : 'creado_en';
+            $sortDir = strtolower($filters['sort_dir'] ?? 'desc');
+            $sortDir = $sortDir === 'asc' ? 'ASC' : 'DESC';
+
+            // Paginación
+            $page = max(1, (int)($filters['page'] ?? 1));
+            $perPage = (int)($filters['per_page'] ?? 10);
+            if ($perPage <= 0) $perPage = 10;
+            if ($perPage > 100) $perPage = 100;
+            $offset = ($page - 1) * $perPage;
+
+            // Total de registros
+            $countSql = "SELECT COUNT(*) as total " . $baseSql . $whereSql;
+            $countStmt = $this->conn->prepare($countSql);
+            if (!empty($params)) {
+                $countStmt->bind_param($types, ...$params);
+            }
+            $countStmt->execute();
+            $countRes = $countStmt->get_result()->fetch_assoc();
+            $total = (int)($countRes['total'] ?? 0);
+            $countStmt->close();
+
+            // Query principal
+            // Inyectar LIMIT/OFFSET de forma segura (valores casteados arriba)
+            $selectSql = "SELECT r.*, u.nombre as nombre_usuario " . $baseSql . $whereSql . " ORDER BY r.$sortBy $sortDir LIMIT $perPage OFFSET $offset";
+            $stmt = $this->conn->prepare($selectSql);
+
+            if ($stmt === false) {
+                throw new Exception('Error preparando consulta de listados: ' . $this->conn->error);
+            }
+
             if (!empty($params)) {
                 $stmt->bind_param($types, ...$params);
             }
-            
+
             $stmt->execute();
             $result = $stmt->get_result();
             $reports = [];
-            
+
             while ($row = $result->fetch_assoc()) {
                 $reports[] = $row;
             }
-            
+
             $stmt->close();
-            
+
             return [
                 'success' => true,
-                'reports' => $reports
+                'reports' => $reports,
+                'meta' => [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'total_pages' => $perPage > 0 ? (int)ceil($total / $perPage) : 1,
+                    'sort_by' => $sortBy,
+                    'sort_dir' => strtolower($sortDir)
+                ]
             ];
-            
+
         } catch (Exception $e) {
             return [
                 'success' => false,
@@ -617,7 +692,14 @@ class ReportController {
             }
             
             $stmt->close();
-            
+
+            // Notificar cambio de estado
+            $this->notifyReportEvent($reportId, 'estado', [
+                'nuevo_estado' => $status,
+                'revisor_id' => $revisorId,
+                'comentarios' => $comentarios
+            ]);
+
             return [
                 'success' => true,
                 'message' => 'Estado del reporte actualizado exitosamente'
@@ -1034,6 +1116,75 @@ class ReportController {
                 'message' => 'Error al obtener estadísticas del dashboard: ' . $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Enviar notificación por correo y registrar en tabla notificaciones
+     */
+    private function notifyReportEvent(int $reportId, string $tipo, array $extra = []) : void {
+        try {
+            // Obtener datos del reporte y usuario
+            $sql = "SELECT r.id, r.tipo_reporte, r.asunto, r.asunto_conversacion, r.creado_en, r.estado, u.nombre, u.correo 
+                    FROM reportes r JOIN usuarios u ON r.id_usuario = u.id WHERE r.id = ?";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param('i', $reportId);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $rep = $res->fetch_assoc();
+            $stmt->close();
+            if (!$rep) return;
+
+            $destinatario = $rep['correo'] ?: 'desarrolloit@meridian.com.co';
+            // En pruebas, forzar destinatario
+            $testTo = getenv('MAIL_TEST_TO');
+            if (!$testTo) { $testTo = 'desarrolloit@meridian.com.co'; }
+
+            $titulo = $rep['asunto'] ?: ($rep['asunto_conversacion'] ?: '(sin asunto)');
+            $subject = '';
+            $body = '';
+            if ($tipo === 'creacion') {
+                $subject = "[HSEQ] Nuevo reporte #{$rep['id']} - {$rep['tipo_reporte']}";
+                $body = "<p>Hola {$rep['nombre']},</p>
+                         <p>Se ha creado tu reporte <strong>#{$rep['id']}</strong> de tipo <strong>{$rep['tipo_reporte']}</strong>.</p>
+                         <p>Título: <strong>{$this->e($titulo)}</strong></p>
+                         <p>Estado actual: <strong>{$rep['estado']}</strong></p>
+                         <p>Fecha de creación: {$rep['creado_en']}</p>";
+            } else if ($tipo === 'estado') {
+                $estado = $this->e($extra['nuevo_estado'] ?? '');
+                $subject = "[HSEQ] Estado actualizado reporte #{$rep['id']} → {$estado}";
+                $body = "<p>Hola {$rep['nombre']},</p>
+                         <p>El estado de tu reporte <strong>#{$rep['id']}</strong> ha cambiado a <strong>{$estado}</strong>.</p>
+                         <p>Título: <strong>{$this->e($titulo)}</strong></p>";
+                if (!empty($extra['comentarios'])) {
+                    $body .= "<p>Comentarios de revisión: {$this->e($extra['comentarios'])}</p>";
+                }
+            } else if ($tipo === 'vencido') {
+                $subject = "[HSEQ] Recordatorio: reporte #{$rep['id']} supera 30 días";
+                $body = "<p>Hola {$rep['nombre']},</p>
+                         <p>Tu reporte <strong>#{$rep['id']}</strong> continúa en estado <strong>{$rep['estado']}</strong> y han pasado más de 30 días desde su creación ({$rep['creado_en']}).</p>
+                         <p>Por favor, realiza seguimiento o contacta a soporte.</p>";
+            }
+            $body .= "<hr/><p>Este es un mensaje automático. No responder.</p>";
+
+            // Enviar correo (forzado a test durante pruebas)
+            $sendTo = $testTo ?: $destinatario;
+            $sendResult = send_email($sendTo, $subject, $body);
+
+            // Registrar en notificaciones
+            $sqlN = 'INSERT INTO notificaciones (id_reporte, destinatario, medio) VALUES (?, ?, "correo")';
+            $stmtN = $this->conn->prepare($sqlN);
+            if ($stmtN) {
+                $stmtN->bind_param('is', $reportId, $sendTo);
+                $stmtN->execute();
+                $stmtN->close();
+            }
+        } catch (Exception $e) {
+            // Silencioso, no romper flujo del reporte
+        }
+    }
+
+    private function e(string $s): string {
+        return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
     }
 }
 ?> 

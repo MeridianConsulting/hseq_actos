@@ -88,10 +88,14 @@ export const reportService = {
     fetchReports: async (filters = {}) => {
         try {
             const params = new URLSearchParams();
-            if (filters.tipo_reporte) params.append('tipo_reporte', filters.tipo_reporte);
-            if (filters.estado) params.append('estado', filters.estado);
-
-            const response = await api.get(`/api/reports?${params.toString()}`);
+            const allowed = ['tipo_reporte','estado','user_id','grado_criticidad','tipo_afectacion','date_from','date_to','q','sort_by','sort_dir','page','per_page'];
+            Object.entries(filters).forEach(([k, v]) => {
+                if (v !== undefined && v !== null && v !== '' && allowed.includes(k)) {
+                    params.append(k, v);
+                }
+            });
+            const qs = params.toString();
+            const response = await api.get(`/api/reports${qs ? `?${qs}` : ''}`);
             return response.data;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener reportes');
@@ -128,13 +132,11 @@ export const reportService = {
 
     /**
      * Actualizar estado de un reporte
-     * @param {number} reportId - ID del reporte
      * @param {Object} payload - Datos de actualización
      * @returns {Promise<Object>}
      */
     updateReportStatus: async (payload) => {
         try {
-            // Backend espera PUT /api/reports/status con { report_id, status, revisor_id, comentarios }
             const response = await api.put(`/api/reports/status`, payload);
             return response.data;
         } catch (error) {
@@ -299,7 +301,52 @@ export const userService = {
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al reiniciar contraseña');
         }
+    }
+};
+
+/**
+ * Servicios de notificaciones
+ */
+export const notificationService = {
+    /**
+     * Obtener reportes vencidos
+     * @returns {Promise<Object>}
+     */
+    getOverdueReports: async () => {
+        try {
+            const response = await api.get('/api/reports/overdue');
+            return response.data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Error al obtener reportes vencidos');
+        }
     },
+
+    /**
+     * Notificar reportes vencidos
+     * @returns {Promise<Object>}
+     */
+    notifyOverdueReports: async () => {
+        try {
+            const response = await api.post('/api/reports/notify-overdue');
+            return response.data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Error al notificar reportes vencidos');
+        }
+    },
+
+    /**
+     * Probar envío de correo
+     * @param {Object} emailData
+     * @returns {Promise<Object>}
+     */
+    testEmail: async (emailData) => {
+        try {
+            const response = await api.post('/api/test-email', emailData);
+            return response.data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Error al enviar correo de prueba');
+        }
+    }
 };
 
 export default api; 
