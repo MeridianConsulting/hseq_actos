@@ -258,10 +258,13 @@ function handleRequest($method, $path){
             
             // Si el reporte se creó exitosamente y hay evidencia, procesarla
             if($result['success'] && isset($data['evidencia']) && !empty($data['evidencia'])){
-                $evidenceResult = $reportController->uploadEvidence($result['report_id'], $data['evidencia']);
-                if(!$evidenceResult['success']){
-                    // Si falla la subida de evidencia, agregar advertencia pero no fallar el reporte
-                    $result['evidence_warning'] = $evidenceResult['message'];
+                try {
+                    $evidenceResult = $reportController->uploadEvidence($result['report_id'], $data['evidencia']);
+                    if(!$evidenceResult['success']){
+                        $result['evidence_warning'] = $evidenceResult['message'];
+                    }
+                } catch (Exception $e) {
+                    $result['evidence_warning'] = 'Error al procesar evidencia: ' . $e->getMessage();
                 }
             }
             

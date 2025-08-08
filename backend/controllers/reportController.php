@@ -216,8 +216,8 @@ class ReportController {
             
             $stmt->close();
 
-            // Notificar creación de reporte
-            $this->notifyReportEvent($reportId, 'creacion', $data);
+            // Notificar creación de reporte (no bloquear si mail falla)
+            try { $this->notifyReportEvent($reportId, 'creacion', $data); } catch (Exception $e) { /* silencioso */ }
 
             return [
                 'success' => true,

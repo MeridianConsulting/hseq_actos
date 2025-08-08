@@ -349,4 +349,28 @@ export const notificationService = {
     }
 };
 
+/**
+ * Servicios de evidencias (descarga segura)
+ */
+export const evidenceService = {
+    /**
+     * Descargar evidencia como Blob (requiere permisos de soporte/admin en backend)
+     * @param {number|string} evidenceId
+     * @returns {Promise<{ blob: Blob, contentType: string, fileName?: string }>} 
+     */
+    getEvidenceBlob: async (evidenceId) => {
+        try {
+            const response = await api.get(`/api/evidencias/${evidenceId}` , { responseType: 'blob' });
+            // Intentar obtener nombre sugerido desde headers Content-Disposition
+            const disp = response.headers['content-disposition'] || '';
+            let fileName;
+            const match = /filename="?([^";]+)"?/i.exec(disp);
+            if (match && match[1]) fileName = match[1];
+            return { blob: response.data, contentType: response.headers['content-type'] || 'application/octet-stream', fileName };
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'No se pudo descargar la evidencia');
+        }
+    }
+};
+
 export default api; 

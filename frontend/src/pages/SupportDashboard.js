@@ -42,6 +42,12 @@ const SupportDashboard = () => {
     loadReports();
   }, []);
 
+  // Recargar cuando cambie pestaña o paginación básica
+  useEffect(() => {
+    loadReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, filters.page, filters.per_page, filters.sort_by, filters.sort_dir]);
+
   const loadReports = async () => {
     setIsLoading(true);
     try {
@@ -304,7 +310,7 @@ const SupportDashboard = () => {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex space-x-1 mb-8">
+          <div className="flex items-center space-x-2 mb-8">
             <button
               onClick={() => setActiveTab('pending')}
               className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
@@ -334,6 +340,13 @@ const SupportDashboard = () => {
               }`}
             >
               Cerrados
+            </button>
+            <button
+              onClick={loadReports}
+              className="py-3 px-4 rounded-lg font-semibold bg-gray-800 text-white hover:bg-gray-700"
+              title="Refrescar lista"
+            >
+              Refrescar
             </button>
           </div>
 

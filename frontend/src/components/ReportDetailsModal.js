@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReportService from '../services/reportService';
+import { evidenceService } from '../services/api';
 
 const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   const [report, setReport] = useState(null);
@@ -147,6 +148,28 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     );
   };
 
+  const handleOpenEvidence = async (evidence) => {
+    try {
+      const { blob, contentType, fileName } = await evidenceService.getEvidenceBlob(evidence.id);
+      // Crear URL temporal y abrir en nueva pestaña si es visualizable, si no forzar descarga
+      const url = window.URL.createObjectURL(blob);
+      if (contentType.startsWith('image/') || contentType === 'application/pdf') {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      } else {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName || evidence.url_archivo || 'evidencia';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      // Liberar URL cuando la pestaña cierre; aquí dejamos que el navegador gestione el revoke tras un tiempo
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      alert('No se pudo abrir la evidencia: ' + (err.message || 'Error desconocido'));
+    }
+  };
+
   const renderEvidence = (evidencias) => {
     if (!evidencias || evidencias.length === 0) {
       return (
@@ -164,44 +187,47 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {evidencias.map((evidencia, index) => (
-          <div key={evidencia.id} className="group relative bg-white bg-opacity-5 rounded-xl overflow-hidden hover:bg-opacity-10 transition-all duration-300">
-            <div className="aspect-w-16 aspect-h-9">
-              <img
-                src={`http://localhost/hseq/backend/uploads/${evidencia.url_archivo}`}
-                alt={`Evidencia ${index + 1}`}
-                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                onError={(e) => {
-                  e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik01MCAxMDBDNTAgNzIuODM2IDcyLjgzNiA1MCAxMDAgNTBDMTI3LjE2NCA1MCAxNTAgNzIuODM2IDE1MCAxMDBDMTUwIDEyNy4xNjQgMTI3LjE2NCAxNTAgMTAwIDE1MEM3Mi44MzYgMTUwIDUwIDEyNy4xNjQgNTAgMTAwWiIgZmlsbD0iIzZCNzM4MCIvPgo8cGF0aCBkPSJNMTI1IDEwMEMxMjUgODkuNTQ4IDExNi40NTIgODEgMTA2IDgxQzk1LjU0NzkgODEgODcgODkuNTQ3OSA4NyAxMDBDOCA5NS41NDc5IDg3IDEwNC40NTIgODcgMTE1Qzg3IDEyNS40NTIgOTUuNTQ3OSAxMzQgMTA2IDEzNEMxMTYuNDUyIDEzNCAxMjUgMTI1LjQ1MiAxMjUgMTE1QzEyNSAxMDQuNDUyIDEyNSAxMDAgMTI1IDEwMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
-                }}
-              />
-            </div>
-            <div className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white font-medium">
-                    Evidencia {index + 1}
-                  </p>
-                  <p className="text-white text-opacity-50 text-sm">
-                    {new Date(evidencia.creado_en).toLocaleDateString('es-ES', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
-                </div>
-                <div className="w-8 h-8 bg-blue-500 bg-opacity-20 rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                  </svg>
+        {evidencias.map((evidencia, index) => {
+          const isImage = evidencia.tipo_archivo?.startsWith('image/');
+          const isPdf = evidencia.tipo_archivo === 'application/pdf';
+          return (
+            <div key={evidencia.id} className="group relative bg-white bg-opacity-5 rounded-xl overflow-hidden hover:bg-opacity-10 transition-all duration-300">
+              <div className="aspect-w-16 aspect-h-9 flex items-center justify-center bg-black/40">
+                {isImage ? (
+                  <div className="w-full h-48 flex items-center justify-center">
+                    <button onClick={() => handleOpenEvidence(evidencia)} className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-sm">Ver imagen</button>
+                  </div>
+                ) : isPdf ? (
+                  <div className="w-full h-48 flex items-center justify-center">
+                    <button onClick={() => handleOpenEvidence(evidencia)} className="text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-sm">Abrir PDF</button>
+                  </div>
+                ) : (
+                  <div className="w-full h-48 flex items-center justify-center">
+                    <button onClick={() => handleOpenEvidence(evidencia)} className="text-white bg-gray-600 hover:bg-gray-700 px-3 py-1.5 rounded text-sm">Descargar archivo</button>
+                  </div>
+                )}
+              </div>
+              <div className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white font-medium">Evidencia {index + 1}</p>
+                    <p className="text-white text-opacity-50 text-sm">
+                      {new Date(evidencia.creado_en).toLocaleDateString('es-ES', {
+                        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                  <div className="w-8 h-8 bg-blue-500 bg-opacity-20 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };

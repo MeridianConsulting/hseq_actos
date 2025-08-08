@@ -40,7 +40,17 @@ function send_email(string $to, string $subject, string $htmlBody, ?string $text
     $headers[] = 'From: ' . mailer_from();
     $headersStr = implode("\r\n", $headers);
 
-    $ok = @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $htmlBody, $headersStr);
+    // Proteger de warnings de mail() que podrían activar el manejador global y devolver 500
+    $prevHandler = set_error_handler(function() { /* swallow warnings from mail() */ }, E_WARNING | E_NOTICE);
+    try {
+        $ok = @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $htmlBody, $headersStr);
+    } finally {
+        if ($prevHandler !== null) {
+            set_error_handler($prevHandler);
+        } else {
+            restore_error_handler();
+        }
+    }
     if ($ok) {
         return ['success' => true, 'message' => 'Correo enviado'];
     }
