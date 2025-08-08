@@ -8,18 +8,20 @@ export const TextInput = ({
   label, 
   placeholder, 
   required = false,
-  className = ""
+  className = "",
+  helper
 }) => (
   <div>
-    <label className="block text-white font-semibold mb-2">
+    <label className="block text-white text-opacity-90 font-semibold mb-2">
       {label} {required && '*'}
     </label>
+    {helper && <p className="text-white text-opacity-70 text-xs mb-2">{helper}</p>}
     <input
       type="text"
       name={name}
       value={value}
       onChange={onChange}
-      className={`w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent ${className}`}
+      className={`w-full px-4 py-3 bg-gray-900/60 border border-white/10 rounded-xl text-white placeholder-gray-300 shadow-inner focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all duration-200 hover:border-white/20 ${className}`}
       placeholder={placeholder}
       required={required}
     />
@@ -32,18 +34,20 @@ export const DateInput = ({
   value, 
   onChange, 
   label, 
-  required = false 
+  required = false,
+  helper
 }) => (
   <div>
-    <label className="block text-white font-semibold mb-2">
+    <label className="block text-white text-opacity-90 font-semibold mb-2">
       {label} {required && '*'}
     </label>
+    {helper && <p className="text-white text-opacity-70 text-xs mb-2">{helper}</p>}
     <input
       type="date"
       name={name}
       value={value}
       onChange={onChange}
-      className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+      className="w-full px-4 py-3 bg-gray-900/60 border border-white/10 rounded-xl text-white placeholder-gray-300 shadow-inner focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all duration-200 hover:border-white/20 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
       required={required}
     />
   </div>
@@ -55,18 +59,20 @@ export const TimeInput = ({
   value, 
   onChange, 
   label, 
-  required = false 
+  required = false,
+  helper
 }) => (
   <div>
-    <label className="block text-white font-semibold mb-2">
+    <label className="block text-white text-opacity-90 font-semibold mb-2">
       {label} {required && '*'}
     </label>
+    {helper && <p className="text-white text-opacity-70 text-xs mb-2">{helper}</p>}
     <input
       type="time"
       name={name}
       value={value}
       onChange={onChange}
-      className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+      className="w-full px-4 py-3 bg-gray-900/60 border border-white/10 rounded-xl text-white placeholder-gray-300 shadow-inner focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all duration-200 hover:border-white/20 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
       required={required}
     />
   </div>
@@ -80,18 +86,20 @@ export const TextAreaInput = ({
   label, 
   placeholder, 
   rows = 4, 
-  required = false 
+  required = false,
+  helper
 }) => (
   <div>
-    <label className="block text-white font-semibold mb-2">
+    <label className="block text-white text-opacity-90 font-semibold mb-2">
       {label} {required && '*'}
     </label>
+    {helper && <p className="text-white text-opacity-70 text-xs mb-2">{helper}</p>}
     <textarea
       name={name}
       value={value}
       onChange={onChange}
       rows={rows}
-      className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
+      className="w-full px-4 py-3 bg-gray-900/60 border border-white/10 rounded-xl text-white placeholder-gray-300 shadow-inner focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all duration-200 hover:border-white/20 resize-none"
       placeholder={placeholder}
       required={required}
     />
@@ -106,22 +114,24 @@ export const SelectInput = ({
   label, 
   options, 
   placeholder, 
-  required = false 
+  required = false,
+  helper
 }) => (
   <div>
-    <label className="block text-white font-semibold mb-2">
+    <label className="block text-white text-opacity-90 font-semibold mb-2">
       {label} {required && '*'}
     </label>
+    {helper && <p className="text-white text-opacity-70 text-xs mb-2">{helper}</p>}
     <select
       name={name}
       value={value}
       onChange={onChange}
-      className="w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+      className="w-full px-4 py-3 bg-gray-900/60 border border-white/10 rounded-xl text-white placeholder-gray-300 shadow-inner focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all duration-200 hover:border-white/20"
       required={required}
     >
-      <option value="" className="bg-gray-800 text-white">{placeholder}</option>
+      <option value="" className="bg-gray-900 text-white">{placeholder}</option>
       {options.map(option => (
-        <option key={option.value} value={option.value} className="bg-gray-800 text-white">
+        <option key={option.value} value={option.value} className="bg-gray-900 text-white">
           {option.label}
         </option>
       ))}
@@ -137,21 +147,35 @@ export const FileInput = ({
   label, 
   accept = "image/*,.pdf,.doc,.docx",
   buttonColor = "blue",
-  required = false 
+  required = false,
+  helper
 }) => (
   <div>
-    <label className="block text-white font-semibold mb-2">
+    <label className="block text-white text-opacity-90 font-semibold mb-2">
       {label} {required && '*'}
     </label>
-    <input
-      type="file"
-      id={id}
-      name={name}
-      onChange={onChange}
-      accept={accept}
-      className={`w-full px-4 py-3 bg-gray-800 bg-opacity-80 border border-gray-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-${buttonColor}-600 file:text-white hover:file:bg-${buttonColor}-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent`}
-      required={required}
-    />
+    {helper && <p className="text-white text-opacity-70 text-xs mb-2">{helper}</p>}
+    {(() => {
+      const fileColorMap = {
+        blue: 'file:bg-blue-600 hover:file:bg-blue-700',
+        red: 'file:bg-red-600 hover:file:bg-red-700',
+        green: 'file:bg-green-600 hover:file:bg-green-700',
+        yellow: 'file:bg-yellow-500 hover:file:bg-yellow-600',
+        gray: 'file:bg-gray-700 hover:file:bg-gray-800'
+      };
+      const fileColorClasses = fileColorMap[buttonColor] || fileColorMap.gray;
+      return (
+        <input
+          type="file"
+          id={id}
+          name={name}
+          onChange={onChange}
+          accept={accept}
+          className={`w-full px-4 py-3 bg-gray-900/60 border border-white/10 rounded-xl text-white file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent ${fileColorClasses}`}
+          required={required}
+        />
+      );
+    })()}
     <p className="text-gray-300 text-sm mt-2">
       Formatos permitidos: JPG, PNG, PDF, DOC, DOCX (máx. 10MB)
     </p>
@@ -168,7 +192,7 @@ export const SubmitButton = ({
   <button
     type="submit"
     disabled={isLoading}
-    className={`bg-${color}-500 hover:bg-${color}-600 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2`}
+    className={`bg-${color}-500 hover:bg-${color}-600 text-white font-bold py-3 px-8 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl focus-visible:ring-2 focus-visible:ring-yellow-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent`}
   >
     {isLoading ? (
       <>

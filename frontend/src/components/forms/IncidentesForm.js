@@ -22,14 +22,15 @@ const IncidentesForm = ({
   onBack 
 }) => {
   return (
-    <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-3xl p-8 shadow-2xl">
+    <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-white/10">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-2xl font-bold text-white">
-          INCIDENTE HSE
-        </h3>
+        <div>
+          <h3 className="text-2xl font-bold text-white">INCIDENTE HSE</h3>
+          <p className="text-white text-opacity-80 text-sm mt-1">Registra incidentes para su análisis y mejora continua</p>
+        </div>
         <button
           onClick={onBack}
-          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2 shadow"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
@@ -63,6 +64,7 @@ const IncidentesForm = ({
           label="Grado de criticidad del evento"
           options={gradosCriticidad}
           placeholder="Selecciona la respuesta"
+          helper="Evalúa la severidad para priorizar acciones"
           required
         />
 
@@ -72,6 +74,7 @@ const IncidentesForm = ({
           onChange={onInputChange}
           label="Ubicación del Incidente - Instalación donde ocurre el evento"
           placeholder="Escriba la ubicación específica del incidente"
+          helper="Indica instalación, área y punto específico"
           required
         />
 
@@ -80,6 +83,7 @@ const IncidentesForm = ({
           value={reportData.hora_evento}
           onChange={onInputChange}
           label="Hora del evento"
+          helper="Hora aproximada del suceso"
           required
         />
 
@@ -90,6 +94,7 @@ const IncidentesForm = ({
           label="Tipo de evento - Afectación"
           options={tiposAfectacion}
           placeholder="Seleccione el tipo de afectación"
+          helper="Selecciona la categoría que mejor describe el evento"
           required
         />
 
@@ -99,6 +104,7 @@ const IncidentesForm = ({
           onChange={onInputChange}
           label="Descripción (detalle los eventos y/o sucesos que ocasionaron el incidente)"
           placeholder="Describa detalladamente los eventos que ocasionaron el incidente"
+          helper="Incluye causas aparentes, condiciones y actos relacionados"
           required
         />
 
@@ -108,6 +114,7 @@ const IncidentesForm = ({
           onChange={onFileChange}
           label="Evidencia (Opcional)"
           buttonColor="red"
+          helper="Adjunta fotos o documentos relevantes (opcional)"
         />
 
         <div className="flex justify-end">

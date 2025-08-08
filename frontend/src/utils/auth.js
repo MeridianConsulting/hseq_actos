@@ -53,10 +53,8 @@ export const isAdmin = () => {
   return hasRole('admin');
 };
 
-// Verificar si es coordinador
-export const isCoordinator = () => {
-  return hasRole('coordinador');
-};
+// isCoordinator eliminado (rol descontinuado)
+export const isCoordinator = () => false;
 
 // Verificar si es soporte
 export const isSupport = () => {
@@ -91,8 +89,7 @@ export const getRoleRoute = (role) => {
   switch (role) {
     case 'admin':
       return '/dashboard';
-    case 'coordinador':
-      return '/coordinator';
+    // coordinador removido
     case 'soporte':
       return '/support';
     case 'colaborador':

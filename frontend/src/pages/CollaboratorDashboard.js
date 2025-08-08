@@ -7,14 +7,13 @@ import ReportTypeSelector from '../components/forms/ReportTypeSelector';
 import HallazgosForm from '../components/forms/HallazgosForm';
 import IncidentesForm from '../components/forms/IncidentesForm';
 import ConversacionesForm from '../components/forms/ConversacionesForm';
-import CollaboratorReportHistory from '../components/dashboard/CollaboratorReportHistory';
 import '../assets/css/styles.css';
 
 const CollaboratorDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState('report');
+  // Vista simplificada: solo creación de reportes
   const [selectedReportType, setSelectedReportType] = useState(null);
   const [reportData, setReportData] = useState({
     // Campos comunes para todos los tipos de reporte
@@ -161,10 +160,6 @@ const CollaboratorDashboard = () => {
     setShowSuccessAnimation(false);
     // Volver a la pantalla inicial después de la animación
     setSelectedReportType(null);
-    // Recargar el historial de reportes
-    if (window.reportHistoryRefresh) {
-      window.reportHistoryRefresh();
-    }
   };
 
   const handleLogout = () => {
@@ -225,22 +220,20 @@ const CollaboratorDashboard = () => {
       background: `linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 35%, var(--color-tertiary-dark) 100%)`
     }}>
       {/* Header */}
-      <header className="bg-white bg-opacity-10 backdrop-blur-md shadow-lg">
+      <header className="bg-white/10 backdrop-blur-md shadow-lg border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-white">
-                Panel de Colaborador
-              </h1>
+              <h1 className="text-2xl font-bold text-white">Panel de Colaborador</h1>
               {user && (
-                <span className="ml-4 text-sm bg-white bg-opacity-20 px-3 py-1 rounded-full text-white">
+                <span className="ml-4 text-sm bg-white/20 px-3 py-1 rounded-full text-white border border-white/10">
                   {user.nombre}
                 </span>
               )}
             </div>
             <button
               onClick={handleLogout}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors duration-200 shadow"
             >
               Cerrar Sesión
             </button>
@@ -252,56 +245,25 @@ const CollaboratorDashboard = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           {/* Welcome Card */}
-          <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-3xl p-8 mb-8 shadow-2xl">
+          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 mb-8 shadow-2xl border border-white/10">
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-white mb-4">
-                ¡Bienvenido, {user?.nombre}!
-              </h2>
+              <h2 className="text-3xl font-bold text-white mb-2">¡Bienvenido, {user?.nombre}!</h2>
               <p className="text-white text-opacity-90 text-lg">
                 Reporta condiciones y actos inseguros para mantener nuestro ambiente de trabajo seguro
               </p>
+              <div className="mt-4 flex justify-center gap-4 text-xs text-white/80">
+                <span className="bg-white/10 px-3 py-1 rounded-full border border-white/10">Rápido</span>
+                <span className="bg-white/10 px-3 py-1 rounded-full border border-white/10">Seguro</span>
+                <span className="bg-white/10 px-3 py-1 rounded-full border border-white/10">Eficiente</span>
+              </div>
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="flex space-x-1 mb-8">
-            <button
-              onClick={() => {
-                setActiveTab('report');
-                setSelectedReportType(null);
-              }}
-              className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
-                activeTab === 'report'
-                  ? 'bg-white text-blue-600 shadow-lg'
-                  : 'bg-white bg-opacity-10 text-white hover:bg-opacity-20'
-              }`}
-            >
-              Nuevo Reporte
-            </button>
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
-                activeTab === 'history'
-                  ? 'bg-white text-blue-600 shadow-lg'
-                  : 'bg-white bg-opacity-10 text-white hover:bg-opacity-20'
-              }`}
-            >
-              Mis Reportes
-            </button>
-          </div>
-
-          {/* Content based on active tab and selection */}
-          {activeTab === 'report' && (
-            <>
-              {!selectedReportType && (
-                <ReportTypeSelector onSelect={handleReportTypeSelection} />
-              )}
-              {selectedReportType && renderForm()}
-            </>
+          {/* Selección o formulario */}
+          {!selectedReportType && (
+            <ReportTypeSelector onSelect={handleReportTypeSelection} />
           )}
-
-          {/* History Tab */}
-          {activeTab === 'history' && <CollaboratorReportHistory key={activeTab} />}
+          {selectedReportType && renderForm()}
         </div>
       </main>
 

@@ -15,7 +15,6 @@ const emptyForm = {
 
 const roleOptions = [
   { value: 'admin', label: 'Administrador' },
-  { value: 'coordinador', label: 'Coordinador' },
   { value: 'soporte', label: 'Soporte' },
   { value: 'colaborador', label: 'Colaborador' }
 ];
@@ -218,8 +217,8 @@ const UsersAdmin = () => {
                       <td className="px-6 py-4" style={{ color: 'var(--color-secondary)' }}>{u.cedula}</td>
                       <td className="px-6 py-4">
                         <span className="px-3 py-1 rounded-full text-xs font-bold capitalize" style={{
-                          backgroundColor: u.rol === 'admin' ? 'rgba(220, 38, 38, 0.2)' : u.rol === 'coordinador' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(34, 197, 94, 0.2)',
-                          color: u.rol === 'admin' ? '#fca5a5' : u.rol === 'coordinador' ? '#93c5fd' : '#86efac',
+                          backgroundColor: u.rol === 'admin' ? 'rgba(220, 38, 38, 0.2)' : u.rol === 'soporte' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(34, 197, 94, 0.2)',
+                          color: u.rol === 'admin' ? '#fca5a5' : u.rol === 'soporte' ? '#93c5fd' : '#86efac',
                           border: '1px solid rgba(252, 247, 255, 0.2)'
                         }}>{u.rol}</span>
                       </td>

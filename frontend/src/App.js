@@ -5,7 +5,6 @@ import UsersAdmin from './admin/UsersAdmin';
 import Login from './pages/Login';
 import CollaboratorDashboard from './pages/CollaboratorDashboard';
 import SupportDashboard from './pages/SupportDashboard';
-import CoordinatorDashboard from './pages/CoordinatorDashboard';
 import { isAuthenticated, getUser, getRoleRoute } from './utils/auth';
 
 // Componente para proteger rutas que requieren autenticación
@@ -70,14 +69,7 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/coordinator" 
-              element={
-                <ProtectedRoute>
-                  <CoordinatorDashboard />
-                </ProtectedRoute>
-              } 
-            />
+            {/* Vista de coordinador removida */}
             <Route 
               path="/admin/users" 
               element={

@@ -21,14 +21,15 @@ const ConversacionesForm = ({
   onBack 
 }) => {
   return (
-    <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-3xl p-8 shadow-2xl">
+    <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-white/10">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-2xl font-bold text-white">
-          CONVERSACIONES Y REFLEXIONES HSE
-        </h3>
+        <div>
+          <h3 className="text-2xl font-bold text-white">CONVERSACIONES Y REFLEXIONES HSE</h3>
+          <p className="text-white text-opacity-80 text-sm mt-1">Comparte aprendizajes y reflexiones que promuevan la seguridad</p>
+        </div>
         <button
           onClick={onBack}
-          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2 shadow"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
@@ -54,6 +55,7 @@ const ConversacionesForm = ({
           label="¿Qué desea reportar?"
           options={tiposConversacion}
           placeholder="Seleccione el tipo de reporte"
+          helper="Selecciona si es una conversación, reflexión u otro"
           required
         />
 
@@ -71,6 +73,7 @@ const ConversacionesForm = ({
           onChange={onInputChange}
           label="Sitio del evento"
           placeholder="Escriba el sitio específico del evento"
+          helper="Ej. sala de reuniones, área de producción, etc."
           required
         />
 
@@ -81,6 +84,7 @@ const ConversacionesForm = ({
           label="Lugar de hallazgo (Instalación donde ocurre el evento)"
           options={instalaciones}
           placeholder="Seleccione una instalación"
+          helper="Selecciona la instalación correspondiente"
           required
         />
 
@@ -101,6 +105,7 @@ const ConversacionesForm = ({
           onChange={onInputChange}
           label="Descripción de las situaciones reflexionadas y/o conversadas"
           placeholder="Describa detalladamente las situaciones reflexionadas o conversadas"
+          helper="Incluye contexto, participantes y aprendizajes clave"
           required
         />
 
@@ -110,6 +115,7 @@ const ConversacionesForm = ({
           onChange={onFileChange}
           label="Evidencia (Opcional)"
           buttonColor="green"
+          helper="Adjunta material de apoyo si aplica"
         />
 
         <div className="flex justify-end">

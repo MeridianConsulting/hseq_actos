@@ -132,9 +132,10 @@ export const reportService = {
      * @param {Object} payload - Datos de actualización
      * @returns {Promise<Object>}
      */
-    updateReportStatus: async (reportId, payload) => {
+    updateReportStatus: async (payload) => {
         try {
-            const response = await api.put(`/api/reports/${reportId}/status`, payload);
+            // Backend espera PUT /api/reports/status con { report_id, status, revisor_id, comentarios }
+            const response = await api.put(`/api/reports/status`, payload);
             return response.data;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al actualizar estado del reporte');

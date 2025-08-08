@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { getUser, logout, getUserName, isAdmin, isCoordinator } from '../utils/auth';
+import { getUser, logout, getUserName, isAdmin } from '../utils/auth';
 import '../assets/css/styles.css';
 
 // Importar componentes de Nivo
@@ -11,13 +11,17 @@ import { ResponsivePie } from '@nivo/pie';
 import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveRadar } from '@nivo/radar';
 import { useDashboardStats } from '../hooks/useDashboardStats';
-import { reportService } from '../services/api';
+import { reportService, userService } from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [user, setUser] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState(null);
+  const [reports, setReports] = useState([]);
+  const [supports, setSupports] = useState([]);
 
   const { stats, loading, error } = useDashboardStats(selectedPeriod);
 
@@ -27,7 +31,47 @@ const Dashboard = () => {
       setUser(userData);
       setTimeout(() => setIsVisible(true), 100);
     }
+    // Cargar datos para asignación si es admin
+    if (isAdmin()) {
+      loadAssignmentData();
+    }
   }, []);
+
+  const loadAssignmentData = async () => {
+    try {
+      setAssignLoading(true);
+      setAssignError(null);
+      const [repResp, supResp] = await Promise.all([
+        reportService.fetchReports({ estado: 'pendiente' }),
+        userService.fetchUsers({ rol: 'soporte', activo: 1 })
+      ]);
+      if (repResp?.success) setReports(repResp.reports || repResp.data || []);
+      if (supResp?.success) setSupports(supResp.data || []);
+    } catch (e) {
+      setAssignError(e.message || 'Error cargando datos de asignación');
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const handleAssignToSupport = async (reportId, supportUserId) => {
+    if (!supportUserId) return;
+    try {
+      setAssignLoading(true);
+      await reportService.updateReportStatus({
+        report_id: reportId,
+        status: 'en_revision',
+        revisor_id: Number(supportUserId),
+        comentarios: 'Asignado por administrador'
+      });
+      // Refrescar lista
+      await loadAssignmentData();
+    } catch (e) {
+      setAssignError(e.message || 'No se pudo asignar el reporte');
+    } finally {
+      setAssignLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -436,10 +480,8 @@ const Dashboard = () => {
                         className="inline-block px-4 py-2 rounded-full text-sm font-bold capitalize"
                         style={{
                           backgroundColor: isAdmin() ? 'rgba(220, 38, 38, 0.2)' : 
-                                         isCoordinator() ? 'rgba(59, 130, 246, 0.2)' : 
                                          'rgba(34, 197, 94, 0.2)',
                           color: isAdmin() ? '#fca5a5' : 
-                                 isCoordinator() ? '#93c5fd' : 
                                  '#86efac',
                           border: '1px solid rgba(252, 247, 255, 0.2)'
                         }}
@@ -510,10 +552,8 @@ const Dashboard = () => {
                               className="inline-block px-3 py-1 rounded-full text-sm font-bold capitalize"
                               style={{
                                 backgroundColor: isAdmin() ? 'rgba(220, 38, 38, 0.2)' : 
-                                               isCoordinator() ? 'rgba(59, 130, 246, 0.2)' : 
                                                'rgba(34, 197, 94, 0.2)',
                                 color: isAdmin() ? '#fca5a5' : 
-                                       isCoordinator() ? '#93c5fd' : 
                                        '#86efac',
                                 border: '1px solid rgba(252, 247, 255, 0.2)'
                               }}
@@ -808,6 +848,8 @@ const Dashboard = () => {
               </>
             )}
           </div>
+
+          {/* (Se movió la sección de asignación más abajo) */}
 
           {/* Second Row Charts - Enhanced */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -1222,6 +1264,110 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
+
+          {/* Gestión y asignación de reportes (solo Admin) - Ubicada al final */}
+          {isAdmin() && (
+            <div className="mt-12 mb-8">
+              <div 
+                className="backdrop-blur-2xl rounded-3xl p-8 border"
+                style={{
+                  backgroundColor: 'rgba(252, 247, 255, 0.12)',
+                  borderColor: 'rgba(252, 247, 255, 0.25)'
+                }}
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-2xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                      Asignación de Reportes a Soporte
+                    </h3>
+                    <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.75)' }}>
+                      Asigna reportes pendientes a usuarios con rol soporte
+                    </p>
+                  </div>
+                  <button
+                    onClick={loadAssignmentData}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold"
+                    style={{
+                      background: 'linear-gradient(45deg, var(--color-tertiary), var(--color-tertiary-light))',
+                      color: 'var(--color-dark)'
+                    }}
+                  >
+                    Refrescar
+                  </button>
+                </div>
+
+                {assignError && (
+                  <div className="mb-4 px-4 py-3 rounded-xl border"
+                       style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.35)', color: '#fca5a5' }}>
+                    {assignError}
+                  </div>
+                )}
+
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="text-left text-sm" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
+                        <th className="px-6 py-3">ID</th>
+                        <th className="px-6 py-3">Tipo</th>
+                        <th className="px-6 py-3">Asunto</th>
+                        <th className="px-6 py-3">Estado</th>
+                        <th className="px-6 py-3">Asignado a</th>
+                        <th className="px-6 py-3" style={{ width: '240px' }}>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {assignLoading && (
+                        <tr><td className="px-6 py-6" colSpan="6" style={{ color: 'var(--color-secondary)' }}>Cargando...</td></tr>
+                      )}
+                      {!assignLoading && reports.length === 0 && (
+                        <tr><td className="px-6 py-6" colSpan="6" style={{ color: 'var(--color-secondary)' }}>No hay reportes pendientes</td></tr>
+                      )}
+                      {!assignLoading && reports.map((r) => {
+                        const assigned = supports.find(s => String(s.id) === String(r.revisado_por));
+                        return (
+                          <tr key={r.id} className="border-t border-white border-opacity-10">
+                            <td className="px-6 py-4" style={{ color: 'var(--color-secondary)' }}>#{r.id}</td>
+                            <td className="px-6 py-4" style={{ color: 'var(--color-secondary)' }}>{r.tipo_reporte}</td>
+                            <td className="px-6 py-4" style={{ color: 'var(--color-secondary)' }}>{r.asunto || r.asunto_conversacion || '-'}</td>
+                            <td className="px-6 py-4">
+                              <span className="px-3 py-1 rounded-full text-xs font-bold capitalize" style={{
+                                backgroundColor: r.estado === 'pendiente' ? 'rgba(234, 179, 8, 0.2)' : 'rgba(59, 130, 246, 0.2)',
+                                color: r.estado === 'pendiente' ? '#fde68a' : '#93c5fd',
+                                border: '1px solid rgba(252, 247, 255, 0.2)'
+                              }}>{r.estado}</span>
+                            </td>
+                            <td className="px-6 py-4" style={{ color: 'var(--color-secondary)' }}>{assigned ? assigned.nombre : '—'}</td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center space-x-2">
+                                <select
+                                  defaultValue=""
+                                  onChange={(e) => handleAssignToSupport(r.id, e.target.value)}
+                                  className="flex-1 px-3 py-2 rounded-xl bg-white bg-opacity-10 border border-white border-opacity-20 focus:outline-none text-sm"
+                                  style={{ color: 'var(--color-secondary)' }}
+                                >
+                                  <option value="" style={{ color: '#0b1220' }}>Seleccionar soporte…</option>
+                                  {supports.map(s => (
+                                    <option key={s.id} value={s.id} style={{ color: '#0b1220' }}>{s.nombre}</option>
+                                  ))}
+                                </select>
+                                <button
+                                  onClick={loadAssignmentData}
+                                  className="px-3 py-2 rounded-xl text-xs"
+                                  style={{ backgroundColor: 'rgba(252, 247, 255, 0.15)', color: 'var(--color-secondary)', border: '1px solid rgba(252, 247, 255, 0.3)' }}
+                                >
+                                  Actualizar
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Floating Action Buttons */}

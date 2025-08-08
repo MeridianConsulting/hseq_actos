@@ -76,7 +76,7 @@ const Login = () => {
 
         // Redirigir después de un breve delay para mostrar el mensaje de éxito
         setTimeout(() => {
-          // Usar getRoleRoute para determinar la ruta correcta según el rol
+          // Usar getRoleRoute; coordinador removido redirige a dashboard
           const targetRoute = getRoleRoute(data.user.rol);
           navigate(targetRoute);
         }, 1500);
