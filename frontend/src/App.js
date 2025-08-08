@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 // import Home from './admin/Home'; // Ya no se usa
 import Dashboard from './admin/Dashboard';
+import UsersAdmin from './admin/UsersAdmin';
 import Login from './pages/Login';
 import CollaboratorDashboard from './pages/CollaboratorDashboard';
 import SupportDashboard from './pages/SupportDashboard';
@@ -74,6 +75,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CoordinatorDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/users" 
+              element={
+                <ProtectedRoute>
+                  <UsersAdmin />
                 </ProtectedRoute>
               } 
             />

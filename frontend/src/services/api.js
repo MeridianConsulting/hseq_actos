@@ -158,9 +158,12 @@ export const reportService = {
      * Obtener estadísticas del dashboard
      * @returns {Promise<Object>}
      */
-    fetchDashboardStats: async () => {
+    fetchDashboardStats: async (period) => {
         try {
-            const response = await api.get('/api/reports/dashboard-stats');
+            const params = new URLSearchParams();
+            if (period) params.append('period', period);
+            const query = params.toString();
+            const response = await api.get(`/api/reports/dashboard-stats${query ? `?${query}` : ''}`);
             return response.data;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener estadísticas del dashboard');
@@ -220,6 +223,82 @@ export const authService = {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
     }
+};
+
+/**
+ * Servicios para administración de usuarios
+ */
+export const userService = {
+    /**
+     * Listar usuarios
+     * @param {Object} filters
+     * @returns {Promise<Object>}
+     */
+    fetchUsers: async (filters = {}) => {
+        try {
+            const response = await api.get('/api/users', { params: filters });
+            return response.data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Error al obtener usuarios');
+        }
+    },
+
+    /**
+     * Crear usuario
+     * @param {Object} data
+     * @returns {Promise<Object>}
+     */
+    createUser: async (data) => {
+        try {
+            const response = await api.post('/api/users', data);
+            return response.data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Error al crear usuario');
+        }
+    },
+
+    /**
+     * Actualizar usuario
+     * @param {number|string} userId
+     * @param {Object} data
+     * @returns {Promise<Object>}
+     */
+    updateUser: async (userId, data) => {
+        try {
+            const response = await api.put(`/api/users/${userId}`, data);
+            return response.data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Error al actualizar usuario');
+        }
+    },
+
+    /**
+     * Eliminar usuario
+     * @param {number|string} userId
+     * @returns {Promise<Object>}
+     */
+    deleteUser: async (userId) => {
+        try {
+            const response = await api.delete(`/api/users/${userId}`);
+            return response.data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Error al eliminar usuario');
+        }
+    },
+
+    /**
+     * Reiniciar contraseña de un usuario
+     * @param {number|string} userId
+     * @returns {Promise<Object>}
+     */
+    resetPassword: async (userId) => {
+        try {
+            const response = await api.post(`/api/users/${userId}/reset-password`);
+            return response.data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Error al reiniciar contraseña');
+        }
+    },
 };
 
 export default api; 

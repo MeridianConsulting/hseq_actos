@@ -18,7 +18,7 @@ const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
 
-  const { stats, loading, error } = useDashboardStats();
+  const { stats, loading, error } = useDashboardStats(selectedPeriod);
 
   useEffect(() => {
     const userData = getUser();
@@ -36,14 +36,17 @@ const Dashboard = () => {
     navigate('/home');
   };
 
-  // Bar chart: Incidentes por mes
-  const incidentsByMonth = stats?.incidentesPorMes?.map(m => ({
+  const goToUserAdmin = () => {
+    navigate('/admin/users');
+  };
+
+  // Bar chart: Reportes por periodo (dinámico por selectedPeriod)
+  const incidentsByMonth = (stats?.incidentesPorMes || []).map(m => ({
     month: m.mes_corto || m.mes,
     incidentes: Number(m.incidentes),
     hallazgos: Number(m.hallazgos),
     conversaciones: Number(m.conversaciones),
-    total: Number(m.total_reportes)
-  })) || [];
+  }));
 
   // Pie chart: Distribución por tipo
   const incidentsByType = stats?.distribucionTipo?.map(t => ({
@@ -412,14 +415,18 @@ const Dashboard = () => {
                           </p>
                         </div>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-3">
                         <div className="flex items-center space-x-1">
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
                           <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Incidentes</span>
                         </div>
                         <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }}></div>
-                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Reportes</span>
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#eab308' }}></div>
+                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Hallazgos</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
+                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Conversaciones</span>
                         </div>
                       </div>
                     </div>
@@ -431,10 +438,11 @@ const Dashboard = () => {
                       data={incidentsByMonth}
                       keys={['incidentes', 'hallazgos', 'conversaciones']}
                       indexBy="month"
-                      margin={{ top: 20, right: 80, bottom: 50, left: 60 }}
-                      padding={0.3}
+                      margin={{ top: 20, right: 120, bottom: 50, left: 60 }}
+                      padding={0.35}
+                      groupMode="stacked"
                       valueScale={{ type: 'linear' }}
-                      colors={['#ef4444', '#22c55e']}
+                      colors={[ '#ef4444', '#eab308', '#3b82f6' ]}
                       theme={{
                         background: 'transparent',
                         text: { fill: '#fcf7ff' },
@@ -456,10 +464,10 @@ const Dashboard = () => {
                           dataFrom: 'keys',
                           anchor: 'bottom-right',
                           direction: 'column',
-                          translateX: 120,
+                          translateX: 110,
                           translateY: 0,
                           itemsSpacing: 2,
-                          itemWidth: 100,
+                          itemWidth: 120,
                           itemHeight: 20,
                           itemTextColor: '#fcf7ff'
                         }
@@ -535,7 +543,7 @@ const Dashboard = () => {
                       padding={0.3}
                       groupMode="stacked"
                       valueScale={{ type: 'linear' }}
-                      colors={[ '#60a5fa', '#34d399', '#a7f3d0', '#fde68a', '#fbbf24', '#f87171' ]}
+                      colors={[ '#60a5fa', '#34d399', '#86efac', '#fde68a', '#fbbf24', '#f87171' ]}
                       theme={{
                         background: 'transparent',
                         text: { fill: '#fcf7ff' },
@@ -726,7 +734,9 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold" style={{ color: 'var(--color-secondary)' }}>143</div>
+                        <div className="text-2xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                          {incidentsByType.reduce((acc, d) => acc + (Number(d.value) || 0), 0)}
+                        </div>
                         <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Total</div>
                       </div>
                     </div>
@@ -773,7 +783,7 @@ const Dashboard = () => {
 
           {/* Download Reports Section */}
           <div className="mt-12 mb-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Reporte Principal */}
               <div 
                 className="backdrop-blur-2xl rounded-3xl p-8 border hover:transform hover:scale-105 transition-all duration-500"
@@ -895,6 +905,63 @@ const Dashboard = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Administración de Usuarios (solo Admin) */}
+              {isAdmin() && (
+                <div 
+                  className="backdrop-blur-2xl rounded-3xl p-8 border hover:transform hover:scale-105 transition-all duration-500"
+                  style={{
+                    backgroundColor: 'rgba(252, 247, 255, 0.15)',
+                    borderColor: 'rgba(252, 247, 255, 0.3)',
+                    boxShadow: '0 20px 50px -15px rgba(4, 8, 15, 0.5)'
+                  }}
+                >
+                  <div className="text-center">
+                    <div className="text-5xl mb-6">👥</div>
+                    <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
+                      Administración de Usuarios
+                    </h3>
+                    <p className="text-sm mb-6" style={{ color: 'rgba(252, 247, 255, 0.8)' }}>
+                      Gestiona usuarios, roles y accesos del sistema
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div className="text-center">
+                        <div className="text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>Roles</div>
+                        <div className="text-xs opacity-70" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Admin, Coord, Colab</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>Accesos</div>
+                        <div className="text-xs opacity-70" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Protegidos por token</div>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={goToUserAdmin}
+                      className="w-full group relative font-bold py-4 px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
+                      style={{
+                        background: 'linear-gradient(45deg, #8b5cf6, #6366f1)',
+                        color: 'white',
+                        boxShadow: '0 15px 35px -5px rgba(99, 102, 241, 0.45)',
+                        '--focus-ring-color': 'rgba(99, 102, 241, 0.5)'
+                      }}
+                    >
+                      <div 
+                        className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+                        style={{
+                          background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)'
+                        }}
+                      ></div>
+                      <span className="relative flex items-center justify-center space-x-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20h6M3 20h6M12 14a4 4 0 100-8 4 4 0 000 8z" />
+                        </svg>
+                        <span>IR A ADMINISTRACIÓN</span>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* Additional Info Bar */}

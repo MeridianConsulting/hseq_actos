@@ -236,7 +236,8 @@ ALTER TABLE `reportes`
 --
 ALTER TABLE `usuarios`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `correo` (`correo`);
+  ADD UNIQUE KEY `correo` (`correo`),
+  ADD UNIQUE KEY `cedula` (`cedula`);
 
 --
 -- AUTO_INCREMENT de las tablas volcadas

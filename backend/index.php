@@ -491,28 +491,90 @@ function handleRequest($method, $path){
         }
     }
 
-    // Rutas existentes de empleados
-    if($path === 'api/employees' && $method === "GET"){
-        $controller = new EmployeeController();
-        $result = $controller->getAllEmployees();
-        echo json_encode($result);
-    }
-    elseif($path === 'api/employees/{id}' && $method === "GET"){
-        $controller = new EmployeeController();
-        $result = $controller->getEmployeeById($_GET['id']);
-        echo json_encode($result);
-    }
-    elseif($path === 'api/employees' && $method === "POST"){
-        $data = json_decode(file_get_contents("php://input"), true);
-        if(!$data){
-            http_response_code(400);
-            echo json_encode(["success" => false, "message" => "Datos inválidos"]);
+    // Rutas de administración de usuarios
+    if($path === 'api/users' && $method === 'GET'){
+        try {
+            $controller = new EmployeeController();
+            $filters = [];
+            if(isset($_GET['rol'])) $filters['rol'] = $_GET['rol'];
+            if(isset($_GET['activo'])) $filters['activo'] = $_GET['activo'];
+            if(isset($_GET['q'])) $filters['q'] = $_GET['q'];
+            $result = $controller->getAllUsers($filters);
+            echo json_encode($result);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([ 'success'=>false, 'message'=>'Error al listar usuarios', 'error'=>$e->getMessage() ]);
             return;
         }
-    }elseif($path === 'api/employees/{id}' && $method === "DELETE"){
-        $controller = new EmployeeController();
-        $result = $controller->deleteEmployee($_GET['id']);
-        echo json_encode($result);
+    }
+    elseif(preg_match('/^api\/users\/(\d+)$/', $path, $m) && $method === 'GET'){
+        try {
+            $controller = new EmployeeController();
+            $result = $controller->getUserById((int)$m[1]);
+            echo json_encode($result);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([ 'success'=>false, 'message'=>'Error al obtener usuario', 'error'=>$e->getMessage() ]);
+            return;
+        }
+    }
+    elseif($path === 'api/users' && $method === 'POST'){
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            if(!$data){ http_response_code(400); echo json_encode(['success'=>false,'message'=>'Datos inválidos']); return; }
+            $controller = new EmployeeController();
+            $result = $controller->createUser($data);
+            http_response_code($result['success'] ? 201 : 400);
+            echo json_encode($result);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([ 'success'=>false, 'message'=>'Error al crear usuario', 'error'=>$e->getMessage() ]);
+            return;
+        }
+    }
+    elseif(preg_match('/^api\/users\/(\d+)$/', $path, $m) && $method === 'PUT'){
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            if(!$data){ http_response_code(400); echo json_encode(['success'=>false,'message'=>'Datos inválidos']); return; }
+            $controller = new EmployeeController();
+            $result = $controller->updateUser((int)$m[1], $data);
+            http_response_code($result['success'] ? 200 : 400);
+            echo json_encode($result);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([ 'success'=>false, 'message'=>'Error al actualizar usuario', 'error'=>$e->getMessage() ]);
+            return;
+        }
+    }
+    elseif(preg_match('/^api\/users\/(\d+)$/', $path, $m) && $method === 'DELETE'){
+        try {
+            $controller = new EmployeeController();
+            $result = $controller->deleteUser((int)$m[1]);
+            http_response_code($result['success'] ? 200 : 400);
+            echo json_encode($result);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([ 'success'=>false, 'message'=>'Error al eliminar usuario', 'error'=>$e->getMessage() ]);
+            return;
+        }
+    }
+    elseif(preg_match('/^api\/users\/(\d+)\/reset-password$/', $path, $m) && $method === 'POST'){
+        try {
+            $controller = new EmployeeController();
+            $result = $controller->resetPassword((int)$m[1]);
+            http_response_code($result['success'] ? 200 : 400);
+            echo json_encode($result);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([ 'success'=>false, 'message'=>'Error al reiniciar contraseña', 'error'=>$e->getMessage() ]);
+            return;
+        }
     }
     // Endpoint de prueba para verificar funcionamiento
     elseif($path === 'api/test' && $method === "POST"){

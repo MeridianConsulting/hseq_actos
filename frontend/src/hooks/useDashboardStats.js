@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { reportService } from '../services/api';
 
-export const useDashboardStats = () => {
+export const useDashboardStats = (period) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -10,7 +10,7 @@ export const useDashboardStats = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await reportService.fetchDashboardStats();
+      const response = await reportService.fetchDashboardStats(period);
       
       if (response.success) {
         setStats(response.data);
@@ -26,7 +26,8 @@ export const useDashboardStats = () => {
 
   useEffect(() => {
     fetchStats();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period]);
 
   const refreshStats = () => {
     fetchStats();
