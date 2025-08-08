@@ -188,6 +188,27 @@ function handleRequest($method, $path){
         if ($path === $pp || str_starts_with($path, $pp . '/')) { $requiresAuth = true; break; }
     }
 
+    // Descargar evidencia de forma segura (ruta independiente)
+    if (preg_match('/^api\/evidencias\/(\d+)$/', $path, $m) && $method === 'GET') {
+        if (!$requireRole(['soporte','admin'])) { return; }
+        $evidenceId = (int)$m[1];
+        $conn = (new Database())->getConnection();
+        $stmt = $conn->prepare('SELECT id_reporte, tipo_archivo, url_archivo FROM evidencias WHERE id = ?');
+        if (!$stmt) { http_response_code(500); echo json_encode(['success'=>false,'message'=>'Error interno']); return; }
+        $stmt->bind_param('i', $evidenceId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $row = $res->fetch_assoc();
+        if (!$row) { http_response_code(404); echo json_encode(['success'=>false,'message'=>'Evidencia no encontrada']); return; }
+        $filePath = __DIR__ . '/uploads/' . $row['url_archivo'];
+        if (!is_file($filePath)) { http_response_code(404); echo json_encode(['success'=>false,'message'=>'Archivo no encontrado']); return; }
+        header('Content-Type: ' . $row['tipo_archivo']);
+        header('Content-Disposition: inline; filename="' . basename($row['url_archivo']) . '"');
+        header('Content-Length: ' . filesize($filePath));
+        readfile($filePath);
+        return;
+    }
+
     if ($requiresAuth) {
         try {
             $token = jwt_from_authorization_header();
@@ -764,26 +785,6 @@ function handleRequest($method, $path){
     elseif(preg_match('/^api\/users\/(\d+)\/reset-password$/', $path, $m) && $method === 'POST'){
         if (!$requireRole(['admin'])) { return; }
         try {
-    // Descargar evidencia de forma segura
-    if (preg_match('/^api\/evidencias\/(\d+)$/', $path, $m) && $method === 'GET') {
-        if (!$requireRole(['soporte','admin'])) { return; }
-        $evidenceId = (int)$m[1];
-        $conn = (new Database())->getConnection();
-        $stmt = $conn->prepare('SELECT id_reporte, tipo_archivo, url_archivo FROM evidencias WHERE id = ?');
-        if (!$stmt) { http_response_code(500); echo json_encode(['success'=>false,'message'=>'Error interno']); return; }
-        $stmt->bind_param('i', $evidenceId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $row = $res->fetch_assoc();
-        if (!$row) { http_response_code(404); echo json_encode(['success'=>false,'message'=>'Evidencia no encontrada']); return; }
-        $filePath = __DIR__ . '/uploads/' . $row['url_archivo'];
-        if (!is_file($filePath)) { http_response_code(404); echo json_encode(['success'=>false,'message'=>'Archivo no encontrado']); return; }
-        header('Content-Type: ' . $row['tipo_archivo']);
-        header('Content-Disposition: attachment; filename="' . basename($row['url_archivo']) . '"');
-        header('Content-Length: ' . filesize($filePath));
-        readfile($filePath);
-        return;
-    }
             $controller = new EmployeeController();
             $result = $controller->resetPassword((int)$m[1]);
             http_response_code($result['success'] ? 200 : 400);
