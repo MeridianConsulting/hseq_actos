@@ -81,15 +81,27 @@ const Dashboard = () => {
     }
   ];
 
-  // Radar chart: Métricas de seguridad
-  const safetyMetrics = [
-    { metric: 'Cumplimiento EPP', value: Number(stats?.metricasSeguridad?.cumplimiento_epp) || 0 },
-    { metric: 'Capacitación', value: Number(stats?.metricasSeguridad?.capacitacion) || 0 },
-    { metric: 'Inspecciones', value: Number(stats?.metricasSeguridad?.inspecciones) || 0 },
-    { metric: 'Documentación', value: Number(stats?.metricasSeguridad?.documentacion) || 0 },
-    { metric: 'Procedimientos', value: Number(stats?.metricasSeguridad?.procedimientos) || 0 },
-    { metric: 'Auditorías', value: Number(stats?.metricasSeguridad?.auditorias) || 0 }
+  // Resumen de reportes para gráfico de barras (sustituye Métricas de seguridad)
+  const totalReportes = Number(stats?.kpis?.total_reportes) || 0;
+  const totalCerrados = Number(stats?.kpis?.total_cerrados) || 0;
+  const totalAbiertosCalc = Math.max(totalReportes - totalCerrados, 0);
+  const totalAbiertos = Number(stats?.kpis?.total_abiertos) || totalAbiertosCalc;
+
+  const abiertosPorCriticidad = {
+    Baja: Number(stats?.abiertosPorCriticidad?.baja) || 0,
+    Media: Number(stats?.abiertosPorCriticidad?.media) || 0,
+    Alta: Number(stats?.abiertosPorCriticidad?.alta) || 0,
+    'Muy Alta': Number(stats?.abiertosPorCriticidad?.muy_alta) || 0
+  };
+
+  const reportesResumenChart = [
+    { categoria: 'Total', 'Total': totalReportes, 'Cerrados': 0, 'Abiertos Baja': 0, 'Abiertos Media': 0, 'Abiertos Alta': 0, 'Abiertos Muy Alta': 0 },
+    { categoria: 'Cerrados', 'Total': 0, 'Cerrados': totalCerrados, 'Abiertos Baja': 0, 'Abiertos Media': 0, 'Abiertos Alta': 0, 'Abiertos Muy Alta': 0 },
+    { categoria: 'Abiertos', 'Total': 0, 'Cerrados': 0, 'Abiertos Baja': abiertosPorCriticidad.Baja, 'Abiertos Media': abiertosPorCriticidad.Media, 'Abiertos Alta': abiertosPorCriticidad.Alta, 'Abiertos Muy Alta': abiertosPorCriticidad['Muy Alta'] }
   ];
+
+  const areaProcesoTop = stats?.areaProcesoTop || stats?.area_mas_reporta || '-';
+  const hallazgoMasReportado = stats?.hallazgoMasReportado || stats?.hallazgo_mas_reportado || '-';
 
   // KPIs
   const kpis = [
@@ -393,7 +405,7 @@ const Dashboard = () => {
                         </div>
                         <div>
                           <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                            Incidentes y Reportes
+                            Cantidad de reportes por periodo
                           </h3>
                           <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
                             Análisis mensual
@@ -456,7 +468,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Pie Chart - Incidentes por Tipo */}
+                {/* Resumen de Reportes - Barras por estado y criticidad */}
                 <div 
                   className="chart-container group"
                   style={{
@@ -474,8 +486,8 @@ const Dashboard = () => {
                   }}
                 >
                   {/* Decorative elements */}
-                  <div className="absolute top-0 left-0 w-24 h-24 opacity-5">
-                    <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-tertiary), var(--color-accent))' }}></div>
+                  <div className="absolute top-0 left-0 w-20 h-20 opacity-5">
+                    <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-accent), var(--color-primary))' }}></div>
                   </div>
                   
                   {/* Chart Header */}
@@ -485,61 +497,72 @@ const Dashboard = () => {
                         <div 
                           className="w-10 h-10 rounded-xl flex items-center justify-center"
                           style={{ 
-                            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                            boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)'
+                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)'
                           }}
                         >
                           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3v18h18M7 15l4-4 4 4M7 9h10" />
                           </svg>
                         </div>
                         <div>
                           <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                            Distribución por Tipo
+                            Resumen de reportes
                           </h3>
                           <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
-                            Clasificación de incidentes
+                            Totales y abiertos por criticidad
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold" style={{ color: 'var(--color-secondary)' }}>143</div>
-                        <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Total</div>
+                      <div className="text-right space-y-1">
+                        <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
+                          Área/Proceso: <span className="font-semibold" style={{ color: 'var(--color-secondary)' }}>{areaProcesoTop}</span>
+                        </div>
+                        <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
+                          Hallazgo más reportado: <span className="font-semibold" style={{ color: 'var(--color-secondary)' }}>{hallazgoMasReportado}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                   
                   {/* Chart Container */}
                   <div className="relative" style={{ height: '320px' }}>
-                    <ResponsivePie
-                      data={incidentsByType}
-                      margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
-                      innerRadius={0.5}
-                      padAngle={0.7}
-                      cornerRadius={3}
-                      activeOuterRadiusOffset={8}
-                      colors={{ datum: 'data.color' }}
+                    <ResponsiveBar
+                      data={reportesResumenChart}
+                      keys={['Total','Cerrados','Abiertos Baja','Abiertos Media','Abiertos Alta','Abiertos Muy Alta']}
+                      indexBy="categoria"
+                      margin={{ top: 20, right: 120, bottom: 50, left: 60 }}
+                      padding={0.3}
+                      groupMode="stacked"
+                      valueScale={{ type: 'linear' }}
+                      colors={[ '#60a5fa', '#34d399', '#a7f3d0', '#fde68a', '#fbbf24', '#f87171' ]}
                       theme={{
                         background: 'transparent',
-                        text: { fill: '#fcf7ff' }
+                        text: { fill: '#fcf7ff' },
+                        axis: { ticks: { text: { fill: '#fcf7ff' } } },
+                        grid: { line: { stroke: 'rgba(252, 247, 255, 0.1)' } }
                       }}
-                      arcLinkLabelsSkipAngle={10}
-                      arcLinkLabelsTextColor="#fcf7ff"
-                      arcLinkLabelsThickness={2}
-                      arcLinkLabelsColor={{ from: 'color' }}
-                      arcLabelsSkipAngle={10}
-                      arcLabelsTextColor="#000"
+                      axisBottom={{
+                        tickSize: 5,
+                        tickPadding: 5,
+                        tickRotation: 0
+                      }}
+                      axisLeft={{
+                        tickSize: 5,
+                        tickPadding: 5,
+                        tickRotation: 0
+                      }}
                       legends={[
                         {
-                          anchor: 'bottom',
-                          direction: 'row',
-                          translateY: 56,
-                          itemWidth: 100,
-                          itemHeight: 18,
-                          itemTextColor: '#fcf7ff',
-                          symbolSize: 18,
-                          symbolShape: 'circle'
+                          dataFrom: 'keys',
+                          anchor: 'bottom-right',
+                          direction: 'column',
+                          translateX: 110,
+                          translateY: 0,
+                          itemsSpacing: 2,
+                          itemWidth: 120,
+                          itemHeight: 20,
+                          itemTextColor: '#fcf7ff'
                         }
                       ]}
                     />
@@ -655,7 +678,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Radar Chart - Métricas de Seguridad */}
+                {/* Pie Chart - Incidentes por Tipo */}
                 <div 
                   className="chart-container group"
                   style={{
@@ -673,8 +696,8 @@ const Dashboard = () => {
                   }}
                 >
                   {/* Decorative elements */}
-                  <div className="absolute top-0 left-0 w-20 h-20 opacity-5">
-                    <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-primary), var(--color-tertiary))' }}></div>
+                  <div className="absolute top-0 left-0 w-24 h-24 opacity-5">
+                    <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-tertiary), var(--color-accent))' }}></div>
                   </div>
                   
                   {/* Chart Header */}
@@ -684,58 +707,63 @@ const Dashboard = () => {
                         <div 
                           className="w-10 h-10 rounded-xl flex items-center justify-center"
                           style={{ 
-                            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
+                            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                            boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)'
                           }}
                         >
                           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
                           </svg>
                         </div>
                         <div>
                           <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                            Métricas de Seguridad
+                            Distribución por Tipo
                           </h3>
                           <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
-                            Indicadores clave
+                            Clasificación de incidentes
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold" style={{ color: '#22c55e' }}>85.8%</div>
-                        <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Promedio</div>
+                        <div className="text-2xl font-bold" style={{ color: 'var(--color-secondary)' }}>143</div>
+                        <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Total</div>
                       </div>
                     </div>
                   </div>
                   
                   {/* Chart Container */}
                   <div className="relative" style={{ height: '320px' }}>
-                    <ResponsiveRadar
-                      data={safetyMetrics}
-                      keys={['value']}
-                      indexBy="metric"
-                      maxValue={100}
-                      margin={{ top: 40, right: 80, bottom: 40, left: 80 }}
-                      curve="linearClosed"
-                      borderWidth={2}
-                      borderColor={{ from: 'color' }}
-                      gridLevels={5}
-                      gridShape="circular"
-                      gridLabelOffset={36}
-                      enableDots={true}
-                      dotSize={10}
-                      dotColor={{ theme: 'background' }}
-                      dotBorderWidth={2}
-                      dotBorderColor={{ from: 'color' }}
-                      enableDotLabel={true}
-                      dotLabel="value"
-                      dotLabelYOffset={-12}
-                      colors={['#22c55e']}
+                    <ResponsivePie
+                      data={incidentsByType}
+                      margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
+                      innerRadius={0.5}
+                      padAngle={0.7}
+                      cornerRadius={3}
+                      activeOuterRadiusOffset={8}
+                      colors={{ datum: 'data.color' }}
                       theme={{
                         background: 'transparent',
-                        text: { fill: '#fcf7ff' },
-                        grid: { line: { stroke: 'rgba(252, 247, 255, 0.2)' } }
+                        text: { fill: '#fcf7ff' }
                       }}
+                      arcLinkLabelsSkipAngle={10}
+                      arcLinkLabelsTextColor="#fcf7ff"
+                      arcLinkLabelsThickness={2}
+                      arcLinkLabelsColor={{ from: 'color' }}
+                      arcLabelsSkipAngle={10}
+                      arcLabelsTextColor="#000"
+                      legends={[
+                        {
+                          anchor: 'bottom',
+                          direction: 'row',
+                          translateY: 56,
+                          itemWidth: 100,
+                          itemHeight: 18,
+                          itemTextColor: '#fcf7ff',
+                          symbolSize: 18,
+                          symbolShape: 'circle'
+                        }
+                      ]}
                     />
                   </div>
                 </div>
