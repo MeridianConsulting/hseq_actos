@@ -6,6 +6,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   const [report, setReport] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [evidenceUrls, setEvidenceUrls] = useState({}); // { [id]: { url, contentType } }
 
   useEffect(() => {
     if (isOpen && reportId) {
@@ -21,6 +22,10 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       const result = await ReportService.getReportById(reportId);
       if (result.success) {
         setReport(result.report);
+        // Prefetch blobs para evidencias visualizables (imágenes, videos, pdf)
+        if (Array.isArray(result.report?.evidencias) && result.report.evidencias.length > 0) {
+          prefetchEvidenceBlobs(result.report.evidencias);
+        }
       } else {
         setError(result.message);
       }
@@ -31,6 +36,37 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       setIsLoading(false);
     }
   };
+
+  // Cargar blobs de evidencias y crear URLs temporales con autorización
+  const prefetchEvidenceBlobs = async (evidencias) => {
+    const entries = await Promise.all(
+      evidencias.map(async (ev) => {
+        const type = ev.tipo_archivo || '';
+        const isPreviewable = type.startsWith('image/') || type.startsWith('video/') || type === 'application/pdf';
+        if (!isPreviewable) return null;
+        try {
+          const { blob, contentType } = await evidenceService.getEvidenceBlob(ev.id);
+          const url = URL.createObjectURL(blob);
+          return [ev.id, { url, contentType }];
+        } catch (_) {
+          return null;
+        }
+      })
+    );
+    const mapped = {};
+    entries.forEach((pair) => { if (pair) mapped[pair[0]] = pair[1]; });
+    setEvidenceUrls((prev) => ({ ...prev, ...mapped }));
+  };
+
+  // Limpiar URLs de Blob al cerrar
+  useEffect(() => {
+    if (!isOpen) return;
+    return () => {
+      Object.values(evidenceUrls).forEach((v) => { try { URL.revokeObjectURL(v.url); } catch (_) {} });
+      setEvidenceUrls({});
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -153,7 +189,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       const { blob, contentType, fileName } = await evidenceService.getEvidenceBlob(evidence.id);
       // Crear URL temporal y abrir en nueva pestaña si es visualizable, si no forzar descarga
       const url = window.URL.createObjectURL(blob);
-      if (contentType.startsWith('image/') || contentType === 'application/pdf') {
+      if (contentType.startsWith('image/') || contentType === 'application/pdf' || contentType.startsWith('video/')) {
         window.open(url, '_blank', 'noopener,noreferrer');
       } else {
         const a = document.createElement('a');
@@ -188,22 +224,26 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {evidencias.map((evidencia, index) => {
-          const isImage = evidencia.tipo_archivo?.startsWith('image/');
-          const isPdf = evidencia.tipo_archivo === 'application/pdf';
+          const type = evidencia.tipo_archivo || '';
+          const isImage = type.startsWith('image/');
+          const isVideo = type.startsWith('video/');
+          const isPdf = type === 'application/pdf';
+          const blobInfo = evidenceUrls[evidencia.id];
           return (
             <div key={evidencia.id} className="group relative bg-white bg-opacity-5 rounded-xl overflow-hidden hover:bg-opacity-10 transition-all duration-300">
-              <div className="aspect-w-16 aspect-h-9 flex items-center justify-center bg-black/40">
-                {isImage ? (
-                  <div className="w-full h-48 flex items-center justify-center">
-                    <button onClick={() => handleOpenEvidence(evidencia)} className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-sm">Ver imagen</button>
-                  </div>
-                ) : isPdf ? (
-                  <div className="w-full h-48 flex items-center justify-center">
-                    <button onClick={() => handleOpenEvidence(evidencia)} className="text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-sm">Abrir PDF</button>
-                  </div>
-                ) : (
-                  <div className="w-full h-48 flex items-center justify-center">
-                    <button onClick={() => handleOpenEvidence(evidencia)} className="text-white bg-gray-600 hover:bg-gray-700 px-3 py-1.5 rounded text-sm">Descargar archivo</button>
+              <div className="flex items-center justify-center bg-black/30" style={{ aspectRatio: '16/9' }}>
+                {blobInfo && isImage && (
+                  <img src={blobInfo.url} alt={`Evidencia ${index + 1}`} className="w-full h-56 object-contain bg-black" />
+                )}
+                {blobInfo && isVideo && (
+                  <video src={blobInfo.url} controls className="w-full h-56 bg-black" preload="metadata" />
+                )}
+                {blobInfo && isPdf && (
+                  <embed src={blobInfo.url} type="application/pdf" className="w-full h-56" />
+                )}
+                {!blobInfo && (
+                  <div className="w-full h-56 flex items-center justify-center">
+                    <button onClick={() => handleOpenEvidence(evidencia)} className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-sm">Abrir</button>
                   </div>
                 )}
               </div>
@@ -217,11 +257,8 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                       })}
                     </p>
                   </div>
-                  <div className="w-8 h-8 bg-blue-500 bg-opacity-20 rounded-full flex items-center justify-center">
-                    <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
+                  <div className="flex items-center space-x-2">
+                    <button onClick={() => handleOpenEvidence(evidencia)} className="text-white bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-xs">Abrir en pestaña</button>
                   </div>
                 </div>
               </div>

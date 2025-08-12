@@ -145,7 +145,7 @@ export const FileInput = ({
   name, 
   onChange, 
   label, 
-  accept = "image/*,.pdf,.doc,.docx",
+  accept = "image/*,video/*,.pdf,.doc,.docx",
   buttonColor = "blue",
   required = false,
   helper
@@ -177,7 +177,7 @@ export const FileInput = ({
       );
     })()}
     <p className="text-gray-300 text-sm mt-2">
-      Formatos permitidos: JPG, PNG, PDF, DOC, DOCX (máx. 10MB)
+      Formatos permitidos: JPG, PNG, MP4, WebM, OGG, PDF, DOC, DOCX (máx. 10MB)
     </p>
   </div>
 );

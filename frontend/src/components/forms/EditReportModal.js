@@ -705,11 +705,11 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
                     type="file"
                     name="evidencia"
                     onChange={handleFileChange}
-                    accept="image/*,.pdf,.doc,.docx"
+                    accept="image/*,video/*,.pdf,.doc,.docx"
                     className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   />
                   <p className="mt-2 text-sm text-white text-opacity-60">
-                    Solo se pueden editar reportes pendientes. Formatos permitidos: imágenes, PDF, Word.
+                    Solo se pueden editar reportes pendientes. Formatos permitidos: imágenes, videos (MP4/WebM/OGG), PDF, Word.
                   </p>
                 </div>
               </div>

@@ -196,7 +196,23 @@ function handleRequest($method, $path){
 
     // Descargar evidencia de forma segura (ruta independiente)
     if (preg_match('/^api\/evidencias\/(\d+)$/', $path, $m) && $method === 'GET') {
-        if (!$requireRole(['soporte','admin'])) { return; }
+        // Autenticación manual (esta ruta no está en $protectedPaths)
+        try {
+            $token = jwt_from_authorization_header();
+            if (!$token) { http_response_code(401); echo json_encode(['success'=>false,'message'=>'No autorizado: falta token']); return; }
+            $claims = jwt_decode($token);
+            $role = $claims['rol'] ?? null;
+            if (!$role || !in_array($role, ['soporte','admin'], true)) {
+                http_response_code(403);
+                echo json_encode(['success'=>false,'message'=>'Prohibido: rol no autorizado']);
+                return;
+            }
+        } catch (Exception $e) {
+            http_response_code(401);
+            echo json_encode(['success'=>false,'message'=>'Token inválido: ' . $e->getMessage()]);
+            return;
+        }
+
         $evidenceId = (int)$m[1];
         $conn = (new Database())->getConnection();
         $stmt = $conn->prepare('SELECT id_reporte, tipo_archivo, url_archivo FROM evidencias WHERE id = ?');
@@ -208,10 +224,49 @@ function handleRequest($method, $path){
         if (!$row) { http_response_code(404); echo json_encode(['success'=>false,'message'=>'Evidencia no encontrada']); return; }
         $filePath = __DIR__ . '/uploads/' . $row['url_archivo'];
         if (!is_file($filePath)) { http_response_code(404); echo json_encode(['success'=>false,'message'=>'Archivo no encontrado']); return; }
-        header('Content-Type: ' . $row['tipo_archivo']);
+
+        // Preparar cabeceras para contenido binario y soportar Range para streaming
+        $size = filesize($filePath);
+        $contentType = !empty($row['tipo_archivo']) ? $row['tipo_archivo'] : (function_exists('mime_content_type') ? mime_content_type($filePath) : 'application/octet-stream');
+        if (ob_get_length()) { ob_clean(); }
+        header_remove('Content-Type');
+        header('Content-Type: ' . $contentType);
         header('Content-Disposition: inline; filename="' . basename($row['url_archivo']) . '"');
-        header('Content-Length: ' . filesize($filePath));
-        readfile($filePath);
+        header('Accept-Ranges: bytes');
+        header('Cache-Control: private, max-age=86400');
+
+        $range = isset($_SERVER['HTTP_RANGE']) ? $_SERVER['HTTP_RANGE'] : null;
+        $start = 0; $end = $size - 1; $httpStatus = 200;
+        if ($range && preg_match('/bytes=([0-9]*)-([0-9]*)/', $range, $matches)) {
+            if ($matches[1] !== '') { $start = (int)$matches[1]; }
+            if ($matches[2] !== '') { $end = (int)$matches[2]; }
+            if ($start > $end || $start >= $size) {
+                http_response_code(416);
+                header('Content-Range: bytes */' . $size);
+                echo '';
+                return;
+            }
+            if ($end >= $size) { $end = $size - 1; }
+            $httpStatus = 206;
+            http_response_code(206);
+            header('Content-Range: bytes ' . $start . '-' . $end . '/' . $size);
+        }
+        $length = $end - $start + 1;
+        header('Content-Length: ' . $length);
+
+        $fp = fopen($filePath, 'rb');
+        if ($fp === false) { http_response_code(500); echo json_encode(['success'=>false,'message'=>'No se pudo abrir el archivo']); return; }
+        if ($start > 0) { fseek($fp, $start); }
+        $buffer = 8192;
+        while (!feof($fp) && $length > 0) {
+            $read = ($length > $buffer) ? $buffer : $length;
+            $data = fread($fp, $read);
+            if ($data === false) { break; }
+            echo $data;
+            flush();
+            $length -= strlen($data);
+        }
+        fclose($fp);
         return;
     }
 
@@ -713,7 +768,13 @@ function handleRequest($method, $path){
         $file = $_FILES['file'];
         $tmpPath = $file['tmp_name'];
         $mime = mime_content_type($tmpPath);
-        $allowed = ['image/jpeg','image/png','image/gif','application/pdf', 'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        // Tipos permitidos: imágenes, PDF, Word y videos comunes
+        $allowed = [
+            'image/jpeg','image/png','image/gif',
+            'application/pdf',
+            'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'video/mp4','video/webm','video/ogg','video/quicktime'
+        ];
         if (!in_array($mime, $allowed)) {
             http_response_code(400);
             echo json_encode(['success'=>false,'message'=>'Tipo de archivo no permitido']);
