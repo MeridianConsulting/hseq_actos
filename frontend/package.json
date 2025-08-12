@@ -12,18 +12,21 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
+    "axios": "^1.11.0",
     "framer-motion": "^12.23.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.3",
     "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "dotenv": "^16.4.5"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "node scripts/sync-env.js && react-scripts start",
+    "build": "node scripts/sync-env.js && react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "email:upcoming": "tsx scripts/render-upcoming-email.tsx"
   },
   "eslintConfig": {
     "extends": [
@@ -44,10 +47,13 @@
     ]
   },
   "devDependencies": {
+    "@react-email/components": "^0.0.24",
+    "@react-email/render": "^0.0.15",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
     "postcss-flexbugs-fixes": "^5.0.2",
     "postcss-preset-env": "^10.2.4",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2"
   }
 }

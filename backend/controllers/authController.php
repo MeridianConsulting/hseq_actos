@@ -27,17 +27,22 @@ class AuthController {
             }
             $usuario = $result->fetch_assoc();
 
-            // Soporta transición: si la contraseña está sin hash (igual a cédula en dump), aceptar temporalmente,
-            // y recomendar migración. Si ya está hasheada (prefijo $2y$), usar password_verify.
+            // Política de contraseñas:
+            // - En desarrollo: aceptar transición desde texto plano y migrar a hash.
+            // - En producción: exigir hash BCRYPT; rechazar credenciales si el campo no es hash.
             $hash = $usuario['contrasena'];
             $isBcrypt = is_string($hash) && str_starts_with($hash, '$2y$');
+            $appEnv = strtolower(getenv('APP_ENV') ?: 'development');
+            if ($appEnv === 'production' && !$isBcrypt) {
+                return ['success' => false, 'message' => 'Credenciales inválidas'];
+            }
             $ok = $isBcrypt ? password_verify($contrasena, $hash) : ($hash === $contrasena);
             if (!$ok) {
                 return ['success' => false, 'message' => 'Credenciales inválidas'];
             }
 
             // Si es texto plano, opcionalmente actualizar a hash seguro tras login exitoso (auto-migración)
-            if (!$isBcrypt) {
+            if ($appEnv !== 'production' && !$isBcrypt) {
                 $newHash = password_hash($contrasena, PASSWORD_BCRYPT);
                 $upd = $this->db->prepare('UPDATE usuarios SET contrasena = ? WHERE id = ?');
                 if ($upd) {

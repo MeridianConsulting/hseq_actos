@@ -1,20 +1,26 @@
 <?php
 class Database {
-    private $host = "localhost";
-    private $db_name = "hseq";
-    private $username = "root";
-    private $password = "";
+    private $host;
+    private $db_name;
+    private $username;
+    private $password;
     public $conn;
 
     public function getConnection(){
+        // Permitir configuración vía .env
+        $this->host = getenv('DB_HOST') ?: 'localhost';
+        $this->db_name = getenv('DB_NAME') ?: 'hseq';
+        $this->username = getenv('DB_USER') ?: 'root';
+        $this->password = getenv('DB_PASS') ?: '';
         $this->conn = null;
         try{
             $this->conn = new mysqli($this->host, $this->username, $this->password, $this->db_name);
             if ($this->conn->connect_error) {
-                throw new Exception("Conexión fallida: " . $this->conn->connect_error);
+                throw new Exception("Conexión fallida");
             }
         } catch (Exception $exception) {
-            die("Error: " . $exception->getMessage());
+            // Propagar para que el manejador global controle la respuesta (evita filtrar detalles)
+            throw $exception;
         }
         return $this->conn;
     }

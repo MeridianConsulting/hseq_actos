@@ -14,6 +14,11 @@ function base64url_decode($data) {
 function jwt_get_secret() {
     $secret = getenv('JWT_SECRET');
     if (!$secret) {
+        // En producción, exigir clave definida
+        $appEnv = strtolower(getenv('APP_ENV') ?: 'development');
+        if ($appEnv === 'production') {
+            throw new Exception('JWT secret no configurado');
+        }
         // Valor por defecto solo para desarrollo local
         $secret = 'change-me-in-env-very-secret-key';
     }

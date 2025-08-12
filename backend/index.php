@@ -15,13 +15,12 @@ set_error_handler(function($severity, $message, $file, $line) {
     if (ob_get_length()) ob_clean();
     header('Content-Type: application/json');
     http_response_code(500);
-    echo json_encode([
-        'success' => false, 
-        'message' => 'Error interno del servidor',
-        'error' => $message,
-        'file' => basename($file),
-        'line' => $line
-    ]);
+    $debug = strtolower(getenv('APP_DEBUG') ?: 'false') === 'true';
+    $resp = [ 'success' => false, 'message' => 'Error interno del servidor' ];
+    if ($debug) {
+        $resp['error'] = $message; $resp['file'] = basename($file); $resp['line'] = $line;
+    }
+    echo json_encode($resp);
     exit;
 });
 
@@ -30,15 +29,20 @@ set_exception_handler(function($exception) {
     if (ob_get_length()) ob_clean();
     header('Content-Type: application/json');
     http_response_code(500);
-    echo json_encode([
-        'success' => false, 
-        'message' => 'Error interno del servidor',
-        'error' => $exception->getMessage(),
-        'file' => basename($exception->getFile()),
-        'line' => $exception->getLine()
-    ]);
+    $debug = strtolower(getenv('APP_DEBUG') ?: 'false') === 'true';
+    $resp = [ 'success' => false, 'message' => 'Error interno del servidor' ];
+    if ($debug) {
+        $resp['error'] = $exception->getMessage();
+        $resp['file'] = basename($exception->getFile());
+        $resp['line'] = $exception->getLine();
+    }
+    echo json_encode($resp);
     exit;
 });
+
+// Cargar variables de entorno desde .env
+require_once __DIR__ . '/utils/env.php';
+if (function_exists('env_bootstrap')) { env_bootstrap(); }
 
 require_once __DIR__ . '/middleware/cors.php';
 require_once __DIR__ . '/utils/jwt.php';
@@ -483,6 +487,43 @@ function handleRequest($method, $path){
         }
     }
 
+    // Endpoint para obtener reportes próximos a vencer (por defecto: a 5 días de vencer)
+    if($path === 'api/reports/upcoming' && $method === 'GET'){
+        try {
+            if (!$requireRole(['soporte','admin'])) { return; }
+
+            $daysBefore = isset($_GET['days_before']) ? (int)$_GET['days_before'] : 5; // días antes del límite de 30
+            if ($daysBefore < 1) { $daysBefore = 1; }
+            if ($daysBefore > 30) { $daysBefore = 30; }
+
+            // Regla: reportes en estado abierto (pendiente o en_revision) cuyo tiempo desde creación
+            // esté entre (30 - daysBefore) y 29 días inclusive.
+            $conn = (new Database())->getConnection();
+            $stmt = $conn->prepare("SELECT r.*, u.nombre as nombre_usuario, u.correo,
+                            DATEDIFF(CURDATE(), DATE(r.creado_en)) as dias_transcurridos,
+                            (30 - DATEDIFF(CURDATE(), DATE(r.creado_en))) as dias_para_vencer
+                        FROM reportes r 
+                        JOIN usuarios u ON r.id_usuario = u.id 
+                        WHERE r.estado IN ('pendiente','en_revision') 
+                        AND DATEDIFF(CURDATE(), DATE(r.creado_en)) BETWEEN (30 - ?) AND 29
+                        ORDER BY dias_para_vencer ASC, r.creado_en ASC");
+            if (!$stmt) { throw new Exception('Error preparando consulta'); }
+            $stmt->bind_param('i', $daysBefore);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $upcoming = [];
+            while ($row = $res->fetch_assoc()) { $upcoming[] = $row; }
+            $stmt->close();
+
+            echo json_encode(['success'=>true,'upcoming'=>$upcoming,'days_before'=>$daysBefore]);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success'=>false,'message'=>'Error al obtener próximos a vencer','error'=>$e->getMessage()]);
+            return;
+        }
+    }
+
     // Endpoint para probar envío de correos
     if($path === 'api/test-email' && $method === 'POST'){
         try {
@@ -495,8 +536,7 @@ function handleRequest($method, $path){
                 return;
             }
             
-            // Configurar correo de prueba
-            putenv('MAIL_TEST_TO=desarrolloit@meridian.com.co');
+            // No forzar override aquí; usar .env MAIL_TEST_TO en su lugar
             
             $result = send_email($data['to'], $data['subject'], $data['body']);
             echo json_encode($result);
@@ -518,8 +558,7 @@ function handleRequest($method, $path){
                 return;
             }
             
-            // Configurar correo de prueba
-            putenv('MAIL_TEST_TO=desarrolloit@meridian.com.co');
+            // No forzar override aquí; usar .env MAIL_TEST_TO en su lugar
             
             $conn = (new Database())->getConnection();
             $sql = "SELECT r.id FROM reportes r WHERE r.estado IN ('pendiente','en_revision') AND DATEDIFF(CURDATE(), DATE(r.creado_en)) > 30";
@@ -541,6 +580,108 @@ function handleRequest($method, $path){
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode(['success'=>false,'message'=>'Error al notificar vencidos','error'=>$e->getMessage()]);
+            return;
+        }
+    }
+
+    // Endpoint para notificar por correo a todos los miembros HSEQ (soporte y admin)
+    // sobre reportes próximos a vencer. Permite recibir HTML ya renderizado (por ejemplo
+    // desde una plantilla React Email renderizada por Node) y asunto personalizado.
+    if($path === 'api/reports/notify-upcoming' && $method === 'POST'){
+        try {
+            if (!isset($GLOBALS['auth_user_role']) || !in_array($GLOBALS['auth_user_role'], ['soporte','admin'], true)) {
+                http_response_code(403);
+                echo json_encode(['success'=>false,'message'=>'Prohibido']);
+                return;
+            }
+
+            $payload = json_decode(file_get_contents('php://input'), true) ?? [];
+            $daysBefore = isset($payload['days_before']) ? (int)$payload['days_before'] : 5;
+            if ($daysBefore < 1) { $daysBefore = 1; }
+            if ($daysBefore > 30) { $daysBefore = 30; }
+
+            $subject = isset($payload['subject']) && $payload['subject'] !== ''
+                ? $payload['subject']
+                : "[HSEQ] Reportes próximos a vencer (≤ {$daysBefore} días)";
+            $html = $payload['html'] ?? null;
+
+            $conn = (new Database())->getConnection();
+
+            // Obtener destinatarios HSEQ (soporte y admin activos)
+            $destStmt = $conn->prepare("SELECT correo FROM usuarios WHERE activo = 1 AND rol IN ('soporte','admin')");
+            if (!$destStmt) { throw new Exception('Error al preparar destinatarios'); }
+            $destStmt->execute();
+            $destRes = $destStmt->get_result();
+            $recipients = [];
+            while ($r = $destRes->fetch_assoc()) { if (!empty($r['correo'])) $recipients[] = $r['correo']; }
+            $destStmt->close();
+
+            if (empty($recipients)) {
+                echo json_encode(['success'=>false,'message'=>'No hay destinatarios HSEQ activos']);
+                return;
+            }
+
+            // Si no nos pasaron HTML, construir un HTML básico como respaldo
+            if ($html === null) {
+                $stmt = $conn->prepare("SELECT r.id, r.tipo_reporte, r.asunto, r.asunto_conversacion, r.estado, r.creado_en, u.nombre as nombre_usuario,
+                            DATEDIFF(CURDATE(), DATE(r.creado_en)) as dias_transcurridos,
+                            (30 - DATEDIFF(CURDATE(), DATE(r.creado_en))) as dias_para_vencer
+                        FROM reportes r 
+                        JOIN usuarios u ON r.id_usuario = u.id 
+                        WHERE r.estado IN ('pendiente','en_revision') 
+                        AND DATEDIFF(CURDATE(), DATE(r.creado_en)) BETWEEN (30 - ?) AND 29
+                        ORDER BY dias_para_vencer ASC, r.creado_en ASC");
+                if (!$stmt) { throw new Exception('Error preparando consulta'); }
+                $stmt->bind_param('i', $daysBefore);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                $rows = [];
+                while ($row = $res->fetch_assoc()) { $rows[] = $row; }
+                $stmt->close();
+
+                $htmlRows = '';
+                foreach ($rows as $row) {
+                    $titulo = htmlspecialchars($row['asunto'] ?: ($row['asunto_conversacion'] ?: '(sin asunto)'));
+                    $htmlRows .= '<tr>'
+                        . '<td style="padding:8px;border:1px solid #eee;">#' . (int)$row['id'] . '</td>'
+                        . '<td style="padding:8px;border:1px solid #eee;">' . htmlspecialchars($row['tipo_reporte']) . '</td>'
+                        . '<td style="padding:8px;border:1px solid #eee;">' . $titulo . '</td>'
+                        . '<td style="padding:8px;border:1px solid #eee;">' . htmlspecialchars($row['nombre_usuario']) . '</td>'
+                        . '<td style="padding:8px;border:1px solid #eee;">' . (int)$row['dias_para_vencer'] . ' días</td>'
+                        . '<td style="padding:8px;border:1px solid #eee;">' . htmlspecialchars($row['estado']) . '</td>'
+                        . '</tr>';
+                }
+                $html = '<div style="font-family:Arial,Helvetica,sans-serif;">'
+                    . '<h2 style="color:#111;">Reportes próximos a vencer (≤ ' . (int)$daysBefore . ' días)</h2>'
+                    . '<p>Resumen automático generado por HSEQ.</p>'
+                    . '<table style="border-collapse:collapse;width:100%;font-size:14px;">'
+                    . '<thead><tr>'
+                    . '<th style="padding:8px;border:1px solid #eee;text-align:left;">ID</th>'
+                    . '<th style="padding:8px;border:1px solid #eee;text-align:left;">Tipo</th>'
+                    . '<th style="padding:8px;border:1px solid #eee;text-align:left;">Título</th>'
+                    . '<th style="padding:8px;border:1px solid #eee;text-align:left;">Usuario</th>'
+                    . '<th style="padding:8px;border:1px solid #eee;text-align:left;">Vence en</th>'
+                    . '<th style="padding:8px;border:1px solid #eee;text-align:left;">Estado</th>'
+                    . '</tr></thead>'
+                    . '<tbody>' . $htmlRows . '</tbody>'
+                    . '</table>'
+                    . '<hr/><p style="color:#666;">Este es un mensaje automático. No responder.</p>'
+                    . '</div>';
+            }
+
+            // Enviar a cada destinatario (respeta MAIL_TEST_TO si está configurado)
+            $sent = 0; $details = [];
+            foreach ($recipients as $to) {
+                $r = send_email($to, $subject, $html);
+                $details[] = ['to'=>$to,'success'=>$r['success'] ?? false,'message'=>$r['message'] ?? ''];
+                if (!empty($r['success'])) { $sent++; }
+            }
+
+            echo json_encode(['success'=>true,'sent'=>$sent,'recipients'=>count($recipients),'details'=>$details]);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success'=>false,'message'=>'Error al notificar próximos a vencer','error'=>$e->getMessage()]);
             return;
         }
     }

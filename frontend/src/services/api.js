@@ -1,44 +1,62 @@
-import axios from 'axios';
-
-// Configuración base de axios
+// Configuración base de API (fetch)
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost/hseq/backend';
 
-// Configurar axios con interceptores
-const api = axios.create({
-    baseURL: API_BASE_URL,
-    timeout: 30000,
-    headers: {
-        'Content-Type': 'application/json',
+const buildUrl = (path, params) => {
+    let url = `${API_BASE_URL}${path}`;
+    if (params && Object.keys(params).length > 0) {
+        const usp = new URLSearchParams();
+        Object.entries(params).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && v !== '') usp.append(k, v);
+        });
+        const qs = usp.toString();
+        if (qs) url += (url.includes('?') ? '&' : '?') + qs;
     }
-});
+    return url;
+};
 
-// Interceptor para agregar token de autenticación
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
+const doFetch = async (method, path, { data, params, headers = {}, responseType } = {}) => {
+    const token = localStorage.getItem('token');
+    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+    const reqHeaders = { ...headers };
+    if (token) reqHeaders['Authorization'] = `Bearer ${token}`;
+    if (!isFormData && !reqHeaders['Content-Type']) reqHeaders['Content-Type'] = 'application/json';
 
-// Interceptor para manejar errores de respuesta
-api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            // Token expirado o inválido
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
-        }
-        return Promise.reject(error);
+    const res = await fetch(buildUrl(path, params), {
+        method,
+        headers: reqHeaders,
+        body: method === 'GET' || method === 'HEAD' ? undefined : (isFormData ? data : (data ? JSON.stringify(data) : undefined)),
+    });
+
+    if (res.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        throw new Error('No autorizado');
     }
-);
+
+    if (!res.ok) {
+        let errMsg = 'Error de red';
+        try {
+            const j = await res.json();
+            errMsg = j?.message || errMsg;
+        } catch (_) { /* ignore */ }
+        throw new Error(errMsg);
+    }
+
+    if (responseType === 'blob') {
+        const blob = await res.blob();
+        return { data: blob, headers: res.headers };
+    }
+
+    return await res.json();
+};
+
+const api = {
+    get: (path, opts = {}) => doFetch('GET', path, opts),
+    post: (path, data, opts = {}) => doFetch('POST', path, { ...opts, data }),
+    put: (path, data, opts = {}) => doFetch('PUT', path, { ...opts, data }),
+    delete: (path, opts = {}) => doFetch('DELETE', path, opts),
+};
 
 /**
  * Servicios para reportes
@@ -52,7 +70,7 @@ export const reportService = {
     createReport: async (data) => {
         try {
             const response = await api.post('/api/reports', data);
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al crear reporte');
         }
@@ -69,12 +87,8 @@ export const reportService = {
             const formData = new FormData();
             formData.append('file', file);
 
-            const response = await api.post(`/api/reports/${reportId}/evidencias`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-            return response.data;
+            const response = await api.post(`/api/reports/${reportId}/evidencias`, formData);
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al subir evidencia');
         }
@@ -96,7 +110,7 @@ export const reportService = {
             });
             const qs = params.toString();
             const response = await api.get(`/api/reports${qs ? `?${qs}` : ''}`);
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener reportes');
         }
@@ -110,7 +124,7 @@ export const reportService = {
     fetchReportsByUser: async (userId) => {
         try {
             const response = await api.get(`/api/reports/user?user_id=${userId}`);
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener reportes del usuario');
         }
@@ -124,7 +138,7 @@ export const reportService = {
     fetchReportById: async (reportId) => {
         try {
             const response = await api.get(`/api/reports/${reportId}`);
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener reporte');
         }
@@ -138,7 +152,7 @@ export const reportService = {
     updateReportStatus: async (payload) => {
         try {
             const response = await api.put(`/api/reports/status`, payload);
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al actualizar estado del reporte');
         }
@@ -151,7 +165,7 @@ export const reportService = {
     fetchReportStats: async () => {
         try {
             const response = await api.get('/api/reports/stats');
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener estadísticas');
         }
@@ -167,7 +181,7 @@ export const reportService = {
             if (period) params.append('period', period);
             const query = params.toString();
             const response = await api.get(`/api/reports/dashboard-stats${query ? `?${query}` : ''}`);
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener estadísticas del dashboard');
         }
@@ -180,7 +194,7 @@ export const reportService = {
     fetchCriticalityStats: async () => {
         try {
             const response = await api.get('/api/reports/criticality-stats');
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener estadísticas por criticidad');
         }
@@ -193,7 +207,7 @@ export const reportService = {
     fetchAffectationStats: async () => {
         try {
             const response = await api.get('/api/reports/affectation-stats');
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener estadísticas por afectación');
         }
@@ -213,7 +227,7 @@ export const authService = {
     login: async (cedula, password) => {
         try {
             const response = await api.post('/api/auth/login', { cedula, password });
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al iniciar sesión');
         }
@@ -240,7 +254,7 @@ export const userService = {
     fetchUsers: async (filters = {}) => {
         try {
             const response = await api.get('/api/users', { params: filters });
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener usuarios');
         }
@@ -254,7 +268,7 @@ export const userService = {
     createUser: async (data) => {
         try {
             const response = await api.post('/api/users', data);
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al crear usuario');
         }
@@ -269,7 +283,7 @@ export const userService = {
     updateUser: async (userId, data) => {
         try {
             const response = await api.put(`/api/users/${userId}`, data);
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al actualizar usuario');
         }
@@ -283,7 +297,7 @@ export const userService = {
     deleteUser: async (userId) => {
         try {
             const response = await api.delete(`/api/users/${userId}`);
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al eliminar usuario');
         }
@@ -297,7 +311,7 @@ export const userService = {
     resetPassword: async (userId) => {
         try {
             const response = await api.post(`/api/users/${userId}/reset-password`);
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al reiniciar contraseña');
         }
@@ -315,7 +329,7 @@ export const notificationService = {
     getOverdueReports: async () => {
         try {
             const response = await api.get('/api/reports/overdue');
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener reportes vencidos');
         }
@@ -328,7 +342,7 @@ export const notificationService = {
     notifyOverdueReports: async () => {
         try {
             const response = await api.post('/api/reports/notify-overdue');
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al notificar reportes vencidos');
         }
@@ -342,7 +356,7 @@ export const notificationService = {
     testEmail: async (emailData) => {
         try {
             const response = await api.post('/api/test-email', emailData);
-            return response.data;
+            return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al enviar correo de prueba');
         }
@@ -360,13 +374,14 @@ export const evidenceService = {
      */
     getEvidenceBlob: async (evidenceId) => {
         try {
-            const response = await api.get(`/api/evidencias/${evidenceId}` , { responseType: 'blob' });
+            const response = await doFetch('GET', `/api/evidencias/${evidenceId}`, { responseType: 'blob' });
             // Intentar obtener nombre sugerido desde headers Content-Disposition
-            const disp = response.headers['content-disposition'] || '';
+            const disp = response.headers.get('content-disposition') || '';
             let fileName;
             const match = /filename="?([^";]+)"?/i.exec(disp);
             if (match && match[1]) fileName = match[1];
-            return { blob: response.data, contentType: response.headers['content-type'] || 'application/octet-stream', fileName };
+            const contentType = response.headers.get('content-type') || 'application/octet-stream';
+            return { blob: response.data, contentType, fileName };
         } catch (error) {
             throw new Error(error.response?.data?.message || 'No se pudo descargar la evidencia');
         }
