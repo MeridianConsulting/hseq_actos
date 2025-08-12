@@ -32,7 +32,7 @@ const ReportHistory = () => {
         setError(result.message || 'Error al cargar reportes');
       }
     } catch (error) {
-      console.error('Error al cargar reportes del usuario:', error);
+      //
       setError('Error al cargar reportes: ' + error.message);
     } finally {
       setIsLoading(false);

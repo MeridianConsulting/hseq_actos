@@ -18,6 +18,11 @@ class Database {
             if ($this->conn->connect_error) {
                 throw new Exception("Conexión fallida");
             }
+            // Establecer charset seguro y modo estricto
+            if (!$this->conn->set_charset('utf8mb4')) {
+                throw new Exception('No se pudo establecer charset utf8mb4');
+            }
+            $this->conn->query("SET sql_mode='STRICT_ALL_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ZERO_DATE,NO_ZERO_IN_DATE'");
         } catch (Exception $exception) {
             // Propagar para que el manejador global controle la respuesta (evita filtrar detalles)
             throw $exception;

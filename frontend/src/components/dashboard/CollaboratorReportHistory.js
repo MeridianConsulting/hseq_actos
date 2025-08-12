@@ -37,7 +37,7 @@ const CollaboratorReportHistory = () => {
         setError(result.message || 'Error al cargar reportes');
       }
     } catch (error) {
-      console.error('Error al cargar reportes del usuario:', error);
+      //
       setError('Error al cargar reportes: ' + error.message);
     } finally {
       setIsLoading(false);
@@ -78,7 +78,7 @@ const CollaboratorReportHistory = () => {
         throw new Error(result.message || 'Error al eliminar el reporte');
       }
     } catch (error) {
-      console.error('Error al eliminar reporte:', error);
+      //
       setError('Error al eliminar el reporte: ' + error.message);
       setShowDeleteModal(false);
       setSelectedReport(null);

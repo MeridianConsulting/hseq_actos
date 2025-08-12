@@ -50,6 +50,9 @@ require_once __DIR__ . '/config/db.php';
 
 // Asegurar que siempre devuelva JSON
 header('Content-Type: application/json');
+// Deshabilitar cache por defecto para respuestas sensibles
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 
 // Verificar que los archivos existan antes de incluirlos
 if (!file_exists(__DIR__ . '/controllers/employeeController.php')) {
@@ -100,8 +103,7 @@ function handleRequest($method, $path){
     
     $path = trim($path, "/");
     
-    // Debug temporal
-    error_log("Request: $method $path");
+    // (log interno deshabilitado en producción)
     
     // Ruta de login
     if($path === 'api/auth/login' && $method === "POST"){

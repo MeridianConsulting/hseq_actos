@@ -6,3 +6,19 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA,L]
 
 # NO configurar headers CORS aquí, ya se hace en PHP
+
+# Endurecimiento de seguridad para backend (API)
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), usb=(), payment=()"
+  Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+  # La API devuelve JSON; bloquear ejecución arbitraria
+  Header set Content-Security-Policy "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+</IfModule>
+
+# Bloquear acceso directo a archivos sensibles
+<FilesMatch "\.(env|sql|ini|log|bak|config|yml|yaml)$">
+  Require all denied
+</FilesMatch>

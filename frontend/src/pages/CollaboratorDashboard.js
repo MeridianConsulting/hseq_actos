@@ -143,13 +143,13 @@ const CollaboratorDashboard = () => {
         if (fileInputIncidente) fileInputIncidente.value = '';
         if (fileInputConversacion) fileInputConversacion.value = '';
         
-        console.log('Reporte enviado exitosamente:', result);
+        //
       } else {
         throw new Error(result.message || 'Error al enviar el reporte');
       }
       
     } catch (error) {
-      console.error('Error al enviar el reporte:', error);
+      //
       alert('Error al enviar el reporte: ' + error.message);
     } finally {
       setIsLoading(false);

@@ -30,6 +30,8 @@ function jwt_encode(array $payload, int $ttlSeconds = 3600) {
     $now = time();
     $payload['iat'] = $payload['iat'] ?? $now;
     $payload['exp'] = $payload['exp'] ?? ($now + $ttlSeconds);
+    // Añadir jti para mitigar reuso (no se persiste por simplicidad; listo para blacklist si se requiere)
+    $payload['jti'] = $payload['jti'] ?? bin2hex(random_bytes(8));
     $segments = [
         base64url_encode(json_encode($header)),
         base64url_encode(json_encode($payload))

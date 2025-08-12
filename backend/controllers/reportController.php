@@ -88,8 +88,7 @@ class ReportController {
      */
     public function createReport($data) {
         try {
-            // Debug: Log de datos recibidos
-            error_log("Datos recibidos en createReport: " . json_encode($data));
+            // Limpieza de logs visibles: no registrar datos del usuario en producción
             
             // Verificar conexión a la base de datos
             if (!$this->conn || $this->conn->connect_error) {
@@ -315,8 +314,7 @@ class ReportController {
      */
     public function uploadEvidence($reportId, $evidenceData) {
         try {
-            // Debug: Log de datos de evidencia recibidos
-            error_log("Datos de evidencia recibidos para reporte $reportId: " . json_encode(array_keys($evidenceData)));
+            // Evitar log de datos sensibles de evidencia
             
             // Validar que el reporte existe
             $sql = "SELECT id FROM reportes WHERE id = ?";
@@ -750,8 +748,7 @@ class ReportController {
      */
     public function updateReport($reportId, $data) {
         try {
-            // Debug: Log de datos recibidos
-            error_log("Datos recibidos en updateReport: " . json_encode($data));
+            // Evitar logs de payload en producción
             
             // Verificar conexión a la base de datos
             if (!$this->conn || $this->conn->connect_error) {
@@ -1121,7 +1118,7 @@ class ReportController {
     /**
      * Enviar notificación por correo y registrar en tabla notificaciones
      */
-    private function notifyReportEvent(int $reportId, string $tipo, array $extra = []) : void {
+    public function notifyReportEvent(int $reportId, string $tipo, array $extra = []) : void {
         try {
             // Obtener datos del reporte y usuario
             $sql = "SELECT r.id, r.tipo_reporte, r.asunto, r.asunto_conversacion, r.creado_en, r.estado, u.nombre, u.correo 

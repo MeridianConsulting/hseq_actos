@@ -25,6 +25,9 @@ const doFetch = async (method, path, { data, params, headers = {}, responseType 
         method,
         headers: reqHeaders,
         body: method === 'GET' || method === 'HEAD' ? undefined : (isFormData ? data : (data ? JSON.stringify(data) : undefined)),
+        // Evitar envío de cookies del navegador; usamos exclusivamente JWT en header
+        credentials: 'omit',
+        cache: 'no-store',
     });
 
     if (res.status === 401) {

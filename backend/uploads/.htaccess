@@ -1,18 +1,18 @@
-# Denegar acceso directo a archivos
-<Files "*">
-    Order Deny,Allow
-    Deny from all
-</Files>
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Deny from all
+</IfModule>
 
-# Permitir solo imágenes y documentos específicos
-<FilesMatch "\.(jpg|jpeg|png|gif|pdf|doc|docx)$">
-    Order Allow,Deny
-    Allow from all
-</FilesMatch>
+# Solo permitir a través de PHP (descarga autenticada). Si se habilita acceso directo a ciertos tipos,
+# comentar el bloque anterior y descomentar lo siguiente:
+# <FilesMatch "\.(jpg|jpeg|png|gif|pdf|doc|docx)$">
+#   Require all granted
+# </FilesMatch>
 
-# Configurar headers de seguridad
 <IfModule mod_headers.c>
-    Header set X-Content-Type-Options nosniff
-    Header set X-Frame-Options DENY
-    Header set X-XSS-Protection "1; mode=block"
-</IfModule> 
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "DENY"
+  Header set Cache-Control "no-store"
+</IfModule>

@@ -24,7 +24,6 @@ const NotificationManager = () => {
                 setOverdueReports(result.overdue || []);
             }
         } catch (error) {
-            console.error('Error cargando reportes vencidos:', error);
         } finally {
             setLoading(false);
         }

@@ -73,7 +73,7 @@ class ReportService {
             // Validar y formatear datos
             const formattedData = this.validateAndFormatData(reportData);
             
-            console.log('Enviando datos al servidor:', formattedData);
+            //
             
             const response = await fetch(`${API_BASE_URL}/api/reports`, {
                 method: 'POST',
@@ -86,7 +86,6 @@ class ReportService {
             if (!contentType || !contentType.includes('application/json')) {
                 // Si no es JSON, obtener el texto de la respuesta para debug
                 const textResponse = await response.text();
-                console.error('Respuesta no JSON del servidor:', textResponse);
                 throw new Error('El servidor devolvió una respuesta no válida. Verifique la consola para más detalles.');
             }
 
@@ -98,7 +97,7 @@ class ReportService {
             
             return data;
         } catch (error) {
-            console.error('Error en createReport:', error);
+            //
             throw error;
         }
     }
@@ -131,7 +130,7 @@ class ReportService {
 
             return data;
         } catch (error) {
-            console.error('Error en getAllReports:', error);
+            //
             throw error;
         }
     }
@@ -154,7 +153,7 @@ class ReportService {
             
             return data;
         } catch (error) {
-            console.error('Error en getReportsByUser:', error);
+            //
             throw error;
         }
     }
@@ -177,7 +176,7 @@ class ReportService {
             
             return data;
         } catch (error) {
-            console.error('Error en getReportStats:', error);
+            //
             throw error;
         }
     }
@@ -286,7 +285,7 @@ class ReportService {
             
             return data;
         } catch (error) {
-            console.error('Error en updateReportStatus:', error);
+            //
             throw error;
         }
     }
@@ -322,7 +321,7 @@ class ReportService {
             // Validar y formatear datos
             const formattedData = this.validateAndFormatData(reportData);
             
-            console.log('Actualizando reporte:', reportId, formattedData);
+            //
             
             const response = await fetch(`${API_BASE_URL}/api/reports/${reportId}`, {
                 method: 'PUT',
@@ -334,7 +333,6 @@ class ReportService {
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
                 const textResponse = await response.text();
-                console.error('Respuesta no JSON del servidor:', textResponse);
                 throw new Error('El servidor devolvió una respuesta no válida');
             }
 
@@ -346,7 +344,7 @@ class ReportService {
             
             return data;
         } catch (error) {
-            console.error('Error en updateReport:', error);
+            //
             if (error.name === 'TypeError' && error.message.includes('fetch')) {
                 throw new Error('Error de conexión con el servidor');
             }
@@ -368,7 +366,6 @@ class ReportService {
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
                 const textResponse = await response.text();
-                console.error('Respuesta no JSON del servidor:', textResponse);
                 throw new Error('El servidor devolvió una respuesta no válida');
             }
 
@@ -380,7 +377,7 @@ class ReportService {
             
             return data;
         } catch (error) {
-            console.error('Error en deleteReport:', error);
+            //
             if (error.name === 'TypeError' && error.message.includes('fetch')) {
                 throw new Error('Error de conexión con el servidor');
             }

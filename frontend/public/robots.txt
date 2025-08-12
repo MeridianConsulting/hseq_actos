@@ -1,3 +1,7 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+# Bloquear rutas de API y paneles internos
+Disallow: /api/
+Disallow: /admin
+Disallow: /dashboard
+Sitemap: https://hseq.meridianltda.com/sitemap.xml

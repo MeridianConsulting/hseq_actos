@@ -18,7 +18,7 @@ const SuccessAnimationExample = () => {
 
   const handleAnimationComplete = () => {
     setShowAnimation(false);
-    console.log('Animación completada');
+  //
   };
 
   // Ejemplo 1: Animación básica

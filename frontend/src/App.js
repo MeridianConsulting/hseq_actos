@@ -7,6 +7,7 @@ import CollaboratorDashboard from './pages/CollaboratorDashboard';
 import SupportDashboard from './pages/SupportDashboard';
 import Notifications from './pages/Notifications';
 import { isAuthenticated, getUser, getRoleRoute } from './utils/auth';
+import SEO from './components/SEO';
 
 // Componente para proteger rutas que requieren autenticación
 const ProtectedRoute = ({ children }) => {
@@ -31,6 +32,7 @@ function App() {
   return (
     <Router>
       <div className="App">
+        <SEO title="Meridian HSEQ | Reportes y Gestión" />
         <header className="App-header">
           {/* Aquí puedes agregar tu navegación/header */}
         </header>

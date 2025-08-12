@@ -126,7 +126,7 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
       }
       
     } catch (error) {
-      console.error('Error al actualizar el reporte:', error);
+      //
       setError('Error al actualizar el reporte: ' + error.message);
     } finally {
       setIsLoading(false);

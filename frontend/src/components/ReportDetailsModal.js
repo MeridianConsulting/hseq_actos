@@ -25,7 +25,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         setError(result.message);
       }
     } catch (error) {
-      console.error('Error al cargar detalles del reporte:', error);
+      //
       setError(error.message);
     } finally {
       setIsLoading(false);

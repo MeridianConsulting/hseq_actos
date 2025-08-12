@@ -14,6 +14,28 @@ class AuthController {
      */
     public function login($cedula, $contrasena) {
         try {
+            // Throttling básico por IP/usuario para evitar fuerza bruta (persistente en filesystem)
+            $clientIp = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+            $key = md5($clientIp . '|' . $cedula);
+            $file = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'hseq_login_' . $key . '.json';
+            $now = time();
+            $bucket = ['count' => 0, 'reset' => $now + 60];
+            if (is_file($file)) {
+                $raw = @file_get_contents($file);
+                if ($raw) {
+                    $data = json_decode($raw, true);
+                    if (is_array($data) && isset($data['count'], $data['reset'])) {
+                        $bucket = $data;
+                    }
+                }
+            }
+            if ($now > ($bucket['reset'] ?? 0)) { $bucket = ['count'=>0,'reset'=>$now + 60]; }
+            if (($bucket['count'] ?? 0) >= 10) { // máx 10 intentos/minuto
+                return ['success'=>false,'message'=>'Demasiados intentos. Inténtalo en 1 minuto'];
+            }
+            $bucket['count'] = ($bucket['count'] ?? 0) + 1;
+            @file_put_contents($file, json_encode($bucket), LOCK_EX);
+
             $sql = 'SELECT id, nombre, cedula, correo, contrasena, rol, activo FROM usuarios WHERE cedula = ? AND activo = 1';
             $stmt = $this->db->prepare($sql);
             if (!$stmt) {

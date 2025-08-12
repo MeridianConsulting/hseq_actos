@@ -67,7 +67,7 @@ const SupportDashboard = () => {
         setMessage('Error al cargar reportes: ' + result.message);
       }
     } catch (error) {
-      console.error('Error al cargar reportes:', error);
+      //
       setMessage('Error al cargar reportes: ' + error.message);
     } finally {
       setIsLoading(false);
@@ -99,7 +99,7 @@ const SupportDashboard = () => {
         setMessage('Error al actualizar el estado: ' + result.message);
       }
     } catch (error) {
-      console.error('Error al actualizar estado:', error);
+      //
       setMessage('Error al actualizar el estado: ' + error.message);
     }
   };

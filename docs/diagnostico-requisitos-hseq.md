@@ -113,3 +113,14 @@
 
 ### Conclusión
 La plataforma cubre el núcleo de captura, gestión y visualización de reportes HSE. Para cumplir plenamente el levantamiento, se recomienda completar notificaciones a responsables con reglas operativas, robustecer exportaciones (especialmente PDF y listados completos), ampliar soporte de evidencias y formalizar operación (colas de correo, scheduling, monitoreo). Esto alinea el producto con los objetivos de trazabilidad y respuesta oportuna del área HSEQ.
+
+---
+
+### Seguridad aplicada (resumen técnico)
+- Endurecimiento de CORS y cabeceras de seguridad en `backend/middleware/cors.php` (X-Content-Type-Options, X-Frame-Options, CSP para API, Referrer-Policy, Permissions-Policy, Cache-Control, expose headers para blobs).
+- Forzado de HTTPS y HSTS condicional en `.htaccess` raíz (evita romper localhost). CSP para SPA y políticas de permisos.
+- Bloqueo de acceso directo a `backend/uploads` y a ficheros sensibles (`.env`, backups, `sql`) mediante `.htaccess` del backend.
+- Conexión MySQL con `utf8mb4` y SQL strict en `backend/config/db.php`.
+- JWT con `jti` aleatorio y expiración; extracción segura del header `Authorization`.
+- Rate limiting básico de login (10 intentos/min) en `backend/controllers/authController.php`.
+- `robots.txt` bloquea `/api/`, `/admin`, `/dashboard`.
