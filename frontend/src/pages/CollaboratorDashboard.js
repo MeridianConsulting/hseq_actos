@@ -220,20 +220,20 @@ const CollaboratorDashboard = () => {
       background: `linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 35%, var(--color-tertiary-dark) 100%)`
     }}>
       {/* Header */}
-      <header className="bg-white/10 backdrop-blur-md shadow-lg border-b border-white/10">
+      <header className="bg-gray-900/80 backdrop-blur-md shadow-lg border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <h1 className="text-2xl font-bold text-white">Panel de Colaborador</h1>
               {user && (
-                <span className="ml-4 text-sm bg-white/20 px-3 py-1 rounded-full text-white border border-white/10">
+                <span className="ml-4 text-sm bg-white/10 px-3 py-1 rounded-full text-gray-200 border border-gray-600">
                   {user.nombre}
                 </span>
               )}
             </div>
             <button
               onClick={handleLogout}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors duration-200 shadow"
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
             >
               Cerrar Sesión
             </button>
@@ -243,11 +243,11 @@ const CollaboratorDashboard = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        <div className={`transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
           {/* Welcome Card */}
-          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 mb-8 shadow-2xl border border-white/10">
+          <div className="bg-white bg-opacity-5 backdrop-blur-md rounded-3xl p-8 mb-8 shadow-2xl border border-white/10">
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-white mb-2">¡Bienvenido, {user?.nombre}!</h2>
+              <h2 className="text-3xl font-bold text-white mb-2">¡Bienvenido{user?.nombre ? `, ${user.nombre}` : ''}!</h2>
               <p className="text-white text-opacity-90 text-lg">
                 Reporta condiciones y actos inseguros para mantener nuestro ambiente de trabajo seguro
               </p>
