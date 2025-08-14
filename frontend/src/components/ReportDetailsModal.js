@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReportService from '../services/reportService';
 import { evidenceService, API_BASE_URL } from '../services/api';
- 
+import { jsPDF } from 'jspdf';
 
 const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   const [report, setReport] = useState(null);
@@ -199,6 +199,139 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   };
 
   
+  const handleDownloadFullReportPdf = async () => {
+    try {
+      if (!report) return;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const margin = 40;
+      let y = margin;
+      const pageWidth = typeof doc.getPageWidth === 'function' ? doc.getPageWidth() : (doc.internal?.pageSize?.getWidth ? doc.internal.pageSize.getWidth() : doc.internal.pageSize.width);
+      const pageHeight = typeof doc.getPageHeight === 'function' ? doc.getPageHeight() : (doc.internal?.pageSize?.getHeight ? doc.internal.pageSize.getHeight() : doc.internal.pageSize.height);
+
+      const writeLine = (text) => {
+        const maxWidth = pageWidth - margin * 2;
+        const sourceText = (text === undefined || text === null) ? '' : String(text);
+        const lines = doc.splitTextToSize(sourceText, maxWidth);
+        lines.forEach((line) => { doc.text(line, margin, y); y += 16; });
+      };
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      writeLine('Reporte HSEQ');
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(11);
+      const meta = [
+        `ID: ${report.id ?? ''}`,
+        `Tipo: ${getEventTypeLabel(report.tipo_reporte)}`,
+        `Usuario: ${report.nombre_usuario ?? ''}`,
+        `Estado: ${getStatusLabel(report.estado ?? '')}`,
+        `Fecha evento: ${report.fecha_evento ?? ''} ${report.hora_evento ?? ''}`,
+        `Creado: ${report.creado_en ?? ''}`,
+      ];
+      meta.forEach((line) => writeLine(line));
+      y += 8;
+
+      doc.setFont('helvetica', 'bold');
+      writeLine('Detalle');
+      doc.setFont('helvetica', 'normal');
+
+      const addField = (label, value) => { if (value) writeLine(`${label}: ${value}`); };
+
+      if (report.tipo_reporte === 'hallazgos') {
+        addField('Lugar del Hallazgo', report.lugar_hallazgo || report.lugar_hallazgo_otro);
+        addField('Tipo de Hallazgo', report.tipo_hallazgo);
+        addField('Estado de la Condición', report.estado_condicion);
+        addField('Descripción', report.descripcion_hallazgo);
+        addField('Recomendaciones', report.recomendaciones);
+      } else if (report.tipo_reporte === 'incidentes') {
+        addField('Ubicación', report.ubicacion_incidente);
+        addField('Grado de Criticidad', report.grado_criticidad);
+        addField('Tipo de Afectación', report.tipo_afectacion);
+        addField('Descripción', report.descripcion_incidente);
+      } else if (report.tipo_reporte === 'conversaciones') {
+        addField('Tipo de Conversación', report.tipo_conversacion);
+        addField('Sitio del Evento', report.sitio_evento_conversacion);
+        addField('Lugar del Hallazgo', report.lugar_hallazgo_conversacion || report.lugar_hallazgo_conversacion_otro);
+        addField('Descripción', report.descripcion_conversacion);
+      }
+
+      y += 8;
+      doc.setFont('helvetica', 'bold');
+      writeLine('Evidencias (imágenes)');
+      doc.setFont('helvetica', 'normal');
+
+      if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
+        const imageEvidencias = report.evidencias.filter((ev) => {
+          const t = (ev.tipo_archivo || '').toLowerCase();
+          const n = (ev.url_archivo || '').toLowerCase();
+          return t.startsWith('image/') || /\.(jpe?g|png|gif|webp)$/i.test(n);
+        });
+
+        for (let i = 0; i < imageEvidencias.length; i++) {
+          const evidencia = imageEvidencias[i];
+          try {
+            const { blob, contentType } = await evidenceService.getEvidenceBlob(evidencia.id);
+            const dataUrl = await new Promise((resolve, reject) => {
+              try {
+                const fr = new FileReader();
+                fr.onerror = () => reject(new Error('No se pudo leer la evidencia'));
+                fr.onload = () => resolve(fr.result);
+                fr.readAsDataURL(blob);
+              } catch (e) { reject(e); }
+            });
+
+            let outDataUrl = dataUrl;
+            let imageFormat = (contentType && contentType.includes('png')) ? 'PNG' : 'JPEG';
+            if (!contentType || (!contentType.includes('jpeg') && !contentType.includes('png'))) {
+              // Convertir a JPEG vía canvas si no es soportado por addImage
+              const imgTmp = new Image();
+              await new Promise((r) => { imgTmp.onload = r; imgTmp.src = outDataUrl; });
+              const canvas = document.createElement('canvas');
+              canvas.width = imgTmp.width; canvas.height = imgTmp.height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(imgTmp, 0, 0);
+              outDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+              imageFormat = 'JPEG';
+            }
+
+            // Salto de página si falta espacio
+            if (y + 180 > pageHeight - margin) { doc.addPage(); y = margin; }
+
+            // Calcular tamaño manteniendo proporción
+            const probe = new Image();
+            await new Promise((r) => { probe.onload = r; probe.src = outDataUrl; });
+            const maxW = pageWidth - margin * 2;
+            const maxH = Math.min(280, pageHeight - margin - y - 40);
+            const scale = Math.min(maxW / probe.width, maxH / probe.height, 1);
+            const drawW = Math.max(50, probe.width * scale);
+            const drawH = Math.max(50, probe.height * scale);
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            writeLine(`Imagen ${i + 1}: ${evidencia.url_archivo || 'Sin nombre'}`);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(11);
+            doc.addImage(outDataUrl, imageFormat, margin, y + 6, drawW, drawH);
+            y += drawH + 22;
+          } catch (_) {
+            writeLine(`Imagen ${i + 1}: Error al cargar - ${evidencia.url_archivo || 'Sin nombre'}`);
+            y += 16;
+          }
+        }
+      } else {
+        writeLine('No hay evidencias adjuntas');
+      }
+
+      const safeName = String(report.asunto || report.asunto_conversacion || 'reporte').replace(/[^a-z0-9_.-]/gi, '_');
+      const fileName = `reporte_${report.id || ''}_${safeName}.pdf`;
+      // Usar API nativa de jsPDF para descargar (más compatible)
+      doc.save(fileName);
+    } catch (e) {
+      alert('No se pudo descargar el PDF del reporte');
+    }
+  };
+
 
   const buildPublicImageUrl = (fileName) => `${API_BASE_URL}/uploads/${encodeURIComponent(fileName || '')}`;
 
@@ -519,7 +652,14 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                     </svg>
                     Evidencias Adjuntas
                   </h3>
-                  <div className="flex items-center space-x-2" />
+                  <div className="flex items-center space-x-2">
+                    <button type="button"
+                      onClick={handleDownloadFullReportPdf}
+                      className="text-white bg-emerald-700 hover:bg-emerald-600 px-3 py-2 rounded text-sm transition-colors"
+                    >
+                      Descargar Reporte (PDF)
+                    </button>
+                  </div>
                 </div>
                 {renderEvidence(report.evidencias)}
               </div>
