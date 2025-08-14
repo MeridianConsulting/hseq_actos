@@ -32,7 +32,8 @@ CREATE TABLE `evidencias` (
   `id_reporte` int(11) NOT NULL,
   `tipo_archivo` varchar(50) DEFAULT 'image',
   `url_archivo` varchar(255) NOT NULL,
-  `creado_en` timestamp NOT NULL DEFAULT current_timestamp()
+  `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
+  `cdn_url` varchar(500) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -211,7 +212,9 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 --
 ALTER TABLE `evidencias`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `id_reporte` (`id_reporte`);
+  ADD KEY `id_reporte` (`id_reporte`),
+  ADD KEY `idx_id_reporte` (`id_reporte`),
+  ADD KEY `idx_creado_en` (`creado_en`);
 
 --
 -- Indices de la tabla `notificaciones`

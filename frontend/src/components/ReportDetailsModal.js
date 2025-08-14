@@ -247,6 +247,8 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     }
   };
 
+  const buildPublicImageUrl = (fileName) => `${API_BASE_URL}/uploads/${encodeURIComponent(fileName || '')}`;
+
   const renderEvidence = (evidencias) => {
     if (!evidencias || evidencias.length === 0) {
       return (
@@ -274,13 +276,22 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
             <div key={evidencia.id} className="group relative bg-white bg-opacity-5 rounded-xl hover:bg-opacity-10 transition-all duration-300">
               <div className="flex items-center justify-center w-full h-56" style={{ backgroundColor: 'rgba(0,0,0,0.15)' }}>
                 {isImage ? (
-                  <img 
-                    src={`${API_BASE_URL}/api/evidencias/${evidencia.id}?token=${encodeURIComponent(localStorage.getItem('token') || '')}`}
+                  <img
+                    src={buildPublicImageUrl(evidencia.url_archivo)}
                     alt={`Evidencia ${index + 1}`}
                     className="w-full h-full object-contain rounded-t-xl"
+                    loading="lazy"
                     onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
+                      // Fallback al endpoint autenticado si la imagen pública falla
+                      const token = localStorage.getItem('token') || '';
+                      const fallback = `${API_BASE_URL}/api/evidencias/${evidencia.id}?token=${encodeURIComponent(token)}`;
+                      if (!e.target.dataset.fallback) {
+                        e.target.dataset.fallback = '1';
+                        e.target.src = fallback;
+                      } else {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }
                     }}
                   />
                 ) : isVideo ? (
@@ -355,7 +366,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     );
   };
 
-  // Descargar información del reporte e incrustar la primera imagen disponible
+  // Descargar información del reporte e incrustar imágenes
   const handleDownloadReportInfoPdf = async () => {
     try {
       if (!report) return;
@@ -440,7 +451,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
           writeLine('Evidencias (imágenes)');
           doc.setFont('helvetica', 'normal');
           
-          for (let i = 0; i < Math.min(imageEvidencias.length, 5); i++) { // Máximo 5 imágenes para evitar PDFs muy grandes
+          for (let i = 0; i < imageEvidencias.length; i++) {
             const evidencia = imageEvidencias[i];
             try {
               const { blob, contentType } = await evidenceService.getEvidenceBlob(evidencia.id);
@@ -464,13 +475,13 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                 canvas.height = imgTmp.height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(imgTmp, 0, 0);
-                dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                dataUrl = canvas.toDataURL('image/jpeg', 0.85);
                 imageFormat = 'JPEG';
               }
 
               // Añadir salto si no hay espacio razonable
               y += 12;
-              if (y + 150 > pageHeight - margin) {
+              if (y + 180 > pageHeight - margin) {
                 doc.addPage();
                 y = margin;
               }
@@ -479,7 +490,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
               const probe = new Image();
               await new Promise((r) => { probe.onload = r; probe.src = dataUrl; });
               const maxW = pageWidth - margin * 2;
-              const maxH = Math.min(300, pageHeight - margin - y - 50); // Máximo 300pt de altura por imagen
+              const maxH = Math.min(260, pageHeight - margin - y - 50); // altura más contenida por imagen
               const scale = Math.min(maxW / probe.width, maxH / probe.height, 1);
               const drawW = Math.max(50, probe.width * scale);
               const drawH = Math.max(50, probe.height * scale);
@@ -501,9 +512,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
             }
           }
           
-          if (imageEvidencias.length > 5) {
-            writeLine(`... y ${imageEvidencias.length - 5} imágenes más`);
-          }
+          // Sin mensaje de truncado: se incluyen todas
         }
       }
 

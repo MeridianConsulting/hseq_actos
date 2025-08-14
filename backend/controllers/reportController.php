@@ -314,101 +314,157 @@ class ReportController {
      */
     public function uploadEvidence($reportId, $evidenceData) {
         try {
-            // Evitar log de datos sensibles de evidencia
-            
-            // Validar que el reporte existe
+            // Validar existencia del reporte
             $sql = "SELECT id FROM reportes WHERE id = ?";
             $stmt = $this->conn->prepare($sql);
             $stmt->bind_param("i", $reportId);
             $stmt->execute();
             $result = $stmt->get_result();
-            
             if ($result->num_rows === 0) {
-                return [
-                    'success' => false,
-                    'message' => 'Reporte no encontrado'
-                ];
+                return [ 'success' => false, 'message' => 'Reporte no encontrado' ];
             }
             $stmt->close();
-            
-            // Validar que tenemos los datos necesarios
+
+            // Validar estructura de datos
             if (!isset($evidenceData['data']) || !isset($evidenceData['type']) || !isset($evidenceData['extension'])) {
-                return [
-                    'success' => false,
-                    'message' => 'Datos de evidencia incompletos'
-                ];
+                return [ 'success' => false, 'message' => 'Datos de evidencia incompletos' ];
             }
-            
-            // Validar tipo de archivo
-            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-            if (!in_array($evidenceData['type'], $allowedTypes)) {
-                return [
-                    'success' => false,
-                    'message' => 'Tipo de archivo no permitido. Solo se permiten: JPG, PNG, GIF, PDF, DOC, DOCX'
-                ];
-            }
-            
-            // Validar tamaño (máximo 10MB)
-            $maxSize = 10 * 1024 * 1024; // 10MB
-            if (isset($evidenceData['size']) && $evidenceData['size'] > $maxSize) {
-                return [
-                    'success' => false,
-                    'message' => 'El archivo es demasiado grande. Máximo 10MB'
-                ];
-            }
-            
-            // Crear directorio si no existe
-            $uploadDir = __DIR__ . '/../uploads/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
-            }
-            
-            // Generar nombre único para el archivo
-            $fileName = 'evidencia_' . $reportId . '_' . time() . '_' . uniqid() . '.' . $evidenceData['extension'];
-            $uploadPath = $uploadDir . $fileName;
-            
-            // Decodificar y guardar archivo base64
-            $fileData = base64_decode($evidenceData['data']);
+
+            // Decodificar base64 de manera segura
+            $fileData = base64_decode($evidenceData['data'], true);
             if ($fileData === false) {
-                return [
-                    'success' => false,
-                    'message' => 'Error al decodificar datos base64'
-                ];
+                return [ 'success' => false, 'message' => 'Error al decodificar datos base64' ];
             }
-            
-            if (file_put_contents($uploadPath, $fileData) === false) {
-                return [
-                    'success' => false,
-                    'message' => 'Error al guardar el archivo'
-                ];
+
+            // Detectar MIME real a partir del contenido (con fallback si fileinfo no está disponible)
+            $detectedType = '';
+            if (class_exists('finfo')) {
+                try {
+                    $fi = new finfo(FILEINFO_MIME_TYPE);
+                    $detectedType = $fi->buffer($fileData) ?: '';
+                } catch (Throwable $e) {
+                    $detectedType = '';
+                }
             }
-            
-            // Guardar referencia en base de datos
+
+            // Listas de tipos permitidos
+            $allowedTypes = [
+                'image/jpeg','image/png','image/gif','image/webp',
+                'application/pdf',
+                'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ];
+            if (!in_array($detectedType, $allowedTypes, true)) {
+                // Intentar usar el tipo declarado si es permitido
+                if (in_array($evidenceData['type'], $allowedTypes, true)) {
+                    $detectedType = $evidenceData['type'];
+                } else {
+                    // Detectar si es imagen por contenido aunque no tengamos MIME
+                    if (function_exists('getimagesizefromstring')) {
+                        $imgInfo = @getimagesizefromstring($fileData);
+                        if (is_array($imgInfo)) {
+                            $detectedType = 'image/jpeg';
+                        }
+                    }
+                }
+            }
+            if (!in_array($detectedType, $allowedTypes, true)) {
+                return [ 'success' => false, 'message' => 'Tipo de archivo no permitido' ];
+            }
+
+            // Validar tamaño (si viene proveído)
+            $maxSize = 10 * 1024 * 1024; // 10 MB
+            if (isset($evidenceData['size']) && (int)$evidenceData['size'] > $maxSize) {
+                return [ 'success' => false, 'message' => 'El archivo es demasiado grande. Máximo 10MB' ];
+            }
+
+            // Asegurar directorio de subida
+            $uploadDir = __DIR__ . '/../uploads/';
+            if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0755, true); }
+
+            // Determinar si es imagen y aplicar compresión/redimensionado
+            $isImage = str_starts_with($detectedType, 'image/');
+            $targetExtension = strtolower($evidenceData['extension'] ?: 'bin');
+
+            $finalBinary = $fileData;
+            $finalMime = $detectedType ?: $evidenceData['type'];
+
+            if ($isImage) {
+                // Cargar imagen desde binario (GD)
+                $img = function_exists('imagecreatefromstring') ? @imagecreatefromstring($fileData) : false;
+                if ($img !== false) {
+                    $origW = imagesx($img);
+                    $origH = imagesy($img);
+                    $maxDim = 1920; // límite de dimensión
+                    $scale = 1.0;
+                    if ($origW > $maxDim || $origH > $maxDim) {
+                        $scale = min($maxDim / max(1,$origW), $maxDim / max(1,$origH));
+                    }
+                    $newW = (int)floor($origW * $scale);
+                    $newH = (int)floor($origH * $scale);
+                    if ($newW < 1) { $newW = $origW; }
+                    if ($newH < 1) { $newH = $origH; }
+
+                    $dst = function_exists('imagecreatetruecolor') ? imagecreatetruecolor($newW, $newH) : null;
+                    if ($dst) {
+                    // Fondo blanco para preservar transparencia al convertir a JPEG
+                        $white = imagecolorallocate($dst, 255, 255, 255);
+                        imagefill($dst, 0, 0, $white);
+                        imagecopyresampled($dst, $img, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+
+                    // Exportar como JPEG con calidad 85
+                        ob_start();
+                        if (function_exists('imagejpeg')) {
+                            imagejpeg($dst, null, 85);
+                        }
+                        $compressed = ob_get_clean();
+                        imagedestroy($dst);
+                        imagedestroy($img);
+                        if ($compressed !== false && strlen($compressed) > 0) {
+                            $finalBinary = $compressed;
+                            $finalMime = 'image/jpeg';
+                            $targetExtension = 'jpg';
+                        }
+                    } else {
+                        // Si no hay GD, mantener original
+                        imagedestroy($img);
+                    }
+                }
+            }
+
+            // Nombre final de archivo
+            $fileName = 'evidencia_' . $reportId . '_' . time() . '_' . uniqid() . '.' . $targetExtension;
+            $uploadPath = $uploadDir . $fileName;
+
+            // Escribir a disco
+            if (file_put_contents($uploadPath, $finalBinary) === false) {
+                return [ 'success' => false, 'message' => 'Error al guardar el archivo' ];
+            }
+
+            // Guardar referencia en BD
             $sql = "INSERT INTO evidencias (id_reporte, tipo_archivo, url_archivo) VALUES (?, ?, ?)";
             $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param("iss", $reportId, $evidenceData['type'], $fileName);
-            
+            $tipoParaGuardar = $finalMime ?: $evidenceData['type'];
+            $stmt->bind_param("iss", $reportId, $tipoParaGuardar, $fileName);
             if (!$stmt->execute()) {
-                // Si falla la inserción, eliminar el archivo
-                unlink($uploadPath);
+                @unlink($uploadPath);
                 throw new Exception("Error guardando referencia en base de datos: " . $stmt->error);
             }
-            
             $evidenceId = $this->conn->insert_id;
             $stmt->close();
-            
+
+            // Limpieza de memoria
+            unset($fileData, $finalBinary);
+            if (function_exists('gc_collect_cycles')) { gc_collect_cycles(); }
+
             return [
                 'success' => true,
                 'message' => 'Evidencia subida exitosamente',
                 'evidence_id' => $evidenceId,
                 'file_name' => $fileName
             ];
-            
+
         } catch (Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Error al subir evidencia: ' . $e->getMessage()
-            ];
+            return [ 'success' => false, 'message' => 'Error al subir evidencia: ' . $e->getMessage() ];
         }
     }
     

@@ -378,34 +378,46 @@ export const evidenceService = {
      * @param {number|string} evidenceId
      * @returns {Promise<{ blob: Blob, contentType: string, fileName?: string }>} 
      */
-    getEvidenceBlob: async (evidenceId) => {
-        try {
-            const token = localStorage.getItem('token');
-            // Fallback agregar token en query si algún proxy/cliente no reenvía Authorization
-            const q = token ? `?token=${encodeURIComponent(token)}` : '';
-            const response = await doFetch('GET', `/api/evidencias/${evidenceId}${q}`, { responseType: 'blob' });
-            const disp = response.headers.get('content-disposition') || '';
-            let fileName;
-            const match = /filename="?([^";]+)"?/i.exec(disp);
-            if (match && match[1]) fileName = match[1];
-            let contentType = response.headers.get('content-type') || 'application/octet-stream';
-
-            // Si el tipo no es útil, derivarlo de la extensión y reconstruir el Blob
-            const isUseful = contentType === 'application/pdf' || contentType.startsWith('image/') || contentType.startsWith('video/');
-            if (!isUseful) {
-                const ext = (fileName || '').split('.').pop()?.toLowerCase();
-                const map = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', pdf: 'application/pdf', mp4: 'video/mp4', webm: 'video/webm', ogg: 'video/ogg', mov: 'video/quicktime' };
-                if (ext && map[ext]) {
-                    contentType = map[ext];
-                    const fixedBlob = new Blob([response.data], { type: contentType });
-                    return { blob: fixedBlob, contentType, fileName };
-                }
+    getEvidenceBlob: (() => {
+        const cache = new Map(); // evidenceId -> { blob, contentType, fileName, ts }
+        const ttlMs = 5 * 60 * 1000;
+        return async (evidenceId) => {
+            const now = Date.now();
+            const cached = cache.get(evidenceId);
+            if (cached && (now - cached.ts) < ttlMs) {
+                return { blob: cached.blob, contentType: cached.contentType, fileName: cached.fileName };
             }
-            return { blob: response.data, contentType, fileName };
-        } catch (error) {
-            throw new Error(error.response?.data?.message || 'No se pudo descargar la evidencia');
-        }
-    }
+            try {
+                const token = localStorage.getItem('token');
+                const q = token ? `?token=${encodeURIComponent(token)}` : '';
+                const response = await doFetch('GET', `/api/evidencias/${evidenceId}${q}`, { responseType: 'blob' });
+                const disp = response.headers.get('content-disposition') || '';
+                let fileName;
+                const match = /filename="?([^";]+)"?/i.exec(disp);
+                if (match && match[1]) fileName = match[1];
+                let contentType = response.headers.get('content-type') || 'application/octet-stream';
+                const isUseful = contentType === 'application/pdf' || contentType.startsWith('image/') || contentType.startsWith('video/');
+                if (!isUseful) {
+                    const ext = (fileName || '').split('.').pop()?.toLowerCase();
+                    const map = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', pdf: 'application/pdf', mp4: 'video/mp4', webm: 'video/webm', ogg: 'video/ogg', mov: 'video/quicktime' };
+                    if (ext && map[ext]) {
+                        contentType = map[ext];
+                    }
+                }
+                const blob = (contentType && contentType !== 'application/octet-stream')
+                    ? new Blob([response.data], { type: contentType })
+                    : response.data;
+                const value = { blob, contentType, fileName, ts: now };
+                cache.set(evidenceId, value);
+                return { blob, contentType, fileName };
+            } catch (error) {
+                throw new Error(error.response?.data?.message || 'No se pudo descargar la evidencia');
+            }
+        };
+    })(),
+
+    // Construye URL pública directa a imagen en /uploads (para vistas rápidas sin auth)
+    getPublicImageUrl: (fileName) => `${API_BASE_URL}/uploads/${encodeURIComponent(fileName || '')}`,
 };
 
 export default api; 

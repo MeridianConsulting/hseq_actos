@@ -194,29 +194,22 @@ function handleRequest($method, $path){
         if ($path === $pp || str_starts_with($path, $pp . '/')) { $requiresAuth = true; break; }
     }
 
+    // Excepciones públicas (no requieren token) para GET
+    if ($requiresAuth && $method === 'GET') {
+        if (
+            $path === 'api/reports' ||
+            preg_match('/^api\\/reports\\/(\\d+)$/', $path) ||
+            $path === 'api/reports/stats' ||
+            $path === 'api/reports/dashboard-stats' ||
+            $path === 'api/images' ||
+            preg_match('/^api\\/evidencias\\/(\\d+)$/', $path)
+        ) {
+            $requiresAuth = false;
+        }
+    }
+
     // Descargar evidencia de forma segura (ruta independiente)
     if (preg_match('/^api\/evidencias\/(\d+)$/', $path, $m) && $method === 'GET') {
-        // Autenticación manual (esta ruta no está en $protectedPaths)
-        try {
-            // Permitir token vía Authorization o query param ?token=
-            $token = jwt_from_authorization_header();
-            if (!$token) {
-                $token = $_GET['token'] ?? '';
-            }
-            if (!$token) { http_response_code(401); echo json_encode(['success'=>false,'message'=>'No autorizado: falta token']); return; }
-            $claims = jwt_decode($token);
-            $role = $claims['rol'] ?? null;
-            if (!$role || !in_array($role, ['soporte','admin'], true)) {
-                http_response_code(403);
-                echo json_encode(['success'=>false,'message'=>'Prohibido: rol no autorizado']);
-                return;
-            }
-        } catch (Exception $e) {
-            http_response_code(401);
-            echo json_encode(['success'=>false,'message'=>'Token inválido: ' . $e->getMessage()]);
-            return;
-        }
-
         $evidenceId = (int)$m[1];
         $conn = (new Database())->getConnection();
         $stmt = $conn->prepare('SELECT id_reporte, tipo_archivo, url_archivo FROM evidencias WHERE id = ?');
@@ -226,13 +219,44 @@ function handleRequest($method, $path){
         $res = $stmt->get_result();
         $row = $res->fetch_assoc();
         if (!$row) { http_response_code(404); echo json_encode(['success'=>false,'message'=>'Evidencia no encontrada']); return; }
+
+        // Si es imagen, no requerir token. Para otros tipos, exigirlo.
         $fileName = trim((string)$row['url_archivo']);
+        $isImageType = false;
+        $t = strtolower((string)($row['tipo_archivo'] ?? ''));
+        if (str_starts_with($t, 'image/')) { $isImageType = true; }
+        if (!$isImageType) {
+            $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            if (in_array($ext, ['jpg','jpeg','png','gif','webp'], true)) { $isImageType = true; }
+        }
+        if (!$isImageType) {
+            try {
+                $token = jwt_from_authorization_header();
+                if (!$token) { $token = $_GET['token'] ?? ''; }
+                if (!$token) { http_response_code(401); echo json_encode(['success'=>false,'message'=>'No autorizado: falta token']); return; }
+                $claims = jwt_decode($token);
+                $role = $claims['rol'] ?? null;
+                if (!$role || !in_array($role, ['soporte','admin'], true)) {
+                    http_response_code(403);
+                    echo json_encode(['success'=>false,'message'=>'Prohibido: rol no autorizado']);
+                    return;
+                }
+            } catch (Exception $e) {
+                http_response_code(401);
+                echo json_encode(['success'=>false,'message'=>'Token inválido: ' . $e->getMessage()]);
+                return;
+            }
+        }
+
         $filePath = __DIR__ . '/uploads/' . $fileName;
         if (!is_file($filePath)) {
-            // Fallback: intentar encontrar por patrón si falta la extensión o hay ligera discrepancia
-            $candidates = glob(__DIR__ . '/uploads/' . $fileName . '.*');
-            if (!empty($candidates)) {
-                $filePath = $candidates[0];
+            // Fallback: buscar por nombre base ignorando la extensión (p.ej. BD .png pero en disco .jpg)
+            $base = pathinfo($fileName, PATHINFO_FILENAME);
+            if ($base) {
+                $candidates = glob(__DIR__ . '/uploads/' . $base . '.*');
+                if (!empty($candidates)) {
+                    $filePath = $candidates[0];
+                }
             }
         }
         if (!is_file($filePath)) {
@@ -280,6 +304,8 @@ function handleRequest($method, $path){
     if ($requiresAuth) {
         try {
             $token = jwt_from_authorization_header();
+            // Permitir token vía query param como fallback para pruebas y vistas directas
+            if (!$token) { $token = $_GET['token'] ?? ''; }
             if (!$token) {
                 http_response_code(401);
                 echo json_encode(['success' => false, 'message' => 'No autorizado: falta token']);
@@ -807,6 +833,69 @@ function handleRequest($method, $path){
         http_response_code($result['success'] ? 200 : 400);
         echo json_encode($result);
         return;
+    }
+
+    // Endpoint público para listar imágenes (solo metadatos y URLs públicas)
+    if ($path === 'api/images' && $method === 'GET') {
+        try {
+            $conn = (new Database())->getConnection();
+            // Permitir filtros simples opcionales
+            $reportId = isset($_GET['report_id']) ? (int)$_GET['report_id'] : null;
+            $limit = isset($_GET['limit']) ? max(1, min(200, (int)$_GET['limit'])) : 100;
+            $offset = isset($_GET['offset']) ? max(0, (int)$_GET['offset']) : 0;
+
+            $where = "WHERE (tipo_archivo LIKE 'image/%' OR url_archivo REGEXP '\\.(jpg|jpeg|png|gif|webp)$')";
+            $types = '';
+            $params = [];
+            if ($reportId) {
+                $where .= ' AND id_reporte = ?';
+                $types .= 'i';
+                $params[] = $reportId;
+            }
+
+            $sql = "SELECT id, id_reporte, tipo_archivo, url_archivo, creado_en FROM evidencias $where ORDER BY creado_en DESC LIMIT ? OFFSET ?";
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) { throw new Exception('Error preparando consulta'); }
+            // bind dinámico
+            if ($types) {
+                $types .= 'ii';
+                $params[] = $limit;
+                $params[] = $offset;
+                $stmt->bind_param($types, ...$params);
+            } else {
+                $stmt->bind_param('ii', $limit, $offset);
+            }
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $rows = [];
+            while ($row = $res->fetch_assoc()) {
+                $fileName = $row['url_archivo'];
+                // Construir URL pública absoluta hacia /uploads
+                $scheme = 'http';
+                if ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')) {
+                    $scheme = 'https';
+                }
+                $basePath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+                $publicUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . $basePath . '/uploads/' . $fileName;
+                $rows[] = [
+                    'id' => (int)$row['id'],
+                    'report_id' => (int)$row['id_reporte'],
+                    'content_type' => $row['tipo_archivo'],
+                    'file_name' => $fileName,
+                    'created_at' => $row['creado_en'],
+                    'url' => $publicUrl,
+                ];
+            }
+            $stmt->close();
+
+            http_response_code(200);
+            echo json_encode(['success' => true, 'images' => $rows]);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success'=>false,'message'=>'Error al listar imágenes','error'=>$e->getMessage()]);
+            return;
+        }
     }
 
     // Endpoint para obtener un reporte específico por ID
