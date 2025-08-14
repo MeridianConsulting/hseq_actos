@@ -32,16 +32,36 @@ const SupportDashboard = () => {
     sort_dir: 'desc'
   });
   const [meta, setMeta] = useState(null);
+  const [allReports, setAllReports] = useState([]); // Para estadísticas
+
+  // Cargar estadísticas (todos los reportes)
+  const loadStats = async () => {
+    try {
+      const statsResult = await ReportService.getAllReports({
+        per_page: 1000, // Cargar muchos reportes para estadísticas
+        page: 1
+      });
+      
+      if (statsResult.success) {
+        setAllReports(statsResult.reports || []);
+      }
+    } catch (error) {
+      console.error('Error al cargar estadísticas:', error);
+    }
+  };
 
   const loadReports = async () => {
     setIsLoading(true);
     try {
-      // Armar filtros a enviar; para pestaña 'closed' no filtramos por estado (se filtra local por 2 valores)
+      // Cargar reportes con filtros aplicados pero sin filtrar por estado
       const apiFilters = { ...filters };
-      // Reflejar pestañas en filtros de estado solo cuando aplica
+      // Solo aplicar filtro de estado si no es 'closed' (que incluye aprobado y rechazado)
       if (activeTab === 'pending') apiFilters.estado = 'pendiente';
       else if (activeTab === 'in_review') apiFilters.estado = 'en_revision';
-      else if (activeTab === 'closed') delete apiFilters.estado;
+      else if (activeTab === 'closed') {
+        // Para cerrados, cargar tanto aprobados como rechazados
+        delete apiFilters.estado;
+      }
 
       const result = await ReportService.getAllReports(apiFilters);
       
@@ -65,7 +85,8 @@ const SupportDashboard = () => {
       setUser(userData);
     }
     setIsVisible(true);
-    // Cargar reportes al inicializar
+    // Cargar estadísticas y reportes al inicializar
+    loadStats();
     loadReports();
   }, []);
 
@@ -91,10 +112,13 @@ const SupportDashboard = () => {
             report.id === reportId ? { ...report, estado: newStatus } : report
           )
         );
-        setMessage('Estado del reporte actualizado exitosamente');
-        
-        // Limpiar mensaje después de 3 segundos
-        setTimeout(() => setMessage(''), 3000);
+                 setMessage('Estado del reporte actualizado exitosamente');
+         
+         // Actualizar estadísticas después de cambiar estado
+         loadStats();
+         
+         // Limpiar mensaje después de 3 segundos
+         setTimeout(() => setMessage(''), 3000);
       } else {
         setMessage('Error al actualizar el estado: ' + result.message);
       }
@@ -237,6 +261,7 @@ const SupportDashboard = () => {
     }
   };
 
+  // Filtrar reportes por la pestaña activa
   const filteredReports = reports.filter(report => {
     switch (activeTab) {
       case 'pending':
@@ -250,11 +275,11 @@ const SupportDashboard = () => {
     }
   });
 
-  // Calcular estadísticas
+  // Calcular estadísticas basadas en todos los reportes
   const stats = {
-    pending: reports.filter(r => r.estado === 'pendiente').length,
-    inReview: reports.filter(r => r.estado === 'en_revision').length,
-    closed: reports.filter(r => r.estado === 'aprobado' || r.estado === 'rechazado').length
+    pending: allReports.filter(r => r.estado === 'pendiente').length,
+    inReview: allReports.filter(r => r.estado === 'en_revision').length,
+    closed: allReports.filter(r => r.estado === 'aprobado' || r.estado === 'rechazado').length
   };
 
   return (
@@ -377,13 +402,13 @@ const SupportDashboard = () => {
             >
               Cerrados
             </button>
-            <button
-              onClick={loadReports}
-              className="py-3 px-4 rounded-lg font-semibold bg-gray-800 text-white hover:bg-gray-700"
-              title="Refrescar lista"
-            >
-              Refrescar
-            </button>
+                         <button
+               onClick={() => { loadStats(); loadReports(); }}
+               className="py-3 px-4 rounded-lg font-semibold bg-gray-800 text-white hover:bg-gray-700"
+               title="Refrescar lista y estadísticas"
+             >
+               Refrescar
+             </button>
           </div>
 
           {/* Filter Bar */}
