@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReportService from '../services/reportService';
 import { evidenceService, API_BASE_URL } from '../services/api';
+import { jsPDF } from 'jspdf';
 
 
 const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
@@ -205,22 +206,37 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       // Señal visual/log para verificar click
       // eslint-disable-next-line no-console
       console.log('Descargando PDF de reporte', report.id);
-      const mod = await import('jspdf');
-      const JsPdfCtor = mod.jsPDF || mod.default;
-      if (!JsPdfCtor) throw new Error('jsPDF no disponible');
-      const doc = new JsPdfCtor({ unit: 'pt', format: 'a4' });
+      
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      console.log('Documento PDF creado:', doc);
+      
       const margin = 40;
       let y = margin;
       const pageWidth = typeof doc.getPageWidth === 'function' ? doc.getPageWidth() : (doc.internal?.pageSize?.getWidth ? doc.internal.pageSize.getWidth() : doc.internal.pageSize.width);
       const pageHeight = typeof doc.getPageHeight === 'function' ? doc.getPageHeight() : (doc.internal?.pageSize?.getHeight ? doc.internal.pageSize.getHeight() : doc.internal.pageSize.height);
+      
+      console.log('Dimensiones de página:', { pageWidth, pageHeight });
 
       const writeLine = (text) => {
-        const maxWidth = pageWidth - margin * 2;
-        const sourceText = (text === undefined || text === null) ? '' : String(text);
-        const lines = doc.splitTextToSize(sourceText, maxWidth);
-        lines.forEach((line) => { doc.text(line, margin, y); y += 16; });
+        try {
+          const maxWidth = pageWidth - margin * 2;
+          const sourceText = (text === undefined || text === null) ? '' : String(text);
+          const lines = doc.splitTextToSize(sourceText, maxWidth);
+          lines.forEach((line) => { 
+            doc.text(line, margin, y); 
+            y += 16; 
+          });
+        } catch (textError) {
+          console.error('Error escribiendo texto en PDF:', textError, 'Texto:', text);
+          // Fallback: escribir texto simple
+          doc.text(String(text || ''), margin, y);
+          y += 16;
+        }
       };
 
+      // Crear contenido básico del PDF
+      console.log('Iniciando generación de contenido PDF');
+      
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(16);
       writeLine('Reporte HSEQ');
@@ -264,85 +280,99 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
 
       y += 8;
       doc.setFont('helvetica', 'bold');
-      writeLine('Evidencias (imágenes)');
+      writeLine('Evidencias');
       doc.setFont('helvetica', 'normal');
 
-      if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
-        const imageEvidencias = report.evidencias.filter((ev) => {
-          const t = (ev.tipo_archivo || '').toLowerCase();
-          const n = (ev.url_archivo || '').toLowerCase();
-          return t.startsWith('image/') || /\.(jpe?g|png|gif|webp)$/i.test(n);
-        });
-
-        for (let i = 0; i < imageEvidencias.length; i++) {
-          const evidencia = imageEvidencias[i];
-          try {
-            const { blob, contentType } = await evidenceService.getEvidenceBlob(evidencia.id);
-            const dataUrl = await new Promise((resolve, reject) => {
-              try {
-                const fr = new FileReader();
-                fr.onerror = () => reject(new Error('No se pudo leer la evidencia'));
-                fr.onload = () => resolve(fr.result);
-                fr.readAsDataURL(blob);
-              } catch (e) { reject(e); }
-            });
-
-            let outDataUrl = dataUrl;
-            let imageFormat = (contentType && contentType.includes('png')) ? 'PNG' : 'JPEG';
-            if (!contentType || (!contentType.includes('jpeg') && !contentType.includes('png'))) {
-              // Convertir a JPEG vía canvas si no es soportado por addImage
-              const imgTmp = new Image();
-              await new Promise((r) => { imgTmp.onload = r; imgTmp.src = outDataUrl; });
-              const canvas = document.createElement('canvas');
-              canvas.width = imgTmp.width; canvas.height = imgTmp.height;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(imgTmp, 0, 0);
-              outDataUrl = canvas.toDataURL('image/jpeg', 0.88);
-              imageFormat = 'JPEG';
-            }
-
-            // Salto de página si falta espacio
-            if (y + 180 > pageHeight - margin) { doc.addPage(); y = margin; }
-
-            // Calcular tamaño manteniendo proporción
-            const probe = new Image();
-            await new Promise((r) => { probe.onload = r; probe.src = outDataUrl; });
-            const maxW = pageWidth - margin * 2;
-            const maxH = Math.min(280, pageHeight - margin - y - 40);
-            const scale = Math.min(maxW / probe.width, maxH / probe.height, 1);
-            const drawW = Math.max(50, probe.width * scale);
-            const drawH = Math.max(50, probe.height * scale);
-
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(10);
-            writeLine(`Imagen ${i + 1}: ${evidencia.url_archivo || 'Sin nombre'}`);
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(11);
-            doc.addImage(outDataUrl, imageFormat, margin, y + 6, drawW, drawH);
-            y += drawH + 22;
-          } catch (_) {
-            writeLine(`Imagen ${i + 1}: Error al cargar - ${evidencia.url_archivo || 'Sin nombre'}`);
-            y += 16;
-          }
-        }
-      } else {
-        writeLine('No hay evidencias adjuntas');
-      }
+             if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
+         // Listar todas las evidencias
+         report.evidencias.forEach((evidencia, index) => {
+           writeLine(`Evidencia ${index + 1}: ${evidencia.url_archivo || 'Sin nombre'} (${evidencia.tipo_archivo || 'Tipo desconocido'})`);
+         });
+       } else {
+         writeLine('No hay evidencias adjuntas');
+       }
+      
+      console.log('Contenido PDF generado exitosamente');
 
       const safeName = String(report.asunto || report.asunto_conversacion || 'reporte').replace(/[^a-z0-9_.-]/gi, '_');
       const fileName = `reporte_${report.id || ''}_${safeName}.pdf`;
-      try {
-        doc.save(fileName);
-      } catch (_) {
-        // Fallback a descarga manual con blob
-        const blob = doc.output('blob');
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 4000);
-      }
+      
+             console.log('Intentando guardar PDF con nombre:', fileName);
+       
+       // Método 1: Intentar descarga directa primero
+       try {
+         console.log('Intentando descarga directa...');
+         doc.save(fileName);
+         console.log('PDF descargado exitosamente usando método directo');
+         return;
+       } catch (directError) {
+         console.log('Método directo falló, intentando blob...', directError);
+       }
+       
+       // Método 2: Usar blob con descarga manual
+       try {
+         const blob = doc.output('blob');
+         console.log('Blob generado:', blob);
+         console.log('Tamaño del blob:', blob.size, 'bytes');
+         console.log('Tipo del blob:', blob.type);
+         
+         if (!blob || blob.size === 0) {
+           throw new Error('El blob generado está vacío');
+         }
+         
+         // Crear URL del blob
+         const url = URL.createObjectURL(blob);
+         console.log('URL del blob creada:', url);
+         
+         // Crear elemento de descarga
+         const a = document.createElement('a');
+         a.href = url;
+         a.download = fileName;
+         a.style.display = 'none';
+         
+         // Agregar al DOM y hacer click
+         document.body.appendChild(a);
+         console.log('Elemento de descarga agregado al DOM');
+         
+         // Simular click
+         a.click();
+         console.log('Click simulado en elemento de descarga');
+         
+         // Limpiar
+         setTimeout(() => {
+           try {
+             document.body.removeChild(a);
+             URL.revokeObjectURL(url);
+             console.log('Elemento de descarga removido y URL liberada');
+           } catch (cleanupError) {
+             console.log('Error en limpieza:', cleanupError);
+           }
+         }, 1000);
+         
+         console.log('PDF descargado exitosamente usando blob');
+       } catch (blobError) {
+         console.error('Error en descarga con blob:', blobError);
+         
+         // Método 3: Abrir en nueva ventana
+         try {
+           const dataUrl = doc.output('dataurlstring');
+           console.log('Generando data URL para window.open');
+           const newWindow = window.open(dataUrl, '_blank');
+           if (newWindow) {
+             console.log('PDF abierto en nueva ventana');
+           } else {
+             throw new Error('Popup bloqueado');
+           }
+         } catch (dataUrlError) {
+           console.error('Error con data URL:', dataUrlError);
+           
+           // Método 4: Mostrar mensaje al usuario
+           alert('No se pudo descargar el PDF automáticamente. Por favor:\n\n1. Habilita las descargas automáticas en tu navegador\n2. Desactiva el bloqueador de popups\n3. Intenta nuevamente');
+         }
+       }
     } catch (e) {
-      alert('No se pudo descargar el PDF del reporte');
+      console.error('Error general en descarga de PDF:', e);
+      alert('No se pudo descargar el PDF del reporte: ' + e.message);
     }
   };
 
