@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getUser, logout } from '../utils/auth';
 import ReportService from '../services/reportService';
 import ReportDetailsModal from '../components/ReportDetailsModal';
+import { API_BASE_URL } from '../services/api';
 import '../assets/css/styles.css';
 import { gradosCriticidad, tiposAfectacion, reportTypes } from '../config/formOptions';
 
@@ -32,22 +33,6 @@ const SupportDashboard = () => {
   });
   const [meta, setMeta] = useState(null);
 
-  useEffect(() => {
-    const userData = getUser();
-    if (userData) {
-      setUser(userData);
-    }
-    setIsVisible(true);
-    // Cargar reportes al inicializar
-    loadReports();
-  }, []);
-
-  // Recargar cuando cambie pestaña o paginación básica
-  useEffect(() => {
-    loadReports();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, filters.page, filters.per_page, filters.sort_by, filters.sort_dir]);
-
   const loadReports = async () => {
     setIsLoading(true);
     try {
@@ -73,6 +58,21 @@ const SupportDashboard = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const userData = getUser();
+    if (userData) {
+      setUser(userData);
+    }
+    setIsVisible(true);
+    // Cargar reportes al inicializar
+    loadReports();
+  }, []);
+
+  // Recargar cuando cambie pestaña o paginación básica
+  useEffect(() => {
+    loadReports();
+  }, [activeTab, filters.page, filters.per_page, filters.sort_by, filters.sort_dir]);
 
   const handleStatusChange = async (reportId, newStatus) => {
     try {
@@ -145,10 +145,12 @@ const SupportDashboard = () => {
       grado_criticidad: r.grado_criticidad || '',
       tipo_afectacion: r.tipo_afectacion || '',
       nombre_usuario: r.nombre_usuario || '',
-      creado_en: r.creado_en
+      creado_en: r.creado_en,
+      num_evidencias: r.evidencias ? r.evidencias.length : 0,
+      evidencias: r.evidencias ? r.evidencias.map(e => e.url_archivo || 'Sin nombre').join('; ') : ''
     }));
     const headers = Object.keys(rows[0] || {
-      id: '', tipo_reporte: '', asunto: '', estado: '', fecha_evento: '', grado_criticidad: '', tipo_afectacion: '', nombre_usuario: '', creado_en: ''
+      id: '', tipo_reporte: '', asunto: '', estado: '', fecha_evento: '', grado_criticidad: '', tipo_afectacion: '', nombre_usuario: '', creado_en: '', num_evidencias: '', evidencias: ''
     });
     const escape = (v) => {
       const s = (v ?? '').toString();
@@ -488,6 +490,56 @@ const SupportDashboard = () => {
                         <span>Reportado por: {report.nombre_usuario}</span>
                         <span>Fecha: {new Date(report.fecha_evento || report.creado_en).toLocaleString()}</span>
                       </div>
+                      
+                      {/* Mostrar primera imagen si existe */}
+                      {report.evidencias && report.evidencias.length > 0 && (
+                        <div className="mt-3">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <span className="text-gray-400 text-xs">Evidencias: {report.evidencias.length}</span>
+                          </div>
+                          <div className="flex space-x-2 overflow-x-auto pb-2">
+                            {report.evidencias.slice(0, 3).map((evidencia, index) => {
+                              const isImage = evidencia.tipo_archivo && evidencia.tipo_archivo.startsWith('image/');
+                              return (
+                                <div key={evidencia.id} className="flex-shrink-0">
+                                  {isImage ? (
+                                    <div className="w-16 h-16 bg-gray-700 rounded-lg overflow-hidden border border-gray-600">
+                                      <img 
+                                        src={`${API_BASE_URL}/api/evidencias/${evidencia.id}?token=${encodeURIComponent(localStorage.getItem('token') || '')}`}
+                                        alt={`Evidencia ${index + 1}`}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          e.target.style.display = 'none';
+                                          e.target.nextSibling.style.display = 'flex';
+                                        }}
+                                      />
+                                      <div className="w-full h-full bg-gray-700 flex items-center justify-center" style={{display: 'none'}}>
+                                        <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="w-16 h-16 bg-gray-700 rounded-lg border border-gray-600 flex items-center justify-center">
+                                      <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                      </svg>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            {report.evidencias.length > 3 && (
+                              <div className="flex-shrink-0 w-16 h-16 bg-gray-700 rounded-lg border border-gray-600 flex items-center justify-center">
+                                <span className="text-gray-400 text-xs">+{report.evidencias.length - 3}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex justify-end space-x-2">

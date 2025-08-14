@@ -198,7 +198,11 @@ function handleRequest($method, $path){
     if (preg_match('/^api\/evidencias\/(\d+)$/', $path, $m) && $method === 'GET') {
         // Autenticación manual (esta ruta no está en $protectedPaths)
         try {
+            // Permitir token vía Authorization o query param ?token=
             $token = jwt_from_authorization_header();
+            if (!$token) {
+                $token = $_GET['token'] ?? '';
+            }
             if (!$token) { http_response_code(401); echo json_encode(['success'=>false,'message'=>'No autorizado: falta token']); return; }
             $claims = jwt_decode($token);
             $role = $claims['rol'] ?? null;
@@ -222,52 +226,55 @@ function handleRequest($method, $path){
         $res = $stmt->get_result();
         $row = $res->fetch_assoc();
         if (!$row) { http_response_code(404); echo json_encode(['success'=>false,'message'=>'Evidencia no encontrada']); return; }
-        $filePath = __DIR__ . '/uploads/' . $row['url_archivo'];
-        if (!is_file($filePath)) { http_response_code(404); echo json_encode(['success'=>false,'message'=>'Archivo no encontrado']); return; }
+        $fileName = trim((string)$row['url_archivo']);
+        $filePath = __DIR__ . '/uploads/' . $fileName;
+        if (!is_file($filePath)) {
+            // Fallback: intentar encontrar por patrón si falta la extensión o hay ligera discrepancia
+            $candidates = glob(__DIR__ . '/uploads/' . $fileName . '.*');
+            if (!empty($candidates)) {
+                $filePath = $candidates[0];
+            }
+        }
+        if (!is_file($filePath)) {
+            http_response_code(404);
+            $debug = strtolower(getenv('APP_DEBUG') ?: 'false') === 'true';
+            $resp = ['success'=>false,'message'=>'Archivo no encontrado'];
+            if ($debug) { $resp['expected'] = $fileName; $resp['resolved_path'] = $filePath; }
+            echo json_encode($resp);
+            return;
+        }
 
         // Preparar cabeceras para contenido binario y soportar Range para streaming
         $size = filesize($filePath);
-        $contentType = !empty($row['tipo_archivo']) ? $row['tipo_archivo'] : (function_exists('mime_content_type') ? mime_content_type($filePath) : 'application/octet-stream');
+        // Determinar Content-Type de forma robusta (BD -> finfo -> extensión -> octet-stream)
+        $contentType = $row['tipo_archivo'] ?? '';
+        if (!$contentType) {
+            $detected = function_exists('mime_content_type') ? @mime_content_type($filePath) : '';
+            if ($detected) { $contentType = $detected; }
+        }
+        if (!$contentType || $contentType === 'application/octet-stream') {
+            $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+            $map = [
+                'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp',
+                'pdf' => 'application/pdf',
+                'mp4' => 'video/mp4', 'webm' => 'video/webm', 'ogg' => 'video/ogg', 'mov' => 'video/quicktime', 'qt' => 'video/quicktime',
+                'doc' => 'application/msword', 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ];
+            if (isset($map[$ext])) { $contentType = $map[$ext]; }
+        }
+        if (!$contentType) { $contentType = 'application/octet-stream'; }
         if (ob_get_length()) { ob_clean(); }
-        header_remove('Content-Type');
+        // Limpiar cabeceras que interfieren con contenido binario
+        foreach (['Content-Type','Content-Security-Policy','X-Frame-Options','Cache-Control','Pragma'] as $h) { @header_remove($h); }
+        // Establecer cabeceras correctas para entrega binaria
         header('Content-Type: ' . $contentType);
         header('Content-Disposition: inline; filename="' . basename($row['url_archivo']) . '"');
-        header('Accept-Ranges: bytes');
         header('Cache-Control: private, max-age=86400');
-
-        $range = isset($_SERVER['HTTP_RANGE']) ? $_SERVER['HTTP_RANGE'] : null;
-        $start = 0; $end = $size - 1; $httpStatus = 200;
-        if ($range && preg_match('/bytes=([0-9]*)-([0-9]*)/', $range, $matches)) {
-            if ($matches[1] !== '') { $start = (int)$matches[1]; }
-            if ($matches[2] !== '') { $end = (int)$matches[2]; }
-            if ($start > $end || $start >= $size) {
-                http_response_code(416);
-                header('Content-Range: bytes */' . $size);
-                echo '';
-                return;
-            }
-            if ($end >= $size) { $end = $size - 1; }
-            $httpStatus = 206;
-            http_response_code(206);
-            header('Content-Range: bytes ' . $start . '-' . $end . '/' . $size);
-        }
-        $length = $end - $start + 1;
-        header('Content-Length: ' . $length);
-
-        $fp = fopen($filePath, 'rb');
-        if ($fp === false) { http_response_code(500); echo json_encode(['success'=>false,'message'=>'No se pudo abrir el archivo']); return; }
-        if ($start > 0) { fseek($fp, $start); }
-        $buffer = 8192;
-        while (!feof($fp) && $length > 0) {
-            $read = ($length > $buffer) ? $buffer : $length;
-            $data = fread($fp, $read);
-            if ($data === false) { break; }
-            echo $data;
-            flush();
-            $length -= strlen($data);
-        }
-        fclose($fp);
-        return;
+        header('Content-Length: ' . $size);
+        // Entrega simple del archivo (sin rangos) para evitar problemas en local
+        $ok = @readfile($filePath);
+        if ($ok === false) { http_response_code(500); echo json_encode(['success'=>false,'message'=>'Error al leer archivo']); }
+        exit;
     }
 
     if ($requiresAuth) {

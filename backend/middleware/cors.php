@@ -28,7 +28,10 @@ header('Referrer-Policy: strict-origin-when-cross-origin');
 // Política de permisos mínima
 header("Permissions-Policy: geolocation=(), microphone=(), camera=(), usb=(), payment=()");
 // CSP muy estricta para API (no entrega HTML ejecutable)
-header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+// No aplicar CSP estricta a la ruta de evidencias (contenido binario)
+if (!preg_match('#^/hseq/backend/api/evidencias/#', $_SERVER['REQUEST_URI'] ?? '')) {
+    header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+}
 // Evitar cachear respuestas sensibles por defecto
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 

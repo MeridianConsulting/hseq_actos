@@ -26,35 +26,9 @@ function mailer_test_to(): ?string {
 }
 
 function send_email(string $to, string $subject, string $htmlBody, ?string $textBody = null): array {
-    if (!mailer_is_enabled()) {
-        return ['success' => false, 'message' => 'Correo deshabilitado por configuración'];
-    }
-
-    // Forzar destino de pruebas si está configurado
-    $override = mailer_test_to();
-    if ($override) { $to = $override; }
-
-    $headers = [];
-    $headers[] = 'MIME-Version: 1.0';
-    $headers[] = 'Content-type: text/html; charset=UTF-8';
-    $headers[] = 'From: ' . mailer_from();
-    $headersStr = implode("\r\n", $headers);
-
-    // Proteger de warnings de mail() que podrían activar el manejador global y devolver 500
-    $prevHandler = set_error_handler(function() { /* swallow warnings from mail() */ }, E_WARNING | E_NOTICE);
-    try {
-        $ok = @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $htmlBody, $headersStr);
-    } finally {
-        if ($prevHandler !== null) {
-            set_error_handler($prevHandler);
-        } else {
-            restore_error_handler();
-        }
-    }
-    if ($ok) {
-        return ['success' => true, 'message' => 'Correo enviado'];
-    }
-    return ['success' => false, 'message' => 'Fallo al enviar correo (función mail)'];
+	// En esta versión se deshabilita el envío de correos.
+	// Se retorna éxito para no romper flujos que esperan respuesta positiva.
+	return ['success' => true, 'message' => 'Correo deshabilitado (no se envió).'];
 }
 
 

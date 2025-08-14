@@ -1,5 +1,5 @@
 // Configuración base de API (fetch)
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost/hseq/backend';
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost/hseq/backend';
 
 const buildUrl = (path, params) => {
     let url = `${API_BASE_URL}${path}`;
@@ -19,7 +19,10 @@ const doFetch = async (method, path, { data, params, headers = {}, responseType 
     const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
     const reqHeaders = { ...headers };
     if (token) reqHeaders['Authorization'] = `Bearer ${token}`;
-    if (!isFormData && !reqHeaders['Content-Type']) reqHeaders['Content-Type'] = 'application/json';
+    // No establecer Content-Type en GET/HEAD ni cuando usemos FormData
+    if (!isFormData && !reqHeaders['Content-Type'] && method !== 'GET' && method !== 'HEAD') {
+        reqHeaders['Content-Type'] = 'application/json';
+    }
 
     const res = await fetch(buildUrl(path, params), {
         method,
@@ -377,13 +380,27 @@ export const evidenceService = {
      */
     getEvidenceBlob: async (evidenceId) => {
         try {
-            const response = await doFetch('GET', `/api/evidencias/${evidenceId}`, { responseType: 'blob' });
-            // Intentar obtener nombre sugerido desde headers Content-Disposition
+            const token = localStorage.getItem('token');
+            // Fallback agregar token en query si algún proxy/cliente no reenvía Authorization
+            const q = token ? `?token=${encodeURIComponent(token)}` : '';
+            const response = await doFetch('GET', `/api/evidencias/${evidenceId}${q}`, { responseType: 'blob' });
             const disp = response.headers.get('content-disposition') || '';
             let fileName;
             const match = /filename="?([^";]+)"?/i.exec(disp);
             if (match && match[1]) fileName = match[1];
-            const contentType = response.headers.get('content-type') || 'application/octet-stream';
+            let contentType = response.headers.get('content-type') || 'application/octet-stream';
+
+            // Si el tipo no es útil, derivarlo de la extensión y reconstruir el Blob
+            const isUseful = contentType === 'application/pdf' || contentType.startsWith('image/') || contentType.startsWith('video/');
+            if (!isUseful) {
+                const ext = (fileName || '').split('.').pop()?.toLowerCase();
+                const map = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', pdf: 'application/pdf', mp4: 'video/mp4', webm: 'video/webm', ogg: 'video/ogg', mov: 'video/quicktime' };
+                if (ext && map[ext]) {
+                    contentType = map[ext];
+                    const fixedBlob = new Blob([response.data], { type: contentType });
+                    return { blob: fixedBlob, contentType, fileName };
+                }
+            }
             return { blob: response.data, contentType, fileName };
         } catch (error) {
             throw new Error(error.response?.data?.message || 'No se pudo descargar la evidencia');

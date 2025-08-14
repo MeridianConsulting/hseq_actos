@@ -1,5 +1,12 @@
 RewriteEngine On
 
+# Marcar solicitudes de evidencias para ajustar headers
+RewriteRule ^api/evidencias/ - [E=IS_EVIDENCE:1]
+
+# Alternativamente, marcar por Request_URI (por compatibilidad con distintos contextos)
+SetEnvIf Request_URI ^/hseq/backend/api/evidencias/ IS_EVIDENCE=1
+SetEnvIf Request_URI ^/api/evidencias/ IS_EVIDENCE=1
+
 # Redirigir todas las peticiones a index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
@@ -10,12 +17,14 @@ RewriteRule ^(.*)$ index.php [QSA,L]
 # Endurecimiento de seguridad para backend (API)
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"
-  Header always set X-Frame-Options "DENY"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), usb=(), payment=()"
-  Header always set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
-  # La API devuelve JSON; bloquear ejecución arbitraria
-  Header set Content-Security-Policy "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+  # No aplicar CSP a ninguna respuesta del backend (API no sirve HTML)
+  Header always unset Content-Security-Policy
+  # X-Frame-Options no es relevante para API ni binarios
+  Header always unset X-Frame-Options
+  # Evitar doble Cache-Control
+  Header merge Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
 </IfModule>
 
 # Bloquear acceso directo a archivos sensibles
