@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReportService from '../services/reportService';
 import { evidenceService, API_BASE_URL } from '../services/api';
-import jsPDF from 'jspdf';
+ 
 
 const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   const [report, setReport] = useState(null);
@@ -198,54 +198,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     );
   };
 
-  const handleOpenEvidence = async (evidence) => {
-    try {
-      const { blob, contentType, fileName } = await evidenceService.getEvidenceBlob(evidence.id);
-      const objectUrl = URL.createObjectURL(blob);
-      if (contentType.startsWith('image/') || contentType === 'application/pdf' || contentType.startsWith('video/')) {
-        try {
-          const viewer = window.open('', '_blank', 'noopener,noreferrer');
-          if (viewer) {
-            const safeTitle = (fileName || evidence.url_archivo || 'evidencia').replace(/[^a-z0-9_.-]/gi, '_');
-            const isImg = contentType.startsWith('image/');
-            const isVid = contentType.startsWith('video/');
-            const isPdf = contentType === 'application/pdf';
-            const html = `<!doctype html><html><head><meta charset="utf-8"><title>${safeTitle}</title></head>
-              <body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;">
-                ${isImg ? `<img src="${objectUrl}" style="max-width:100%;max-height:100%;object-fit:contain;" />` : ''}
-                ${isVid ? `<video src="${objectUrl}" style="width:100%;height:100%;object-fit:contain;background:#000;" controls autoplay></video>` : ''}
-                ${isPdf ? `<embed src="${objectUrl}" type="application/pdf" style="width:100%;height:100%;" />` : ''}
-              </body></html>`;
-            viewer.document.open();
-            viewer.document.write(html);
-            viewer.document.close();
-            viewer.addEventListener('beforeunload', () => { try { URL.revokeObjectURL(objectUrl); } catch(_){} });
-          } else {
-            const a = document.createElement('a');
-            a.href = objectUrl;
-            a.target = '_blank';
-            a.rel = 'noopener noreferrer';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
-          }
-        } catch (_) {
-          setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
-        }
-      } else {
-        const a = document.createElement('a');
-        a.href = objectUrl;
-        a.download = fileName || evidence.url_archivo || 'evidencia';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
-      }
-    } catch (err) {
-      alert('No se pudo abrir la evidencia: ' + (err.message || 'Error desconocido'));
-    }
-  };
+  
 
   const buildPublicImageUrl = (fileName) => `${API_BASE_URL}/uploads/${encodeURIComponent(fileName || '')}`;
 
@@ -343,20 +296,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                       {evidencia.url_archivo || 'Sin nombre'}
                     </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button 
-                      onClick={() => handleOpenEvidence(evidencia)}
-                      className="text-white bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded text-xs transition-colors"
-                    >
-                      Ver
-                    </button>
-                    <button 
-                      onClick={() => handleDownloadReportAsPdf(evidencia)}
-                      className="text-white bg-emerald-700 hover:bg-emerald-600 px-3 py-1.5 rounded text-xs transition-colors"
-                    >
-                      PDF
-                    </button>
-                  </div>
+                  <div className="flex items-center space-x-2" />
                 </div>
               </div>
             </div>
@@ -366,315 +306,11 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     );
   };
 
-  // Descargar información del reporte e incrustar imágenes
-  const handleDownloadReportInfoPdf = async () => {
-    try {
-      if (!report) return;
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-      const margin = 40;
-      let y = margin;
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
+  
 
-      const writeLine = (text, opts = {}) => {
-        const maxWidth = 515; // 595 - 2*40
-        const lines = doc.splitTextToSize(text, maxWidth);
-        lines.forEach((line) => { doc.text(line, margin, y, opts); y += 16; });
-      };
+  
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
-      writeLine('Reporte HSEQ');
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(11);
-      const meta = [
-        `ID: ${report.id ?? ''}`,
-        `Tipo: ${getEventTypeLabel(report.tipo_reporte)}`,
-        `Usuario: ${report.nombre_usuario ?? ''}`,
-        `Estado: ${getStatusLabel(report.estado ?? '')}`,
-        `Fecha evento: ${report.fecha_evento ?? ''} ${report.hora_evento ?? ''}`,
-        `Creado: ${report.creado_en ?? ''}`,
-      ];
-      meta.forEach((line) => writeLine(line));
-      y += 8;
-
-      doc.setFont('helvetica', 'bold');
-      writeLine('Detalle');
-      doc.setFont('helvetica', 'normal');
-
-      const addField = (label, value) => {
-        if (!value) return;
-        writeLine(`${label}: ${value}`);
-      };
-
-      if (report.tipo_reporte === 'hallazgos') {
-        addField('Lugar del Hallazgo', report.lugar_hallazgo || report.lugar_hallazgo_otro);
-        addField('Tipo de Hallazgo', report.tipo_hallazgo);
-        addField('Estado de la Condición', report.estado_condicion);
-        addField('Descripción', report.descripcion_hallazgo);
-        addField('Recomendaciones', report.recomendaciones);
-      } else if (report.tipo_reporte === 'incidentes') {
-        addField('Ubicación', report.ubicacion_incidente);
-        addField('Grado de Criticidad', report.grado_criticidad);
-        addField('Tipo de Afectación', report.tipo_afectacion);
-        addField('Descripción', report.descripcion_incidente);
-      } else if (report.tipo_reporte === 'conversaciones') {
-        addField('Tipo de Conversación', report.tipo_conversacion);
-        addField('Sitio del Evento', report.sitio_evento_conversacion);
-        addField('Lugar del Hallazgo', report.lugar_hallazgo_conversacion || report.lugar_hallazgo_conversacion_otro);
-        addField('Descripción', report.descripcion_conversacion);
-      }
-
-      y += 8;
-      doc.setFont('helvetica', 'bold');
-      writeLine('Evidencias (nombres)');
-      doc.setFont('helvetica', 'normal');
-      if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
-        report.evidencias.forEach((ev, idx) => {
-          writeLine(`${idx + 1}. ${ev.url_archivo || '(sin nombre)'} • ${ev.tipo_archivo || ''}`);
-        });
-      } else {
-        writeLine('No hay evidencias adjuntas');
-      }
-
-      // Intentar incrustar todas las evidencias que sean imágenes (jpeg/png/webp/gif)
-      if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
-        const imageEvidencias = report.evidencias.filter(ev => {
-          const t = (ev.tipo_archivo || '').toLowerCase();
-          const n = (ev.url_archivo || '').toLowerCase();
-          return t.startsWith('image/') || /\.(jpe?g|png|gif|webp)$/i.test(n);
-        });
-
-        if (imageEvidencias.length > 0) {
-          doc.setFont('helvetica', 'bold');
-          writeLine('Evidencias (imágenes)');
-          doc.setFont('helvetica', 'normal');
-          
-          for (let i = 0; i < imageEvidencias.length; i++) {
-            const evidencia = imageEvidencias[i];
-            try {
-              const { blob, contentType } = await evidenceService.getEvidenceBlob(evidencia.id);
-              const blobToDataUrl = (b) => new Promise((resolve, reject) => {
-                try {
-                  const fr = new FileReader();
-                  fr.onerror = () => reject(new Error('No se pudo leer la evidencia'));
-                  fr.onload = () => resolve(fr.result);
-                  fr.readAsDataURL(b);
-                } catch (e) { reject(e); }
-              });
-              
-              let dataUrl = await blobToDataUrl(blob);
-              let imageFormat = (contentType && contentType.includes('png')) ? 'PNG' : 'JPEG';
-              if (!contentType || (!contentType.includes('jpeg') && !contentType.includes('png'))) {
-                // Convertir formatos no soportados nativamente (ej. webp) a JPEG
-                const imgTmp = new Image();
-                await new Promise((r) => { imgTmp.onload = r; imgTmp.src = dataUrl; });
-                const canvas = document.createElement('canvas');
-                canvas.width = imgTmp.width;
-                canvas.height = imgTmp.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(imgTmp, 0, 0);
-                dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                imageFormat = 'JPEG';
-              }
-
-              // Añadir salto si no hay espacio razonable
-              y += 12;
-              if (y + 180 > pageHeight - margin) {
-                doc.addPage();
-                y = margin;
-              }
-
-              // Calcular tamaño manteniendo proporción
-              const probe = new Image();
-              await new Promise((r) => { probe.onload = r; probe.src = dataUrl; });
-              const maxW = pageWidth - margin * 2;
-              const maxH = Math.min(260, pageHeight - margin - y - 50); // altura más contenida por imagen
-              const scale = Math.min(maxW / probe.width, maxH / probe.height, 1);
-              const drawW = Math.max(50, probe.width * scale);
-              const drawH = Math.max(50, probe.height * scale);
-
-              // Título de la imagen
-              doc.setFont('helvetica', 'bold');
-              doc.setFontSize(10);
-              writeLine(`Imagen ${i + 1}: ${evidencia.url_archivo || 'Sin nombre'}`);
-              doc.setFont('helvetica', 'normal');
-              doc.setFontSize(11);
-              
-              doc.addImage(dataUrl, imageFormat, margin, y + 6, drawW, drawH);
-              y += drawH + 20;
-              
-            } catch (_) {
-              // Si falla una imagen, continuar con la siguiente
-              writeLine(`Imagen ${i + 1}: Error al cargar - ${evidencia.url_archivo || 'Sin nombre'}`);
-              y += 16;
-            }
-          }
-          
-          // Sin mensaje de truncado: se incluyen todas
-        }
-      }
-
-      const safeName = String(report.asunto || report.asunto_conversacion || 'reporte')
-        .replace(/[^a-z0-9_.-]/gi, '_');
-      const pdfBlob = doc.output('blob');
-      const url = window.URL.createObjectURL(pdfBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `reporte_${report.id || ''}_${safeName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => window.URL.revokeObjectURL(url), 5000);
-    } catch (e) {
-      alert('No se pudo descargar el PDF del reporte');
-    }
-  };
-
-  const handleDownloadReportAsPdf = async (evidence) => {
-    try {
-      const { blob, contentType, fileName } = await evidenceService.getEvidenceBlob(evidence.id);
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-
-      // Encabezado
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
-      doc.text('Reporte HSEQ', 40, 40);
-
-      // Metadatos
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(11);
-      const meta = [
-        `ID: ${report?.id ?? ''}`,
-        `Tipo: ${report?.tipo_reporte ?? ''}`,
-        `Usuario: ${report?.nombre_usuario ?? ''}`,
-        `Estado: ${report?.estado ?? ''}`,
-        `Fecha evento: ${report?.fecha_evento ?? ''} ${report?.hora_evento ?? ''}`,
-        `Título: ${report?.asunto || report?.asunto_conversacion || ''}`,
-      ];
-      let y = 65;
-      meta.forEach((line) => { doc.text(line, 40, y); y += 16; });
-
-      const margin = 40;
-      const maxWidth = 515; // ancho útil en A4 a 72 dpi (595 total - márgenes)
-
-      // Utilidad: blob -> dataURL
-      const blobToDataUrl = (b) => new Promise((resolve, reject) => {
-        try {
-          const fr = new FileReader();
-          fr.onerror = () => reject(new Error('No se pudo leer la evidencia'));
-          fr.onload = () => resolve(fr.result);
-          fr.readAsDataURL(b);
-        } catch (e) { reject(e); }
-      });
-
-      try {
-        if (contentType.startsWith('image/')) {
-          let dataUrl = await blobToDataUrl(blob);
-          let imageFormat = contentType.includes('png') ? 'PNG' : 'JPEG';
-          if (!contentType.includes('jpeg') && !contentType.includes('png')) {
-            const imgTmp = new Image();
-            await new Promise((r) => { imgTmp.onload = r; imgTmp.src = dataUrl; });
-            const canvas = document.createElement('canvas');
-            canvas.width = imgTmp.width;
-            canvas.height = imgTmp.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(imgTmp, 0, 0);
-            dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-            imageFormat = 'JPEG';
-          }
-
-          const img = new Image();
-          await new Promise((resolve) => { img.onload = resolve; img.src = dataUrl; });
-          const scale = Math.min(maxWidth / img.width, 700 / img.height);
-          const w = Math.min(maxWidth, img.width * scale);
-          const h = img.height * (w / img.width);
-          doc.addImage(dataUrl, imageFormat, margin, y + 10, w, h);
-        } else if (contentType === 'application/pdf') {
-          doc.text('Evidencia (PDF) adjunta por separado.', margin, y + 20);
-        } else if (contentType.startsWith('video/')) {
-          doc.text('Evidencia de video: no previsualizable en PDF. Se adjunta nombre de archivo.', margin, y + 20);
-        } else {
-          doc.text('Evidencia no soportada para incrustar en PDF.', margin, y + 20);
-        }
-      } catch (_) {
-        doc.text('No se pudo incrustar la evidencia en el PDF.', margin, y + 20);
-      }
-
-      const safeName = (fileName || evidence.url_archivo || 'evidencia').replace(/[^a-z0-9_.-]/gi, '_');
-      // Forzar descarga explícitamente usando blob del PDF (más compatible)
-      const pdfBlob = doc.output('blob');
-      const url = window.URL.createObjectURL(pdfBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `reporte_${report?.id || ''}_${safeName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => window.URL.revokeObjectURL(url), 5000);
-    } catch (err) {
-      alert('No se pudo generar el PDF: ' + (err.message || 'Error desconocido'));
-    }
-  };
-
-  // Descargar todas las evidencias como ZIP
-  const handleDownloadAllEvidence = async () => {
-    if (!report?.evidencias || report.evidencias.length === 0) {
-      alert('No hay evidencias para descargar');
-      return;
-    }
-
-    try {
-      // Importar JSZip dinámicamente
-      const JSZip = (await import('jszip')).default;
-      const zip = new JSZip();
-
-      // Crear carpeta para el reporte
-      const reportFolder = zip.folder(`reporte_${report.id}`);
-
-      // Agregar archivo de información del reporte
-      const reportInfo = {
-        id: report.id,
-        tipo_reporte: report.tipo_reporte,
-        asunto: report.asunto || report.asunto_conversacion,
-        estado: report.estado,
-        nombre_usuario: report.nombre_usuario,
-        fecha_evento: report.fecha_evento,
-        hora_evento: report.hora_evento,
-        creado_en: report.creado_en,
-        descripcion: getDescriptionText(report)
-      };
-
-      reportFolder.file('informacion_reporte.json', JSON.stringify(reportInfo, null, 2));
-
-      // Descargar y agregar cada evidencia
-      for (let i = 0; i < report.evidencias.length; i++) {
-        const evidencia = report.evidencias[i];
-        try {
-          const { blob, fileName } = await evidenceService.getEvidenceBlob(evidencia.id);
-          const safeFileName = (fileName || evidencia.url_archivo || `evidencia_${i + 1}`).replace(/[^a-z0-9_.-]/gi, '_');
-          reportFolder.file(safeFileName, blob);
-        } catch (error) {
-          console.error(`Error al descargar evidencia ${i + 1}:`, error);
-          // Continuar con las siguientes evidencias
-        }
-      }
-
-      // Generar y descargar el ZIP
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `reporte_${report.id}_evidencias.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-    } catch (error) {
-      alert('Error al crear el archivo ZIP: ' + error.message);
-    }
-  };
+  
 
   if (!isOpen) return null;
 
@@ -883,22 +519,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                     </svg>
                     Evidencias Adjuntas
                   </h3>
-                  <div className="flex items-center space-x-2">
-                    {report?.evidencias && report.evidencias.length > 0 && (
-                      <button 
-                        onClick={handleDownloadAllEvidence} 
-                        className="text-white bg-purple-600 hover:bg-purple-500 px-3 py-2 rounded text-sm transition-colors"
-                      >
-                        Descargar Todas (ZIP)
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => handleDownloadReportInfoPdf()} 
-                      className="text-white bg-emerald-700 hover:bg-emerald-600 px-3 py-2 rounded text-sm transition-colors"
-                    >
-                      Descargar Reporte (PDF)
-                    </button>
-                  </div>
+                  <div className="flex items-center space-x-2" />
                 </div>
                 {renderEvidence(report.evidencias)}
               </div>
