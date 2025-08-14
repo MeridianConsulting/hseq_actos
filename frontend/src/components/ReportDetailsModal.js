@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReportService from '../services/reportService';
 import { evidenceService, API_BASE_URL } from '../services/api';
-import { jsPDF } from 'jspdf';
+
 
 const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   const [report, setReport] = useState(null);
@@ -202,7 +202,13 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   const handleDownloadFullReportPdf = async () => {
     try {
       if (!report) return;
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      // Señal visual/log para verificar click
+      // eslint-disable-next-line no-console
+      console.log('Descargando PDF de reporte', report.id);
+      const mod = await import('jspdf');
+      const JsPdfCtor = mod.jsPDF || mod.default;
+      if (!JsPdfCtor) throw new Error('jsPDF no disponible');
+      const doc = new JsPdfCtor({ unit: 'pt', format: 'a4' });
       const margin = 40;
       let y = margin;
       const pageWidth = typeof doc.getPageWidth === 'function' ? doc.getPageWidth() : (doc.internal?.pageSize?.getWidth ? doc.internal.pageSize.getWidth() : doc.internal.pageSize.width);
@@ -325,8 +331,16 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
 
       const safeName = String(report.asunto || report.asunto_conversacion || 'reporte').replace(/[^a-z0-9_.-]/gi, '_');
       const fileName = `reporte_${report.id || ''}_${safeName}.pdf`;
-      // Usar API nativa de jsPDF para descargar (más compatible)
-      doc.save(fileName);
+      try {
+        doc.save(fileName);
+      } catch (_) {
+        // Fallback a descarga manual con blob
+        const blob = doc.output('blob');
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+      }
     } catch (e) {
       alert('No se pudo descargar el PDF del reporte');
     }
@@ -656,6 +670,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                     <button type="button"
                       onClick={handleDownloadFullReportPdf}
                       className="text-white bg-emerald-700 hover:bg-emerald-600 px-3 py-2 rounded text-sm transition-colors"
+                      id={`btn-download-report-${report?.id ?? ''}`}
                     >
                       Descargar Reporte (PDF)
                     </button>
