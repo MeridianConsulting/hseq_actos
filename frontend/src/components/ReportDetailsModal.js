@@ -999,7 +999,53 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     }
   };
 
-  const buildPublicImageUrl = (fileName) => `${API_BASE_URL}/uploads/${encodeURIComponent(fileName || '')}`;
+     const buildPublicImageUrl = (fileName) => `${API_BASE_URL}/uploads/${encodeURIComponent(fileName || '')}`;
+
+   // Función para descargar una imagen individual
+   const handleDownloadImage = async (evidencia) => {
+     try {
+       // Intentar obtener la imagen desde el blob precargado
+       let blob = null;
+       const blobInfo = evidenceUrls[evidencia.id];
+       
+       if (blobInfo && blobInfo.blob) {
+         blob = blobInfo.blob;
+       } else {
+         // Si no está precargado, descargarlo desde el servidor
+         const response = await fetch(`${API_BASE_URL}/api/evidencias/${evidencia.id}`, {
+           method: 'GET',
+           headers: { 
+             'Accept': 'image/*',
+             'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+           }
+         });
+         
+         if (!response.ok) {
+           throw new Error(`Error HTTP: ${response.status}`);
+         }
+         
+         blob = await response.blob();
+       }
+       
+       // Crear URL del blob y descargar
+       const url = URL.createObjectURL(blob);
+       const a = document.createElement('a');
+       a.href = url;
+       a.download = evidencia.url_archivo || `evidencia_${evidencia.id}.jpg`;
+       a.style.display = 'none';
+       document.body.appendChild(a);
+       a.click();
+       
+       setTimeout(() => {
+         document.body.removeChild(a);
+         URL.revokeObjectURL(url);
+       }, 1000);
+       
+     } catch (error) {
+       console.error('Error descargando imagen:', error);
+       alert('Error al descargar la imagen: ' + error.message);
+     }
+   };
 
   const renderEvidence = (evidencias) => {
     if (!evidencias || evidencias.length === 0) {
@@ -1027,25 +1073,40 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
           return (
             <div key={evidencia.id} className="group relative bg-white bg-opacity-5 rounded-xl hover:bg-opacity-10 transition-all duration-300">
               <div className="flex items-center justify-center w-full h-56" style={{ backgroundColor: 'rgba(0,0,0,0.15)' }}>
-                {isImage ? (
-                  <img
-                    src={buildPublicImageUrl(evidencia.url_archivo)}
-                    alt={`Evidencia ${index + 1}`}
-                    className="w-full h-full object-contain rounded-t-xl"
-                    loading="lazy"
-                    onError={(e) => {
-                      // Fallback al endpoint autenticado si la imagen pública falla
-                      const token = localStorage.getItem('token') || '';
-                      const fallback = `${API_BASE_URL}/api/evidencias/${evidencia.id}?token=${encodeURIComponent(token)}`;
-                      if (!e.target.dataset.fallback) {
-                        e.target.dataset.fallback = '1';
-                        e.target.src = fallback;
-                      } else {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }
-                    }}
-                  />
+                                 {isImage ? (
+                   <div className="relative w-full h-full group">
+                     <img
+                       src={buildPublicImageUrl(evidencia.url_archivo)}
+                       alt={`Evidencia ${index + 1}`}
+                       className="w-full h-full object-contain rounded-t-xl"
+                       loading="lazy"
+                       onError={(e) => {
+                         // Fallback al endpoint autenticado si la imagen pública falla
+                         const token = localStorage.getItem('token') || '';
+                         const fallback = `${API_BASE_URL}/api/evidencias/${evidencia.id}?token=${encodeURIComponent(token)}`;
+                         if (!e.target.dataset.fallback) {
+                           e.target.dataset.fallback = '1';
+                           e.target.src = fallback;
+                         } else {
+                           e.target.style.display = 'none';
+                           e.target.nextSibling.style.display = 'flex';
+                         }
+                       }}
+                     />
+                     {/* Botón de descarga que aparece al hacer hover */}
+                     <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-t-xl">
+                       <button
+                         onClick={() => handleDownloadImage(evidencia)}
+                         className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200"
+                         title="Descargar imagen"
+                       >
+                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                         </svg>
+                         <span className="text-sm font-medium">Descargar</span>
+                       </button>
+                     </div>
+                   </div>
                 ) : isVideo ? (
                   <video 
                     src={`${API_BASE_URL}/api/evidencias/${evidencia.id}?token=${encodeURIComponent(localStorage.getItem('token') || '')}`}
@@ -1095,7 +1156,20 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                       {evidencia.url_archivo || 'Sin nombre'}
                     </p>
                   </div>
-                  <div className="flex items-center space-x-2" />
+                                     <div className="flex items-center space-x-2">
+                     {isImage && (
+                       <button
+                         onClick={() => handleDownloadImage(evidencia)}
+                         className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs flex items-center space-x-1 transition-colors duration-200"
+                         title="Descargar imagen"
+                       >
+                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                         </svg>
+                         <span>Descargar</span>
+                       </button>
+                     )}
+                   </div>
                 </div>
               </div>
             </div>
