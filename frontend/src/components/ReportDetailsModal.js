@@ -4,6 +4,7 @@ import { evidenceService, API_BASE_URL } from '../services/api';
 import { jsPDF } from 'jspdf';
 
 
+
 const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   const [report, setReport] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -419,79 +420,43 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                       imgWidth = imgWidth * ratio;
                     }
                     
-                    // Función para cargar imagen usando el endpoint de la API
-                    const loadImageFromAPI = async (evidenciaId) => {
-                      return new Promise(async (resolve, reject) => {
+                    // Función para crear una imagen placeholder simple
+                    const createPlaceholderImage = async (width, height) => {
+                      return new Promise((resolve, reject) => {
                         try {
-                          const imageUrl = `${API_BASE_URL}/api/evidencias/${evidenciaId}`;
+                          console.log(`Creando imagen placeholder de ${width}x${height}`);
                           
-                          console.log(`Descargando imagen desde API: ${imageUrl}`);
+                          // Crear canvas
+                          const canvas = document.createElement('canvas');
+                          canvas.width = width;
+                          canvas.height = height;
                           
-                          // Usar fetch para obtener la imagen como blob
-                          const response = await fetch(imageUrl);
+                          const ctx = canvas.getContext('2d');
                           
-                          if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                          }
+                          // Fondo gris claro
+                          ctx.fillStyle = '#f0f0f0';
+                          ctx.fillRect(0, 0, width, height);
                           
-                          // Obtener el blob de la imagen
-                          const blob = await response.blob();
-                          console.log(`Imagen descargada, tamaño: ${blob.size} bytes, tipo: ${blob.type}`);
+                          // Borde
+                          ctx.strokeStyle = '#cccccc';
+                          ctx.lineWidth = 2;
+                          ctx.strokeRect(1, 1, width - 2, height - 2);
                           
-                          // Convertir blob a data URL
-                          const reader = new FileReader();
-                          reader.onload = function() {
-                            const dataUrl = reader.result;
-                            
-                            // Crear imagen desde el data URL (esto evita problemas de CORS)
-                            const img = new Image();
-                            
-                            img.onload = function() {
-                              try {
-                                console.log(`Imagen cargada exitosamente: ${img.width}x${img.height}`);
-                                
-                                // Crear canvas para convertir a JPEG
-                                const canvas = document.createElement('canvas');
-                                canvas.width = img.naturalWidth || img.width;
-                                canvas.height = img.naturalHeight || img.height;
-                                
-                                const ctx = canvas.getContext('2d');
-                                
-                                // Fondo blanco para transparencias
-                                ctx.fillStyle = '#FFFFFF';
-                                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                                
-                                // Dibujar la imagen
-                                ctx.drawImage(img, 0, 0);
-                                
-                                // Convertir a JPEG
-                                const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                                
-                                console.log('Imagen convertida a JPEG exitosamente');
-                                resolve(jpegDataUrl);
-                              } catch (error) {
-                                console.error('Error procesando imagen:', error);
-                                reject(error);
-                              }
-                            };
-                            
-                            img.onerror = function() {
-                              console.error('Error cargando imagen desde data URL');
-                              reject(new Error('Error cargando imagen desde data URL'));
-                            };
-                            
-                            img.src = dataUrl;
-                          };
+                          // Texto
+                          ctx.fillStyle = '#666666';
+                          ctx.font = '16px Arial';
+                          ctx.textAlign = 'center';
+                          ctx.textBaseline = 'middle';
+                          ctx.fillText('Imagen no disponible', width / 2, height / 2);
                           
-                          reader.onerror = function() {
-                            console.error('Error leyendo blob');
-                            reject(new Error('Error leyendo blob'));
-                          };
+                          // Convertir a JPEG
+                          const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
                           
-                          reader.readAsDataURL(blob);
+                          console.log('Imagen placeholder creada exitosamente');
+                          resolve(jpegDataUrl);
                           
                         } catch (error) {
-                          console.error('Error en fetch:', error);
+                          console.error('Error creando placeholder:', error);
                           reject(error);
                         }
                       });
@@ -512,80 +477,100 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                         doc.setDrawColor(200, 200, 200);
                         doc.rect(margin, y, imgWidth, imgHeight, 'S');
                         
-                    try {
-                      // Intento 1: Cargar imagen desde el endpoint de la API
-                      console.log(`Cargando imagen ${i + 1} desde API...`);
-                      const jpegDataUrl = await loadImageFromAPI(evidencia.id);
-                      
-                      // Agregar la imagen JPEG al PDF
-                      doc.addImage(jpegDataUrl, 'JPEG', margin, y, imgWidth, imgHeight);
-                      console.log(`Imagen ${i + 1} agregada exitosamente al PDF`);
-                      y += imgHeight + 16;
-                      imageLoaded = true;
-                      
-                    } catch (apiError) {
-                      console.error(`Error cargando desde API:`, apiError);
-                      
-                      // Intento 2: Si falla, intentar usar el blob precargado si existe
+                                        try {
+                      // Intentar cargar la imagen original
                       if (blobInfo && blobInfo.blob) {
-                        try {
-                          console.log(`Intentando con blob precargado para imagen ${i + 1}...`);
-                          
-                          const reader = new FileReader();
-                          const dataUrl = await new Promise((resolve, reject) => {
-                            reader.onload = () => resolve(reader.result);
-                            reader.onerror = () => reject(new Error('Error leyendo blob'));
-                            reader.readAsDataURL(blobInfo.blob);
-                          });
-                          
-                          // Convertir el blob a JPEG usando canvas
-                          const img = new Image();
-                          await new Promise((resolve, reject) => {
-                            img.onload = function() {
-                              try {
-                                const canvas = document.createElement('canvas');
-                                canvas.width = img.naturalWidth || img.width;
-                                canvas.height = img.naturalHeight || img.height;
-                                
-                                const ctx = canvas.getContext('2d');
-                                ctx.fillStyle = '#FFFFFF';
-                                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                                ctx.drawImage(img, 0, 0);
-                                
-                                const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                                doc.addImage(jpegDataUrl, 'JPEG', margin, y, imgWidth, imgHeight);
-                                console.log(`Imagen ${i + 1} agregada desde blob precargado y convertida a JPEG`);
-                                y += imgHeight + 16;
-                                imageLoaded = true;
-                                resolve();
-                              } catch (error) {
-                                reject(error);
+                        console.log(`Intentando cargar imagen ${i + 1} original...`);
+                        
+                        // Crear URL del blob
+                        const blobUrl = URL.createObjectURL(blobInfo.blob);
+                        
+                        // Crear imagen
+                        const img = new Image();
+                        
+                        await new Promise((resolve, reject) => {
+                          img.onload = function() {
+                            try {
+                              console.log(`Imagen ${i + 1} cargada exitosamente: ${img.width}x${img.height}`);
+                              
+                              // Crear canvas para convertir a JPEG
+                              const canvas = document.createElement('canvas');
+                              
+                              // Redimensionar si es muy grande
+                              let width = img.naturalWidth || img.width;
+                              let height = img.naturalHeight || img.height;
+                              
+                              if (width > 800) {
+                                const ratio = 800 / width;
+                                width = 800;
+                                height = height * ratio;
                               }
-                            };
-                            img.onerror = () => reject(new Error('Error cargando imagen desde blob'));
-                            img.src = dataUrl;
-                          });
+                              
+                              canvas.width = width;
+                              canvas.height = height;
+                              
+                              const ctx = canvas.getContext('2d');
+                              
+                              // Fondo blanco
+                              ctx.fillStyle = '#FFFFFF';
+                              ctx.fillRect(0, 0, width, height);
+                              
+                              // Dibujar imagen
+                              ctx.drawImage(img, 0, 0, width, height);
+                              
+                              // Convertir a JPEG
+                              const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                              
+                              // Agregar al PDF
+                              doc.addImage(jpegDataUrl, 'JPEG', margin, y, imgWidth, imgHeight);
+                              console.log(`Imagen ${i + 1} agregada exitosamente al PDF`);
+                              y += imgHeight + 16;
+                              imageLoaded = true;
+                              
+                              // Limpiar URL
+                              URL.revokeObjectURL(blobUrl);
+                              resolve();
+                              
+                            } catch (error) {
+                              URL.revokeObjectURL(blobUrl);
+                              reject(error);
+                            }
+                          };
                           
-                        } catch (blobError) {
-                          console.error(`Error con blob precargado:`, blobError);
+                          img.onerror = function() {
+                            URL.revokeObjectURL(blobUrl);
+                            reject(new Error('Error cargando imagen'));
+                          };
                           
-                          // Si todo falla, agregar placeholder
-                          doc.setFillColor(200, 200, 200);
-                          doc.rect(margin, y, imgWidth, imgHeight, 'F');
-                          doc.setFontSize(12);
-                          doc.setTextColor(100, 100, 100);
-                          doc.text('Error al cargar imagen', margin + imgWidth/2 - 50, y + imgHeight/2);
-                          doc.setTextColor(0, 0, 0);
-                          y += imgHeight + 16;
-                          imageLoaded = false;
-                        }
+                          img.src = blobUrl;
+                        });
+                        
                       } else {
-                        // No hay blob, agregar placeholder
+                        throw new Error('No hay blob precargado disponible');
+                      }
+                      
+                    } catch (error) {
+                      console.error(`Error procesando imagen ${i + 1}:`, error);
+                      
+                      // Crear placeholder visual
+                      try {
+                        console.log(`Creando placeholder para imagen ${i + 1}...`);
+                        const placeholderDataUrl = await createPlaceholderImage(imgWidth, imgHeight);
+                        
+                        doc.addImage(placeholderDataUrl, 'JPEG', margin, y, imgWidth, imgHeight);
+                        console.log(`Placeholder agregado para imagen ${i + 1}`);
+                        y += imgHeight + 16;
+                        imageLoaded = true;
+                        
+                      } catch (placeholderError) {
+                        console.error(`Error creando placeholder:`, placeholderError);
+                        
+                        // Fallback final: rectángulo simple
                         doc.setFillColor(200, 200, 200);
                         doc.rect(margin, y, imgWidth, imgHeight, 'F');
                         doc.setFontSize(12);
                         doc.setTextColor(100, 100, 100);
-                        doc.text('Imagen no disponible', margin + imgWidth/2 - 50, y + imgHeight/2);
+                        doc.text('Error al cargar imagen', margin + imgWidth/2 - 50, y + imgHeight/2);
                         doc.setTextColor(0, 0, 0);
                         y += imgHeight + 16;
                         imageLoaded = false;
