@@ -390,56 +390,225 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                 // Intentar cargar la imagen usando múltiples métodos
                 let imageLoaded = false;
                 
-                                                  // Método 1: Usar el blob existente en evidenceUrls
-                 const blobInfo = evidenceUrls[evidencia.id];
-                 console.log(`Blob info para imagen ${i + 1}:`, blobInfo);
-                 console.log(`¿Es blob válido?`, isBlobValid(blobInfo));
-                 
-                 if (isBlobValid(blobInfo)) {
+                try {
+                  // Método 1: Usar el blob existente en evidenceUrls
+                  const blobInfo = evidenceUrls[evidencia.id];
+                  console.log(`Blob info para imagen ${i + 1}:`, blobInfo);
+                  console.log(`¿Es blob válido?`, isBlobValid(blobInfo));
+                  
+                  if (isBlobValid(blobInfo)) {
                    console.log(`Intentando usar blob directamente con base64 para imagen ${i + 1}`);
                    
                                        try {
-                      await new Promise((resolve) => {
-                        const timeout = setTimeout(() => {
-                          console.log(`Timeout procesando blob para imagen ${i + 1}`);
-                          resolve();
-                        }, 8000);
+                                              // Definir dimensiones por defecto antes del timeout
+                        const maxWidth = pageWidth - margin * 2;
+                        const maxHeight = 300;
+                        let imgWidth = 400;
+                        let imgHeight = 300;
                         
-                        // Convertir blob a base64 directamente
+                        // Escalar proporcionalmente si es necesario
+                        if (imgWidth > maxWidth) {
+                          const ratio = maxWidth / imgWidth;
+                          imgWidth = maxWidth;
+                          imgHeight = imgHeight * ratio;
+                        }
+                        
+                        if (imgHeight > maxHeight) {
+                          const ratio = maxHeight / imgHeight;
+                          imgHeight = maxHeight;
+                          imgWidth = imgWidth * ratio;
+                        }
+                        
+                        await new Promise(async (resolve) => {
+                          const timeout = setTimeout(() => {
+                            console.log(`Timeout procesando blob para imagen ${i + 1}`);
+                            // Agregar placeholder si hay timeout
+                            doc.setFillColor(200, 200, 200);
+                            doc.rect(margin, y, imgWidth, imgHeight, 'F');
+                            doc.setFontSize(12);
+                            doc.setTextColor(100, 100, 100);
+                            doc.text('Timeout procesando imagen', margin + imgWidth/2 - 60, y + imgHeight/2);
+                            resolve();
+                          }, 10000); // Aumentar timeout a 10 segundos
+                        
+                        // Convertir blob a base64 usando un método más robusto
                         const reader = new FileReader();
-                                               reader.onload = () => {
+                        reader.onload = () => {
                           try {
-                            const base64 = reader.result.split(',')[1];
+                            const fullDataUrl = reader.result;
+                            console.log(`Data URL completo:`, fullDataUrl.substring(0, 100) + '...');
+                            
+                            // Verificar que el data URL sea válido
+                            if (!fullDataUrl || !fullDataUrl.startsWith('data:')) {
+                              console.error(`Data URL inválido para imagen ${i + 1}`);
+                              throw new Error('Data URL inválido');
+                            }
+                            
+                            // Extraer el base64 de manera más segura
+                            const base64Match = fullDataUrl.match(/^data:([^;]+);base64,(.+)$/);
+                            if (!base64Match) {
+                              console.error(`Formato de data URL inválido para imagen ${i + 1}`);
+                              throw new Error('Formato de data URL inválido');
+                            }
+                            
+                            const contentType = base64Match[1];
+                            const base64 = base64Match[2];
+                            
                             console.log(`Base64 generado para imagen ${i + 1}, longitud:`, base64.length);
+                            console.log(`Content-Type detectado:`, contentType);
                             
-                            // Usar dimensiones fijas para asegurar que la imagen sea visible
-                            const maxWidth = pageWidth - margin * 2;
-                            const maxHeight = 400; // Aumentar altura máxima
-                            
-                            // Dimensiones por defecto más grandes
-                            let imgWidth = 500;
-                            let imgHeight = 400;
-                            
-                            // Escalar proporcionalmente si es necesario
-                            if (imgWidth > maxWidth) {
-                              const ratio = maxWidth / imgWidth;
-                              imgWidth = maxWidth;
-                              imgHeight = imgHeight * ratio;
+                            // Verificar que el base64 no esté vacío o corrupto
+                            if (!base64 || base64.length < 100) {
+                              console.error(`Base64 corrupto o muy corto para imagen ${i + 1}`);
+                              throw new Error('Base64 corrupto o muy corto');
                             }
                             
-                            if (imgHeight > maxHeight) {
-                              const ratio = maxHeight / imgHeight;
-                              imgHeight = maxHeight;
-                              imgWidth = imgWidth * ratio;
-                            }
+                            // Usar las dimensiones ya calculadas (definidas fuera del callback)
+                            // Las variables imgWidth e imgHeight ya están disponibles en este scope
                             
                             console.log(`Dimensiones finales de imagen ${i + 1}:`, { width: imgWidth, height: imgHeight });
+                            console.log(`Posición Y actual:`, y);
                             
-                            // Agregar la imagen al PDF usando base64
-                            doc.addImage(base64, 'JPEG', margin, y, imgWidth, imgHeight);
+                            // Verificar si hay espacio suficiente en la página
+                            if (y + imgHeight > pageHeight - margin) {
+                              console.log(`No hay espacio suficiente, agregando nueva página`);
+                              doc.addPage();
+                              y = margin + 20; // Resetear posición Y
+                            }
+                            
+                            // Detectar el formato de la imagen basado en el contentType
+                            const imageFormat = contentType.includes('png') ? 'PNG' : 'JPEG';
+                            console.log(`Formato de imagen detectado:`, imageFormat);
+                            
+                            // Agregar un rectángulo de fondo para hacer la imagen más visible
+                            doc.setFillColor(240, 240, 240);
+                            doc.rect(margin, y, imgWidth, imgHeight, 'F');
+                            
+                            // Agregar un borde
+                            doc.setDrawColor(0, 0, 0);
+                            doc.rect(margin, y, imgWidth, imgHeight, 'S');
+                            
+                            // Método más robusto para agregar imagen al PDF
+                            let imageAdded = false;
+                            
+                            // Método 1: Intentar con data URL completo
+                            try {
+                              doc.addImage(fullDataUrl, imageFormat, margin, y, imgWidth, imgHeight);
+                              console.log(`Imagen agregada usando data URL completo`);
+                              imageAdded = true;
+                            } catch (dataUrlError) {
+                              console.log(`Error con data URL:`, dataUrlError.message);
+                            }
+                            
+                            // Método 2: Si falló, intentar con canvas para convertir a JPEG
+                            if (!imageAdded) {
+                              try {
+                                const canvas = document.createElement('canvas');
+                                const ctx = canvas.getContext('2d');
+                                const img = new Image();
+                                
+                                img.onload = () => {
+                                  try {
+                                    canvas.width = img.naturalWidth;
+                                    canvas.height = img.naturalHeight;
+                                    ctx.drawImage(img, 0, 0);
+                                    
+                                    // Convertir a JPEG con calidad alta
+                                    const canvasDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+                                    doc.addImage(canvasDataUrl, 'JPEG', margin, y, imgWidth, imgHeight);
+                                    console.log(`Imagen agregada usando canvas (JPEG)`);
+                                    imageAdded = true;
+                                  } catch (canvasError) {
+                                    console.error(`Error en canvas:`, canvasError);
+                                    throw canvasError;
+                                  }
+                                };
+                                
+                                img.onerror = () => {
+                                  console.error(`Error cargando imagen para canvas`);
+                                  throw new Error('Error cargando imagen para canvas');
+                                };
+                                
+                                img.src = fullDataUrl;
+                                
+                                // Esperar a que se procese la imagen usando promesa
+                                new Promise((resolve, reject) => {
+                                  const timeout = setTimeout(() => reject(new Error('Timeout procesando imagen')), 5000);
+                                  img.onload = () => {
+                                    clearTimeout(timeout);
+                                    resolve();
+                                  };
+                                  img.onerror = () => {
+                                    clearTimeout(timeout);
+                                    reject(new Error('Error cargando imagen'));
+                                  };
+                                }).then(() => {
+                                  // Continuar con el resto del código después de que la imagen se cargue
+                                  console.log(`Imagen procesada exitosamente con canvas`);
+                                }).catch((error) => {
+                                  console.log(`Error procesando imagen con canvas:`, error.message);
+                                  throw error;
+                                });
+                                
+                              } catch (canvasError) {
+                                console.log(`Error con canvas:`, canvasError.message);
+                                throw canvasError;
+                              }
+                            }
+                            
+                            // Método 3: Si ambos métodos fallaron, intentar con fetch directo
+                            if (!imageAdded) {
+                              console.log(`Intentando método 3: fetch directo para imagen ${i + 1}`);
+                              const token = localStorage.getItem('token');
+                              const imageUrl = `${API_BASE_URL}/api/evidencias/${evidencia.id}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+                              
+                              fetch(imageUrl)
+                                .then(response => {
+                                  if (!response.ok) {
+                                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                                  }
+                                  return response.blob();
+                                })
+                                .then(imageBlob => {
+                                  return new Promise((resolve) => {
+                                    const reader = new FileReader();
+                                    reader.onload = () => resolve(reader.result);
+                                    reader.readAsDataURL(imageBlob);
+                                  });
+                                })
+                                .then(imageDataUrl => {
+                                  doc.addImage(imageDataUrl, 'JPEG', margin, y, imgWidth, imgHeight);
+                                  console.log(`Imagen agregada usando fetch directo`);
+                                  imageAdded = true;
+                                })
+                                .catch(fetchError => {
+                                  console.log(`Error con fetch directo:`, fetchError.message);
+                                  throw fetchError;
+                                });
+                            }
+                            
+                            // Si ningún método funcionó, agregar placeholder
+                            if (!imageAdded) {
+                              console.log(`Agregando placeholder para imagen ${i + 1} - ningún método funcionó`);
+                              doc.setFillColor(200, 200, 200);
+                              doc.rect(margin, y, imgWidth, imgHeight, 'F');
+                              doc.setFontSize(12);
+                              doc.setTextColor(100, 100, 100);
+                              doc.text('Imagen no disponible', margin + imgWidth/2 - 50, y + imgHeight/2);
+                            }
                             y += imgHeight + 16;
                             
+                            // Agregar un texto de etiqueta para la imagen
+                            doc.setFontSize(12);
+                            doc.setFont(undefined, 'bold');
+                            doc.text(`Imagen ${i + 1}:`, margin, y - 10);
+                            doc.setFont(undefined, 'normal');
+                            doc.setFontSize(10);
+                            doc.text(`[IMAGEN ${i + 1} AGREGADA]`, margin, y + imgHeight + 10);
+                            y += 20;
+                            
                             console.log(`Imagen ${i + 1} agregada al PDF exitosamente usando blob directo`);
+                            console.log(`Nueva posición Y:`, y);
                             imageLoaded = true;
                             clearTimeout(timeout);
                             resolve();
@@ -539,6 +708,10 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                   writeLine(`No se pudo cargar la imagen: ${evidencia.url_archivo}`);
                 }
                 
+                } catch (blobError) {
+                  console.error(`Error procesando blob para imagen ${i + 1}:`, blobError);
+                  writeLine(`Error al procesar imagen: ${evidencia.url_archivo}`);
+                }
               } catch (imageError) {
                 console.error(`Error procesando imagen ${i + 1}:`, imageError);
                 writeLine(`Error al procesar imagen: ${evidencia.url_archivo}`);
