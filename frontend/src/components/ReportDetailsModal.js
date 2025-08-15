@@ -450,15 +450,15 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
           return t.startsWith('image/') || /\.(jpe?g|png|gif|webp)$/i.test(n);
         });
         
-        if (imageEvidencias.length > 0) {
-          currentRow += 2;
-          worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-          const imageHeader = worksheet.getCell(`A${currentRow}`);
-          imageHeader.value = 'IMÁGENES DE EVIDENCIAS';
-          imageHeader.style = headerStyle;
-          currentRow++;
-          
-                     // Precargar evidencias si no están cargadas
+                 if (imageEvidencias.length > 0) {
+           currentRow += 2;
+           worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
+           const imageHeader = worksheet.getCell(`A${currentRow}`);
+           imageHeader.value = 'IMÁGENES DE EVIDENCIAS';
+           imageHeader.style = headerStyle;
+           currentRow++;
+           
+           // Precargar evidencias si no están cargadas
            if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
              console.log('Precargando evidencias para Excel...');
              await prefetchEvidenceBlobs(report.evidencias);
@@ -466,112 +466,45 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
              await new Promise(resolve => setTimeout(resolve, 2000));
              console.log('Evidencias precargadas:', Object.keys(evidenceUrls).length);
            }
+           
+           // Agregar información de las imágenes como texto en lugar de imágenes reales
+           // Esto es más confiable y evita problemas de compatibilidad
+           for (let i = 0; i < imageEvidencias.length; i++) {
+             const evidencia = imageEvidencias[i];
+             
+             // Agregar información de la imagen
+             worksheet.getCell(`A${currentRow}`).value = `Imagen ${i + 1}:`;
+             worksheet.getCell(`A${currentRow}`).style = { font: { bold: true, size: 11 } };
+             worksheet.getCell(`B${currentRow}`).value = evidencia.url_archivo || 'Sin nombre';
+             worksheet.getCell(`B${currentRow}`).style = cellStyle;
+             worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
+             currentRow++;
+             
+             // Agregar información adicional
+             worksheet.getCell(`A${currentRow}`).value = 'Tipo:';
+             worksheet.getCell(`A${currentRow}`).style = { font: { italic: true, size: 10 } };
+             worksheet.getCell(`B${currentRow}`).value = evidencia.tipo_archivo || 'Desconocido';
+             worksheet.getCell(`B${currentRow}`).style = { ...cellStyle, font: { size: 10 } };
+             worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
+             currentRow++;
+             
+             worksheet.getCell(`A${currentRow}`).value = 'Fecha:';
+             worksheet.getCell(`A${currentRow}`).style = { font: { italic: true, size: 10 } };
+             worksheet.getCell(`B${currentRow}`).value = formatFieldValue('creado_en', evidencia.creado_en);
+             worksheet.getCell(`B${currentRow}`).style = { ...cellStyle, font: { size: 10 } };
+             worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
+             currentRow++;
+             
+             // Agregar nota sobre la imagen
+             worksheet.getCell(`A${currentRow}`).value = 'Nota:';
+             worksheet.getCell(`A${currentRow}`).style = { font: { italic: true, size: 10, color: { argb: 'FF2E5BBA' } } };
+             worksheet.getCell(`B${currentRow}`).value = 'La imagen original está disponible en el sistema HSEQ';
+             worksheet.getCell(`B${currentRow}`).style = { ...cellStyle, font: { size: 10, color: { argb: 'FF2E5BBA' } } };
+             worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
+             currentRow += 2; // Espacio entre imágenes
+           }
           
-          for (let i = 0; i < imageEvidencias.length; i++) {
-            const evidencia = imageEvidencias[i];
-            
-            // Agregar título de la imagen
-            worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-            const imageTitle = worksheet.getCell(`A${currentRow}`);
-            imageTitle.value = `Imagen ${i + 1}: ${evidencia.url_archivo || 'Sin nombre'}`;
-            imageTitle.style = { font: { bold: true, size: 11 } };
-            currentRow++;
-            
-                                      try {
-               // Intentar obtener la imagen
-               const blobInfo = evidenceUrls[evidencia.id];
-               let imageBuffer = null;
-               let imageExtension = 'jpeg';
-               
-               // Determinar la extensión correcta basada en el tipo de archivo
-               const contentType = blobInfo?.contentType || evidencia.tipo_archivo || '';
-               if (contentType.includes('png')) {
-                 imageExtension = 'png';
-               } else if (contentType.includes('gif')) {
-                 imageExtension = 'gif';
-               } else if (contentType.includes('webp')) {
-                 imageExtension = 'webp';
-               } else {
-                 imageExtension = 'jpeg';
-               }
-               
-               if (blobInfo && blobInfo.blob) {
-                 // Usar el método más robusto para convertir blob a buffer
-                 try {
-                   imageBuffer = await convertImageToBuffer(blobInfo.blob);
-                 } catch (convertError) {
-                   console.error('Error convirtiendo blob a buffer:', convertError);
-                   // Fallback al método anterior
-                   const arrayBuffer = await blobInfo.blob.arrayBuffer();
-                   imageBuffer = new Uint8Array(arrayBuffer);
-                 }
-               } else {
-                 // Intentar cargar desde el servidor
-                 try {
-                   const response = await fetch(`${API_BASE_URL}/api/evidencias/${evidencia.id}`, {
-                     method: 'GET',
-                     headers: { 
-                       'Accept': 'image/*',
-                       'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
-                     }
-                   });
-                   
-                   if (response.ok) {
-                     const blob = await response.blob();
-                     try {
-                       imageBuffer = await convertImageToBuffer(blob);
-                     } catch (convertError) {
-                       console.error('Error convirtiendo blob del servidor:', convertError);
-                       // Fallback al método anterior
-                       const arrayBuffer = await blob.arrayBuffer();
-                       imageBuffer = new Uint8Array(arrayBuffer);
-                     }
-                   } else {
-                     throw new Error(`Error HTTP: ${response.status}`);
-                   }
-                 } catch (fetchError) {
-                   console.error('Error cargando imagen desde servidor:', fetchError);
-                   throw fetchError;
-                 }
-               }
-               
-               if (imageBuffer && imageBuffer.length > 0) {
-                 try {
-                   // Agregar imagen al Excel
-                   const imageId = workbook.addImage({
-                     buffer: imageBuffer,
-                     extension: imageExtension,
-                   });
-                   
-                   // Insertar imagen con dimensiones apropiadas
-                   worksheet.addImage(imageId, {
-                     tl: { col: 0, row: currentRow - 1 },
-                     ext: { width: 200, height: 150 }
-                   });
-                   
-                   // Ajustar altura de la fila para la imagen
-                   worksheet.getRow(currentRow).height = 120;
-                   currentRow += 8; // Espacio para la imagen
-                   
-                   console.log(`Imagen ${i + 1} agregada exitosamente al Excel`);
-                 } catch (addImageError) {
-                   console.error('Error agregando imagen al Excel:', addImageError);
-                   worksheet.getCell(`A${currentRow}`).value = `Error al agregar imagen al Excel: ${addImageError.message}`;
-                   worksheet.getCell(`A${currentRow}`).style = { font: { italic: true, color: { argb: 'FFFF0000' } } };
-                   currentRow += 2;
-                 }
-               } else {
-                 worksheet.getCell(`A${currentRow}`).value = 'No se pudo cargar la imagen (buffer vacío)';
-                 worksheet.getCell(`A${currentRow}`).style = { font: { italic: true, color: { argb: 'FFFF0000' } } };
-                 currentRow += 2;
-               }
-             } catch (error) {
-               console.error(`Error procesando imagen ${i + 1}:`, error);
-               worksheet.getCell(`A${currentRow}`).value = `Error al cargar imagen: ${error.message}`;
-               worksheet.getCell(`A${currentRow}`).style = { font: { italic: true, color: { argb: 'FFFF0000' } } };
-               currentRow += 2;
-             }
-          }
+          
         }
       } else {
         worksheet.getCell(`A${currentRow}`).value = 'No hay evidencias adjuntas';
@@ -606,8 +539,8 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         URL.revokeObjectURL(url);
       }, 1000);
       
-      // Mostrar mensaje de éxito
-      alert('Reporte Excel con formato e imágenes generado exitosamente');
+             // Mostrar mensaje de éxito
+       alert('Reporte Excel con formato profesional generado exitosamente. Las imágenes se muestran como información detallada para mayor compatibilidad.');
       
     } catch (error) {
       console.error('Error generando Excel:', error);
@@ -1251,32 +1184,28 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
      });
    };
 
-   // Función para convertir imagen a base64 y luego a buffer para Excel
-   const convertImageToBuffer = async (blob) => {
-     return new Promise((resolve, reject) => {
-       try {
-         const reader = new FileReader();
-         reader.onload = () => {
-           try {
-             // Convertir base64 a Uint8Array
-             const base64 = reader.result.split(',')[1];
-             const binaryString = atob(base64);
-             const bytes = new Uint8Array(binaryString.length);
-             for (let i = 0; i < binaryString.length; i++) {
-               bytes[i] = binaryString.charCodeAt(i);
-             }
-             resolve(bytes);
-           } catch (error) {
-             reject(error);
-           }
-         };
-         reader.onerror = () => reject(new Error('Error leyendo archivo'));
-         reader.readAsDataURL(blob);
-       } catch (error) {
-         reject(error);
-       }
-     });
-   };
+       // Función para convertir imagen a buffer para Excel de forma más simple
+    const convertImageToBuffer = async (blob) => {
+      return new Promise((resolve, reject) => {
+        try {
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              // Convertir directamente a Uint8Array desde ArrayBuffer
+              const arrayBuffer = reader.result;
+              const bytes = new Uint8Array(arrayBuffer);
+              resolve(bytes);
+            } catch (error) {
+              reject(error);
+            }
+          };
+          reader.onerror = () => reject(new Error('Error leyendo archivo'));
+          reader.readAsArrayBuffer(blob);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    };
 
   
 
