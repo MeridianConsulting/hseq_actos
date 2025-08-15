@@ -278,16 +278,117 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         addField('Descripción', report.descripcion_conversacion);
       }
 
-      y += 8;
-      doc.setFont('helvetica', 'bold');
-      writeLine('Evidencias');
-      doc.setFont('helvetica', 'normal');
+             y += 8;
+       doc.setFont('helvetica', 'bold');
+       writeLine('Evidencias');
+       doc.setFont('helvetica', 'normal');
 
-             if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
-         // Listar todas las evidencias
+       if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
+         // Primero listar todas las evidencias
          report.evidencias.forEach((evidencia, index) => {
            writeLine(`Evidencia ${index + 1}: ${evidencia.url_archivo || 'Sin nombre'} (${evidencia.tipo_archivo || 'Tipo desconocido'})`);
          });
+
+         // Luego agregar las imágenes que ya están cargadas
+         const imageEvidencias = report.evidencias.filter((ev) => {
+           const t = (ev.tipo_archivo || '').toLowerCase();
+           const n = (ev.url_archivo || '').toLowerCase();
+           return t.startsWith('image/') || /\\.(jpe?g|png|gif|webp)$/i.test(n);
+         });
+
+         if (imageEvidencias.length > 0) {
+           y += 16;
+           doc.setFont('helvetica', 'bold');
+           writeLine('Imágenes de Evidencias:');
+           doc.setFont('helvetica', 'normal');
+
+                       for (let i = 0; i < imageEvidencias.length; i++) {
+              const evidencia = imageEvidencias[i];
+              try {
+                console.log(`Procesando imagen ${i + 1}: ${evidencia.url_archivo}`);
+                
+                // Usar el blob que ya está cargado en evidenceUrls
+                const blobInfo = evidenceUrls[evidencia.id];
+                if (blobInfo && blobInfo.url) {
+                  console.log(`Usando blob existente para imagen ${i + 1}`);
+                  
+                  // Verificar si hay espacio suficiente en la página
+                  if (y > pageHeight - 200) {
+                    doc.addPage();
+                    y = margin;
+                  }
+                  
+                  // Agregar título de la imagen
+                  writeLine(`Imagen ${i + 1}: ${evidencia.url_archivo || 'Sin nombre'}`);
+                  y += 8;
+                  
+                  // Cargar y agregar la imagen usando el blob existente
+                  const img = new Image();
+                  
+                  await new Promise((resolve, reject) => {
+                    // Configurar timeout para evitar que se quede colgado
+                    const timeout = setTimeout(() => {
+                      console.error(`Timeout cargando imagen ${i + 1}: ${evidencia.url_archivo}`);
+                      writeLine(`Timeout al cargar imagen: ${evidencia.url_archivo}`);
+                      resolve();
+                    }, 10000); // 10 segundos de timeout
+                    
+                    img.onload = () => {
+                      clearTimeout(timeout);
+                      try {
+                        // Calcular dimensiones para que quepa en la página
+                        const maxWidth = pageWidth - margin * 2;
+                        const maxHeight = 300;
+                        
+                        let imgWidth = img.width;
+                        let imgHeight = img.height;
+                        
+                        // Escalar proporcionalmente
+                        if (imgWidth > maxWidth) {
+                          const ratio = maxWidth / imgWidth;
+                          imgWidth = maxWidth;
+                          imgHeight = imgHeight * ratio;
+                        }
+                        
+                        if (imgHeight > maxHeight) {
+                          const ratio = maxHeight / imgHeight;
+                          imgHeight = maxHeight;
+                          imgWidth = imgWidth * ratio;
+                        }
+                        
+                        // Agregar la imagen al PDF
+                        doc.addImage(img, 'JPEG', margin, y, imgWidth, imgHeight);
+                        y += imgHeight + 16;
+                        
+                        console.log(`Imagen ${i + 1} agregada al PDF exitosamente`);
+                        resolve();
+                      } catch (imgError) {
+                        console.error(`Error agregando imagen ${i + 1}:`, imgError);
+                        writeLine(`Error al procesar imagen: ${evidencia.url_archivo}`);
+                        resolve(); // Continuar con la siguiente imagen
+                      }
+                    };
+                    
+                    img.onerror = () => {
+                      clearTimeout(timeout);
+                      console.error(`Error cargando imagen ${i + 1}: ${evidencia.url_archivo}`);
+                      writeLine(`Error al cargar imagen: ${evidencia.url_archivo}`);
+                      resolve(); // Continuar con la siguiente imagen
+                    };
+                    
+                    img.src = blobInfo.url;
+                  });
+                } else {
+                  console.log(`No hay blob disponible para imagen ${i + 1}, intentando cargar desde URL`);
+                  writeLine(`Imagen ${i + 1}: ${evidencia.url_archivo || 'Sin nombre'} (no disponible)`);
+                }
+                
+              } catch (imageError) {
+                console.error(`Error procesando imagen ${i + 1}:`, imageError);
+                writeLine(`Error al procesar imagen: ${evidencia.url_archivo}`);
+              }
+            }
+         }
        } else {
          writeLine('No hay evidencias adjuntas');
        }
