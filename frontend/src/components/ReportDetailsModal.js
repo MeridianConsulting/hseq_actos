@@ -9,6 +9,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [evidenceUrls, setEvidenceUrls] = useState({}); // { [id]: { url, contentType } }
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   const loadReportDetails = async () => {
     setIsLoading(true);
@@ -41,21 +42,38 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
 
   // Cargar blobs de evidencias y crear URLs temporales con autorización
   const prefetchEvidenceBlobs = async (evidencias) => {
+    if (!Array.isArray(evidencias) || evidencias.length === 0) {
+      console.log('No hay evidencias para precargar');
+      return;
+    }
+
+    console.log(`Precargando ${evidencias.length} evidencias...`);
+    
     const entries = await Promise.all(
       evidencias.map(async (ev) => {
         try {
+          console.log(`Precargando evidencia ${ev.id}: ${ev.url_archivo}`);
           const { blob, contentType } = await evidenceService.getEvidenceBlob(ev.id);
           const previewable = (contentType || '').startsWith('image/') || (contentType || '').startsWith('video/') || contentType === 'application/pdf';
-          if (!previewable) return null;
+          if (!previewable) {
+            console.log(`Evidencia ${ev.id} no es previewable (${contentType})`);
+            return null;
+          }
           const objectUrl = URL.createObjectURL(blob);
-          return [ev.id, { url: objectUrl, contentType }];
-        } catch (_) {
+          console.log(`Evidencia ${ev.id} precargada exitosamente`);
+          return [ev.id, { url: objectUrl, contentType, blob }];
+        } catch (error) {
+          console.error(`Error precargando evidencia ${ev.id}:`, error);
           return null;
         }
       })
     );
+    
     const mapped = {};
     entries.forEach((pair) => { if (pair) mapped[pair[0]] = pair[1]; });
+    
+    console.log(`Evidencias precargadas exitosamente: ${Object.keys(mapped).length}/${evidencias.length}`);
+    console.log('Detalles de evidencias precargadas:', mapped);
     setEvidenceUrls((prev) => ({ ...prev, ...mapped }));
   };
 
@@ -147,6 +165,48 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     }
   };
 
+  // Función para verificar si una imagen está disponible
+  const isImageAvailable = async (imageUrl) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const timeout = setTimeout(() => {
+        resolve(false);
+      }, 3000);
+      
+      img.onload = () => {
+        clearTimeout(timeout);
+        resolve(true);
+      };
+      
+      img.onerror = () => {
+        clearTimeout(timeout);
+        resolve(false);
+      };
+      
+      img.src = imageUrl;
+    });
+  };
+
+  // Función para verificar si un blob está disponible y válido
+  const isBlobValid = (blobInfo) => {
+    if (!blobInfo || !blobInfo.url || !blobInfo.blob) {
+      return false;
+    }
+    
+    // Verificar que el blob tenga contenido
+    if (blobInfo.blob.size === 0) {
+      return false;
+    }
+    
+    // Verificar que sea una imagen
+    const contentType = blobInfo.contentType || '';
+    if (!contentType.startsWith('image/')) {
+      return false;
+    }
+    
+    return true;
+  };
+
   const formatFieldValue = (field, value) => {
     if (!value) return 'No especificado';
     
@@ -203,9 +263,19 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   const handleDownloadFullReportPdf = async () => {
     try {
       if (!report) return;
+      
+      setIsDownloadingPdf(true);
       // Señal visual/log para verificar click
       // eslint-disable-next-line no-console
       console.log('Descargando PDF de reporte', report.id);
+      
+      // Precargar evidencias si no están cargadas
+      if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
+        console.log('Precargando evidencias para PDF...');
+        await prefetchEvidenceBlobs(report.evidencias);
+        // Esperar un poco para que los blobs se procesen
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
       
       const doc = new jsPDF({ unit: 'pt', format: 'a4' });
       console.log('Documento PDF creado:', doc);
@@ -307,80 +377,166 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
               try {
                 console.log(`Procesando imagen ${i + 1}: ${evidencia.url_archivo}`);
                 
-                // Usar el blob que ya está cargado en evidenceUrls
-                const blobInfo = evidenceUrls[evidencia.id];
-                if (blobInfo && blobInfo.url) {
-                  console.log(`Usando blob existente para imagen ${i + 1}`);
+                // Verificar si hay espacio suficiente en la página
+                if (y > pageHeight - 200) {
+                  doc.addPage();
+                  y = margin;
+                }
+                
+                // Agregar título de la imagen
+                writeLine(`Imagen ${i + 1}: ${evidencia.url_archivo || 'Sin nombre'}`);
+                y += 8;
+                
+                // Intentar cargar la imagen usando múltiples métodos
+                let imageLoaded = false;
+                
+                                                  // Método 1: Usar el blob existente en evidenceUrls
+                 const blobInfo = evidenceUrls[evidencia.id];
+                 console.log(`Blob info para imagen ${i + 1}:`, blobInfo);
+                 console.log(`¿Es blob válido?`, isBlobValid(blobInfo));
+                 
+                 if (isBlobValid(blobInfo)) {
+                   console.log(`Intentando usar blob directamente con base64 para imagen ${i + 1}`);
+                   
+                                       try {
+                      await new Promise((resolve) => {
+                        const timeout = setTimeout(() => {
+                          console.log(`Timeout procesando blob para imagen ${i + 1}`);
+                          resolve();
+                        }, 8000);
+                        
+                        // Convertir blob a base64 directamente
+                        const reader = new FileReader();
+                                               reader.onload = () => {
+                          try {
+                            const base64 = reader.result.split(',')[1];
+                            console.log(`Base64 generado para imagen ${i + 1}, longitud:`, base64.length);
+                            
+                            // Usar dimensiones fijas para asegurar que la imagen sea visible
+                            const maxWidth = pageWidth - margin * 2;
+                            const maxHeight = 400; // Aumentar altura máxima
+                            
+                            // Dimensiones por defecto más grandes
+                            let imgWidth = 500;
+                            let imgHeight = 400;
+                            
+                            // Escalar proporcionalmente si es necesario
+                            if (imgWidth > maxWidth) {
+                              const ratio = maxWidth / imgWidth;
+                              imgWidth = maxWidth;
+                              imgHeight = imgHeight * ratio;
+                            }
+                            
+                            if (imgHeight > maxHeight) {
+                              const ratio = maxHeight / imgHeight;
+                              imgHeight = maxHeight;
+                              imgWidth = imgWidth * ratio;
+                            }
+                            
+                            console.log(`Dimensiones finales de imagen ${i + 1}:`, { width: imgWidth, height: imgHeight });
+                            
+                            // Agregar la imagen al PDF usando base64
+                            doc.addImage(base64, 'JPEG', margin, y, imgWidth, imgHeight);
+                            y += imgHeight + 16;
+                            
+                            console.log(`Imagen ${i + 1} agregada al PDF exitosamente usando blob directo`);
+                            imageLoaded = true;
+                            clearTimeout(timeout);
+                            resolve();
+                          } catch (base64Error) {
+                            console.error(`Error procesando base64 para imagen ${i + 1}:`, base64Error);
+                            clearTimeout(timeout);
+                            resolve();
+                          }
+                        };
+                       
+                                               reader.onerror = () => {
+                          console.error(`Error leyendo blob para imagen ${i + 1}`);
+                          clearTimeout(timeout);
+                          resolve();
+                        };
+                       
+                       reader.readAsDataURL(blobInfo.blob);
+                     });
+                   } catch (blobError) {
+                     console.error(`Error procesando blob para imagen ${i + 1}:`, blobError);
+                   }
+                 }
+                
+                
+                 
+                 // Método 2: Si el blob falló, intentar cargar desde el servidor
+                 console.log(`¿Intentar método 2? imageLoaded=${imageLoaded}`);
+                 if (!imageLoaded) {
+                   console.log(`Intentando cargar imagen ${i + 1} directamente desde servidor`);
                   
-                  // Verificar si hay espacio suficiente en la página
-                  if (y > pageHeight - 200) {
-                    doc.addPage();
-                    y = margin;
-                  }
-                  
-                  // Agregar título de la imagen
-                  writeLine(`Imagen ${i + 1}: ${evidencia.url_archivo || 'Sin nombre'}`);
-                  y += 8;
-                  
-                  // Cargar y agregar la imagen usando el blob existente
-                  const img = new Image();
-                  
-                  await new Promise((resolve, reject) => {
-                    // Configurar timeout para evitar que se quede colgado
-                    const timeout = setTimeout(() => {
-                      console.error(`Timeout cargando imagen ${i + 1}: ${evidencia.url_archivo}`);
-                      writeLine(`Timeout al cargar imagen: ${evidencia.url_archivo}`);
-                      resolve();
-                    }, 10000); // 10 segundos de timeout
-                    
-                    img.onload = () => {
-                      clearTimeout(timeout);
-                      try {
-                        // Calcular dimensiones para que quepa en la página
-                        const maxWidth = pageWidth - margin * 2;
-                        const maxHeight = 300;
-                        
-                        let imgWidth = img.width;
-                        let imgHeight = img.height;
-                        
-                        // Escalar proporcionalmente
-                        if (imgWidth > maxWidth) {
-                          const ratio = maxWidth / imgWidth;
-                          imgWidth = maxWidth;
-                          imgHeight = imgHeight * ratio;
-                        }
-                        
-                        if (imgHeight > maxHeight) {
-                          const ratio = maxHeight / imgHeight;
-                          imgHeight = maxHeight;
-                          imgWidth = imgWidth * ratio;
-                        }
-                        
-                        // Agregar la imagen al PDF
-                        doc.addImage(img, 'JPEG', margin, y, imgWidth, imgHeight);
-                        y += imgHeight + 16;
-                        
-                        console.log(`Imagen ${i + 1} agregada al PDF exitosamente`);
+                  try {
+                    await new Promise((resolve) => {
+                      const img = new Image();
+                      const timeout = setTimeout(() => {
+                        console.log(`Timeout cargando imagen ${i + 1} desde servidor`);
+                        writeLine(`No se pudo cargar imagen: ${evidencia.url_archivo}`);
                         resolve();
-                      } catch (imgError) {
-                        console.error(`Error agregando imagen ${i + 1}:`, imgError);
-                        writeLine(`Error al procesar imagen: ${evidencia.url_archivo}`);
-                        resolve(); // Continuar con la siguiente imagen
-                      }
-                    };
-                    
-                    img.onerror = () => {
-                      clearTimeout(timeout);
-                      console.error(`Error cargando imagen ${i + 1}: ${evidencia.url_archivo}`);
-                      writeLine(`Error al cargar imagen: ${evidencia.url_archivo}`);
-                      resolve(); // Continuar con la siguiente imagen
-                    };
-                    
-                    img.src = blobInfo.url;
-                  });
-                } else {
-                  console.log(`No hay blob disponible para imagen ${i + 1}, intentando cargar desde URL`);
-                  writeLine(`Imagen ${i + 1}: ${evidencia.url_archivo || 'Sin nombre'} (no disponible)`);
+                      }, 10000);
+                      
+                      img.onload = () => {
+                        clearTimeout(timeout);
+                        try {
+                          // Calcular dimensiones para que quepa en la página
+                          const maxWidth = pageWidth - margin * 2;
+                          const maxHeight = 300;
+                          
+                          let imgWidth = img.width;
+                          let imgHeight = img.height;
+                          
+                          // Escalar proporcionalmente
+                          if (imgWidth > maxWidth) {
+                            const ratio = maxWidth / imgWidth;
+                            imgWidth = maxWidth;
+                            imgHeight = imgHeight * ratio;
+                          }
+                          
+                          if (imgHeight > maxHeight) {
+                            const ratio = maxHeight / imgHeight;
+                            imgHeight = maxHeight;
+                            imgWidth = imgWidth * ratio;
+                          }
+                          
+                          // Agregar la imagen al PDF
+                          doc.addImage(img, 'JPEG', margin, y, imgWidth, imgHeight);
+                          y += imgHeight + 16;
+                          
+                          console.log(`Imagen ${i + 1} agregada al PDF exitosamente desde servidor`);
+                          imageLoaded = true;
+                          resolve();
+                        } catch (imgError) {
+                          console.error(`Error agregando imagen ${i + 1} desde servidor:`, imgError);
+                          writeLine(`Error al procesar imagen: ${evidencia.url_archivo}`);
+                          resolve();
+                        }
+                      };
+                      
+                                             img.onerror = (error) => {
+                         clearTimeout(timeout);
+                         console.error(`Error cargando imagen ${i + 1} desde servidor: ${evidencia.url_archivo}`, error);
+                         writeLine(`No se pudo cargar imagen: ${evidencia.url_archivo} (Error de red)`);
+                         resolve();
+                       };
+                      
+                                             // Usar el endpoint autenticado en lugar de la URL directa para evitar CORS
+                       const token = localStorage.getItem('token');
+                       const imageUrl = `${API_BASE_URL}/api/evidencias/${evidencia.id}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+                       img.src = imageUrl;
+                    });
+                  } catch (serverError) {
+                    console.error(`Error procesando imagen ${i + 1} desde servidor:`, serverError);
+                    writeLine(`Error al cargar imagen: ${evidencia.url_archivo}`);
+                  }
+                }
+                
+                // Si ningún método funcionó, agregar mensaje de error
+                if (!imageLoaded) {
+                  writeLine(`No se pudo cargar la imagen: ${evidencia.url_archivo}`);
                 }
                 
               } catch (imageError) {
@@ -405,6 +561,8 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
          console.log('Intentando descarga directa...');
          doc.save(fileName);
          console.log('PDF descargado exitosamente usando método directo');
+         // Mostrar mensaje de éxito al usuario
+         alert('PDF generado y descargado exitosamente');
          return;
        } catch (directError) {
          console.log('Método directo falló, intentando blob...', directError);
@@ -451,6 +609,9 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
          }, 1000);
          
          console.log('PDF descargado exitosamente usando blob');
+         // Mostrar mensaje de éxito al usuario
+         alert('PDF generado y descargado exitosamente');
+         return;
        } catch (blobError) {
          console.error('Error en descarga con blob:', blobError);
          
@@ -474,6 +635,10 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     } catch (e) {
       console.error('Error general en descarga de PDF:', e);
       alert('No se pudo descargar el PDF del reporte: ' + e.message);
+    } finally {
+      // Limpiar cualquier recurso temporal
+      console.log('Finalizando proceso de descarga de PDF');
+      setIsDownloadingPdf(false);
     }
   };
 
@@ -800,10 +965,30 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                   <div className="flex items-center space-x-2">
                     <button type="button"
                       onClick={handleDownloadFullReportPdf}
-                      className="text-white bg-emerald-700 hover:bg-emerald-600 px-3 py-2 rounded text-sm transition-colors"
+                      disabled={isDownloadingPdf}
+                      className={`text-white px-3 py-2 rounded text-sm transition-colors flex items-center space-x-2 ${
+                        isDownloadingPdf 
+                          ? 'bg-gray-600 cursor-not-allowed' 
+                          : 'bg-emerald-700 hover:bg-emerald-600'
+                      }`}
                       id={`btn-download-report-${report?.id ?? ''}`}
                     >
-                      Descargar Reporte (PDF)
+                      {isDownloadingPdf ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Generando PDF...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                          Descargar Reporte (PDF)
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
