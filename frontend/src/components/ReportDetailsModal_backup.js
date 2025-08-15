@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReportService from '../services/reportService';
 import { evidenceService, API_BASE_URL } from '../services/api';
 import { jsPDF } from 'jspdf';
-import * as XLSX from 'xlsx';
+
 
 
 const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
@@ -11,7 +11,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   const [error, setError] = useState(null);
   const [evidenceUrls, setEvidenceUrls] = useState({}); // { [id]: { url, contentType } }
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
-  const [isDownloadingExcel, setIsDownloadingExcel] = useState(false);
 
   const loadReportDetails = async () => {
     setIsLoading(true);
@@ -262,361 +261,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   };
 
   
-  const handleDownloadExcel = async () => {
-    try {
-      if (!report) return;
-      
-      setIsDownloadingExcel(true);
-      
-      // Importar ExcelJS dinámicamente
-      const ExcelJSModule = await import('exceljs');
-      const ExcelJS = ExcelJSModule.default || ExcelJSModule;
-      
-      // Crear un nuevo libro de trabajo
-      const workbook = new ExcelJS.Workbook();
-      
-      // Crear la hoja de trabajo
-      const worksheet = workbook.addWorksheet('Reporte Detallado');
-      
-      // Configurar estilos
-      const titleStyle = {
-        font: { bold: true, size: 16, color: { argb: 'FF2E5BBA' } },
-        alignment: { horizontal: 'center' }
-      };
-      
-      const headerStyle = {
-        font: { bold: true, size: 12, color: { argb: 'FF2E5BBA' } },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F3FF' } },
-        border: {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' }
-        }
-      };
-      
-      const cellStyle = {
-        border: {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' }
-        }
-      };
-      
-      // Título principal
-      worksheet.mergeCells('A1:D1');
-      const titleCell = worksheet.getCell('A1');
-      titleCell.value = 'REPORTE HSEQ DETALLADO';
-      titleCell.style = titleStyle;
-      
-      // Información General
-      worksheet.mergeCells('A3:D3');
-      const infoHeader = worksheet.getCell('A3');
-      infoHeader.value = 'INFORMACIÓN GENERAL';
-      infoHeader.style = headerStyle;
-      
-      // Datos generales
-      const generalData = [
-        ['ID del Reporte', report.id || ''],
-        ['Tipo de Reporte', getEventTypeLabel(report.tipo_reporte) || ''],
-        ['Estado', getStatusLabel(report.estado) || ''],
-        ['Usuario', report.nombre_usuario || ''],
-        ['Fecha del Evento', formatFieldValue('fecha_evento', report.fecha_evento) || ''],
-        ['Hora del Evento', report.hora_evento || ''],
-        ['Fecha de Creación', formatFieldValue('creado_en', report.creado_en) || ''],
-        ['Asunto', report.asunto || report.asunto_conversacion || '']
-      ];
-      
-      let currentRow = 4;
-      generalData.forEach(([label, value]) => {
-        worksheet.getCell(`A${currentRow}`).value = label;
-        worksheet.getCell(`A${currentRow}`).style = headerStyle;
-        worksheet.getCell(`B${currentRow}`).value = value;
-        worksheet.getCell(`B${currentRow}`).style = cellStyle;
-        worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
-        currentRow++;
-      });
-      
-      currentRow += 2;
-      
-      // Información específica según tipo
-      let specificData = [];
-      if (report.tipo_reporte === 'hallazgos') {
-        specificData = [
-          ['Lugar del Hallazgo', report.lugar_hallazgo || report.lugar_hallazgo_otro || ''],
-          ['Tipo de Hallazgo', report.tipo_hallazgo || ''],
-          ['Estado de la Condición', report.estado_condicion || ''],
-          ['Descripción', report.descripcion_hallazgo || ''],
-          ['Recomendaciones', report.recomendaciones || '']
-        ];
-      } else if (report.tipo_reporte === 'incidentes') {
-        specificData = [
-          ['Ubicación', report.ubicacion_incidente || ''],
-          ['Grado de Criticidad', report.grado_criticidad || ''],
-          ['Tipo de Afectación', report.tipo_afectacion || ''],
-          ['Descripción', report.descripcion_incidente || '']
-        ];
-      } else if (report.tipo_reporte === 'conversaciones') {
-        specificData = [
-          ['Tipo de Conversación', report.tipo_conversacion || ''],
-          ['Sitio del Evento', report.sitio_evento_conversacion || ''],
-          ['Lugar del Hallazgo', report.lugar_hallazgo_conversacion || report.lugar_hallazgo_conversacion_otro || ''],
-          ['Descripción', report.descripcion_conversacion || '']
-        ];
-      }
-      
-      if (specificData.length > 0) {
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        const specificHeader = worksheet.getCell(`A${currentRow}`);
-        specificHeader.value = `INFORMACIÓN DEL ${report.tipo_reporte.toUpperCase()}`;
-        specificHeader.style = headerStyle;
-        currentRow++;
-        
-        specificData.forEach(([label, value]) => {
-          worksheet.getCell(`A${currentRow}`).value = label;
-          worksheet.getCell(`A${currentRow}`).style = headerStyle;
-          worksheet.getCell(`B${currentRow}`).value = value;
-          worksheet.getCell(`B${currentRow}`).style = cellStyle;
-          worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
-          currentRow++;
-        });
-      }
-      
-      // Información de revisión
-      if (report.fecha_revision || report.comentarios_revision) {
-        currentRow += 2;
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-        const reviewHeader = worksheet.getCell(`A${currentRow}`);
-        reviewHeader.value = 'INFORMACIÓN DE REVISIÓN';
-        reviewHeader.style = headerStyle;
-        currentRow++;
-        
-        if (report.fecha_revision) {
-          worksheet.getCell(`A${currentRow}`).value = 'Fecha de Revisión';
-          worksheet.getCell(`A${currentRow}`).style = headerStyle;
-          worksheet.getCell(`B${currentRow}`).value = formatFieldValue('fecha_revision', report.fecha_revision);
-          worksheet.getCell(`B${currentRow}`).style = cellStyle;
-          worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
-          currentRow++;
-        }
-        
-        if (report.comentarios_revision) {
-          worksheet.getCell(`A${currentRow}`).value = 'Comentarios de Revisión';
-          worksheet.getCell(`A${currentRow}`).style = headerStyle;
-          worksheet.getCell(`B${currentRow}`).value = report.comentarios_revision;
-          worksheet.getCell(`B${currentRow}`).style = cellStyle;
-          worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
-          currentRow++;
-        }
-      }
-      
-      // Evidencias
-      currentRow += 2;
-      worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-      const evidenceHeader = worksheet.getCell(`A${currentRow}`);
-      evidenceHeader.value = 'EVIDENCIAS ADJUNTAS';
-      evidenceHeader.style = headerStyle;
-      currentRow++;
-      
-      if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
-        // Encabezados de tabla de evidencias
-        const evidenceHeaders = ['Número', 'Nombre del Archivo', 'Tipo de Archivo', 'Fecha de Creación'];
-        evidenceHeaders.forEach((header, index) => {
-          const cell = worksheet.getCell(`${String.fromCharCode(65 + index)}${currentRow}`);
-          cell.value = header;
-          cell.style = headerStyle;
-        });
-        currentRow++;
-        
-        // Datos de evidencias
-        for (let i = 0; i < report.evidencias.length; i++) {
-          const evidencia = report.evidencias[i];
-          worksheet.getCell(`A${currentRow}`).value = i + 1;
-          worksheet.getCell(`A${currentRow}`).style = cellStyle;
-          worksheet.getCell(`B${currentRow}`).value = evidencia.url_archivo || 'Sin nombre';
-          worksheet.getCell(`B${currentRow}`).style = cellStyle;
-          worksheet.getCell(`C${currentRow}`).value = evidencia.tipo_archivo || 'Tipo desconocido';
-          worksheet.getCell(`C${currentRow}`).style = cellStyle;
-          worksheet.getCell(`D${currentRow}`).value = formatFieldValue('creado_en', evidencia.creado_en);
-          worksheet.getCell(`D${currentRow}`).style = cellStyle;
-          currentRow++;
-        }
-        
-        // Agregar imágenes de evidencias
-        const imageEvidencias = report.evidencias.filter((ev) => {
-          const t = (ev.tipo_archivo || '').toLowerCase();
-          const n = (ev.url_archivo || '').toLowerCase();
-          return t.startsWith('image/') || /\.(jpe?g|png|gif|webp)$/i.test(n);
-        });
-        
-        if (imageEvidencias.length > 0) {
-          currentRow += 2;
-          worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-          const imageHeader = worksheet.getCell(`A${currentRow}`);
-          imageHeader.value = 'IMÁGENES DE EVIDENCIAS';
-          imageHeader.style = headerStyle;
-          currentRow++;
-          
-                     // Precargar evidencias si no están cargadas
-           if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
-             console.log('Precargando evidencias para Excel...');
-             await prefetchEvidenceBlobs(report.evidencias);
-             // Esperar un poco más para asegurar que los blobs se procesen completamente
-             await new Promise(resolve => setTimeout(resolve, 2000));
-             console.log('Evidencias precargadas:', Object.keys(evidenceUrls).length);
-           }
-          
-          for (let i = 0; i < imageEvidencias.length; i++) {
-            const evidencia = imageEvidencias[i];
-            
-            // Agregar título de la imagen
-            worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-            const imageTitle = worksheet.getCell(`A${currentRow}`);
-            imageTitle.value = `Imagen ${i + 1}: ${evidencia.url_archivo || 'Sin nombre'}`;
-            imageTitle.style = { font: { bold: true, size: 11 } };
-            currentRow++;
-            
-                                      try {
-               // Intentar obtener la imagen
-               const blobInfo = evidenceUrls[evidencia.id];
-               let imageBuffer = null;
-               let imageExtension = 'jpeg';
-               
-               // Determinar la extensión correcta basada en el tipo de archivo
-               const contentType = blobInfo?.contentType || evidencia.tipo_archivo || '';
-               if (contentType.includes('png')) {
-                 imageExtension = 'png';
-               } else if (contentType.includes('gif')) {
-                 imageExtension = 'gif';
-               } else if (contentType.includes('webp')) {
-                 imageExtension = 'webp';
-               } else {
-                 imageExtension = 'jpeg';
-               }
-               
-               if (blobInfo && blobInfo.blob) {
-                 // Usar el método más robusto para convertir blob a buffer
-                 try {
-                   imageBuffer = await convertImageToBuffer(blobInfo.blob);
-                 } catch (convertError) {
-                   console.error('Error convirtiendo blob a buffer:', convertError);
-                   // Fallback al método anterior
-                   const arrayBuffer = await blobInfo.blob.arrayBuffer();
-                   imageBuffer = new Uint8Array(arrayBuffer);
-                 }
-               } else {
-                 // Intentar cargar desde el servidor
-                 try {
-                   const response = await fetch(`${API_BASE_URL}/api/evidencias/${evidencia.id}`, {
-                     method: 'GET',
-                     headers: { 
-                       'Accept': 'image/*',
-                       'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
-                     }
-                   });
-                   
-                   if (response.ok) {
-                     const blob = await response.blob();
-                     try {
-                       imageBuffer = await convertImageToBuffer(blob);
-                     } catch (convertError) {
-                       console.error('Error convirtiendo blob del servidor:', convertError);
-                       // Fallback al método anterior
-                       const arrayBuffer = await blob.arrayBuffer();
-                       imageBuffer = new Uint8Array(arrayBuffer);
-                     }
-                   } else {
-                     throw new Error(`Error HTTP: ${response.status}`);
-                   }
-                 } catch (fetchError) {
-                   console.error('Error cargando imagen desde servidor:', fetchError);
-                   throw fetchError;
-                 }
-               }
-               
-               if (imageBuffer && imageBuffer.length > 0) {
-                 try {
-                   // Agregar imagen al Excel
-                   const imageId = workbook.addImage({
-                     buffer: imageBuffer,
-                     extension: imageExtension,
-                   });
-                   
-                   // Insertar imagen con dimensiones apropiadas
-                   worksheet.addImage(imageId, {
-                     tl: { col: 0, row: currentRow - 1 },
-                     ext: { width: 200, height: 150 }
-                   });
-                   
-                   // Ajustar altura de la fila para la imagen
-                   worksheet.getRow(currentRow).height = 120;
-                   currentRow += 8; // Espacio para la imagen
-                   
-                   console.log(`Imagen ${i + 1} agregada exitosamente al Excel`);
-                 } catch (addImageError) {
-                   console.error('Error agregando imagen al Excel:', addImageError);
-                   worksheet.getCell(`A${currentRow}`).value = `Error al agregar imagen al Excel: ${addImageError.message}`;
-                   worksheet.getCell(`A${currentRow}`).style = { font: { italic: true, color: { argb: 'FFFF0000' } } };
-                   currentRow += 2;
-                 }
-               } else {
-                 worksheet.getCell(`A${currentRow}`).value = 'No se pudo cargar la imagen (buffer vacío)';
-                 worksheet.getCell(`A${currentRow}`).style = { font: { italic: true, color: { argb: 'FFFF0000' } } };
-                 currentRow += 2;
-               }
-             } catch (error) {
-               console.error(`Error procesando imagen ${i + 1}:`, error);
-               worksheet.getCell(`A${currentRow}`).value = `Error al cargar imagen: ${error.message}`;
-               worksheet.getCell(`A${currentRow}`).style = { font: { italic: true, color: { argb: 'FFFF0000' } } };
-               currentRow += 2;
-             }
-          }
-        }
-      } else {
-        worksheet.getCell(`A${currentRow}`).value = 'No hay evidencias adjuntas';
-        worksheet.getCell(`A${currentRow}`).style = { font: { italic: true } };
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-      }
-      
-      // Ajustar ancho de columnas
-      worksheet.getColumn('A').width = 25;
-      worksheet.getColumn('B').width = 40;
-      worksheet.getColumn('C').width = 20;
-      worksheet.getColumn('D').width = 25;
-      
-      // Generar el nombre del archivo
-      const safeName = String(report.asunto || report.asunto_conversacion || 'reporte').replace(/[^a-z0-9_.-]/gi, '_');
-      const fileName = `reporte_${report.id || ''}_${safeName}.xlsx`;
-      
-      // Generar y descargar el archivo
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 1000);
-      
-      // Mostrar mensaje de éxito
-      alert('Reporte Excel con formato e imágenes generado exitosamente');
-      
-    } catch (error) {
-      console.error('Error generando Excel:', error);
-      alert('Error al generar el reporte Excel: ' + error.message);
-    } finally {
-      setIsDownloadingExcel(false);
-    }
-  };
-
   const handleDownloadFullReportPdf = async () => {
     try {
       if (!report) return;
@@ -1173,110 +817,83 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   };
 
   // Función para procesar imagen directamente desde blob sin usar Image element
-     const processImageFromBlob = async (blob) => {
-     return new Promise(async (resolve, reject) => {
-       try {
-         
-         
-         // Crear un canvas
-         const canvas = document.createElement('canvas');
-         canvas.width = 400;
-         canvas.height = 300;
-         
-         const ctx = canvas.getContext('2d');
-         
-         // Fondo blanco
-         ctx.fillStyle = '#FFFFFF';
-         ctx.fillRect(0, 0, 400, 300);
-         
-         // Intentar crear un ImageBitmap directamente desde el blob
-         try {
-           const imageBitmap = await createImageBitmap(blob);
-           
-           
-           // Dibujar el ImageBitmap en el canvas
-           ctx.drawImage(imageBitmap, 0, 0, 400, 300);
-           
-           // Convertir a JPEG
-           const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-           
-           
-           resolve(jpegDataUrl);
-           
-         } catch (bitmapError) {
-           
-           
-           // Método alternativo: crear una imagen representativa con información del archivo
-           const fileSize = blob.size;
-           const colors = [
-             '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-             '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
-           ];
-           
-           // Crear un patrón visual basado en el tamaño del archivo
-           const rectSize = 20;
-           const cols = Math.floor(400 / rectSize);
-           const rows = Math.floor(300 / rectSize);
-           
-           for (let row = 0; row < rows; row++) {
-             for (let col = 0; col < cols; col++) {
-               const index = (row * cols + col) % colors.length;
-               const colorIndex = (index + Math.floor(fileSize / 1000)) % colors.length;
-               
-               ctx.fillStyle = colors[colorIndex];
-               ctx.fillRect(col * rectSize, row * rectSize, rectSize - 1, rectSize - 1);
-             }
-           }
-           
-           // Agregar texto informativo
-           ctx.fillStyle = '#333333';
-           ctx.font = 'bold 16px Arial';
-           ctx.textAlign = 'center';
-           ctx.textBaseline = 'middle';
-           ctx.fillText('Evidencia Original', 200, 120);
-           ctx.fillText(`${Math.round(fileSize / 1024)} KB`, 200, 140);
-           ctx.fillText('PNG disponible', 200, 160);
-           
-           // Convertir a JPEG
-           const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-           
-           
-           resolve(jpegDataUrl);
-         }
-         
-       } catch (error) {
-         
-         reject(error);
-       }
-     });
-   };
-
-   // Función para convertir imagen a base64 y luego a buffer para Excel
-   const convertImageToBuffer = async (blob) => {
-     return new Promise((resolve, reject) => {
-       try {
-         const reader = new FileReader();
-         reader.onload = () => {
-           try {
-             // Convertir base64 a Uint8Array
-             const base64 = reader.result.split(',')[1];
-             const binaryString = atob(base64);
-             const bytes = new Uint8Array(binaryString.length);
-             for (let i = 0; i < binaryString.length; i++) {
-               bytes[i] = binaryString.charCodeAt(i);
-             }
-             resolve(bytes);
-           } catch (error) {
-             reject(error);
-           }
-         };
-         reader.onerror = () => reject(new Error('Error leyendo archivo'));
-         reader.readAsDataURL(blob);
-       } catch (error) {
-         reject(error);
-       }
-     });
-   };
+  const processImageFromBlob = async (blob) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        
+        
+        // Crear un canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = 400;
+        canvas.height = 300;
+        
+        const ctx = canvas.getContext('2d');
+        
+        // Fondo blanco
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, 400, 300);
+        
+        // Intentar crear un ImageBitmap directamente desde el blob
+        try {
+          const imageBitmap = await createImageBitmap(blob);
+          
+          
+          // Dibujar el ImageBitmap en el canvas
+          ctx.drawImage(imageBitmap, 0, 0, 400, 300);
+          
+          // Convertir a JPEG
+          const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          
+          
+          resolve(jpegDataUrl);
+          
+        } catch (bitmapError) {
+          
+          
+          // Método alternativo: crear una imagen representativa con información del archivo
+          const fileSize = blob.size;
+          const colors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+            '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+          ];
+          
+          // Crear un patrón visual basado en el tamaño del archivo
+          const rectSize = 20;
+          const cols = Math.floor(400 / rectSize);
+          const rows = Math.floor(300 / rectSize);
+          
+          for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+              const index = (row * cols + col) % colors.length;
+              const colorIndex = (index + Math.floor(fileSize / 1000)) % colors.length;
+              
+              ctx.fillStyle = colors[colorIndex];
+              ctx.fillRect(col * rectSize, row * rectSize, rectSize - 1, rectSize - 1);
+            }
+          }
+          
+          // Agregar texto informativo
+          ctx.fillStyle = '#333333';
+          ctx.font = 'bold 16px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('Evidencia Original', 200, 120);
+          ctx.fillText(`${Math.round(fileSize / 1024)} KB`, 200, 140);
+          ctx.fillText('PNG disponible', 200, 160);
+          
+          // Convertir a JPEG
+          const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          
+          
+          resolve(jpegDataUrl);
+        }
+        
+      } catch (error) {
+        
+        reject(error);
+      }
+    });
+  };
 
   
 
@@ -1493,32 +1110,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                   </h3>
                   <div className="flex items-center space-x-2">
                     <button type="button"
-                      onClick={handleDownloadExcel}
-                      disabled={isDownloadingExcel}
-                      className={`text-white px-3 py-2 rounded text-sm transition-colors flex items-center space-x-2 ${
-                        isDownloadingExcel 
-                          ? 'bg-gray-600 cursor-not-allowed' 
-                          : 'bg-blue-700 hover:bg-blue-600'
-                      }`}
-                    >
-                      {isDownloadingExcel ? (
-                        <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Generando Excel...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                          </svg>
-                          Descargar Excel
-                        </>
-                      )}
-                    </button>
-                    <button type="button"
                       onClick={handleDownloadFullReportPdf}
                       disabled={isDownloadingPdf}
                       className={`text-white px-3 py-2 rounded text-sm transition-colors flex items-center space-x-2 ${
@@ -1541,7 +1132,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                           </svg>
-                          Descargar PDF
+                          Descargar Reporte (PDF)
                         </>
                       )}
                     </button>
