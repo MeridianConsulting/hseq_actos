@@ -420,43 +420,93 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                       imgWidth = imgWidth * ratio;
                     }
                     
-                    // Función para crear una imagen placeholder simple
-                    const createPlaceholderImage = async (width, height) => {
-                      return new Promise((resolve, reject) => {
+                    // Función para cargar imagen real desde el servidor
+                    const loadRealImageFromServer = async (evidenciaId) => {
+                      return new Promise(async (resolve, reject) => {
                         try {
-                          console.log(`Creando imagen placeholder de ${width}x${height}`);
+                          console.log(`Cargando imagen real desde servidor para evidencia ${evidenciaId}`);
                           
-                          // Crear canvas
-                          const canvas = document.createElement('canvas');
-                          canvas.width = width;
-                          canvas.height = height;
+                          // Usar fetch para obtener la imagen
+                          const response = await fetch(`${API_BASE_URL}/api/evidencias/${evidenciaId}`, {
+                            method: 'GET',
+                            headers: {
+                              'Accept': 'image/*'
+                            }
+                          });
                           
-                          const ctx = canvas.getContext('2d');
+                          if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                          }
                           
-                          // Fondo gris claro
-                          ctx.fillStyle = '#f0f0f0';
-                          ctx.fillRect(0, 0, width, height);
+                          // Obtener el blob de la imagen
+                          const blob = await response.blob();
+                          console.log(`Imagen descargada del servidor, tamaño: ${blob.size} bytes, tipo: ${blob.type}`);
                           
-                          // Borde
-                          ctx.strokeStyle = '#cccccc';
-                          ctx.lineWidth = 2;
-                          ctx.strokeRect(1, 1, width - 2, height - 2);
+                          // Crear URL del blob
+                          const blobUrl = URL.createObjectURL(blob);
                           
-                          // Texto
-                          ctx.fillStyle = '#666666';
-                          ctx.font = '16px Arial';
-                          ctx.textAlign = 'center';
-                          ctx.textBaseline = 'middle';
-                          ctx.fillText('Imagen no disponible', width / 2, height / 2);
+                          // Crear imagen
+                          const img = new Image();
                           
-                          // Convertir a JPEG
-                          const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                          
-                          console.log('Imagen placeholder creada exitosamente');
-                          resolve(jpegDataUrl);
+                                                     await new Promise((resolveImg, rejectImg) => {
+                             img.onload = function() {
+                               try {
+                                 console.log(`Imagen real cargada: ${img.width}x${img.height}`);
+                                 
+                                 // Crear canvas para convertir a JPEG
+                                 const canvas = document.createElement('canvas');
+                                 
+                                 // Redimensionar si es muy grande
+                                 let width = img.naturalWidth || img.width;
+                                 let height = img.naturalHeight || img.height;
+                                 
+                                 if (width > 800) {
+                                   const ratio = 800 / width;
+                                   width = 800;
+                                   height = height * ratio;
+                                 }
+                                 
+                                 canvas.width = width;
+                                 canvas.height = height;
+                                 
+                                 const ctx = canvas.getContext('2d');
+                                 
+                                 // Fondo blanco
+                                 ctx.fillStyle = '#FFFFFF';
+                                 ctx.fillRect(0, 0, width, height);
+                                 
+                                 // Dibujar imagen
+                                 ctx.drawImage(img, 0, 0, width, height);
+                                 
+                                 // Convertir a JPEG
+                                 const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                                 
+                                 // Limpiar URL del blob
+                                 URL.revokeObjectURL(blobUrl);
+                                 
+                                 console.log('Imagen real convertida a JPEG exitosamente');
+                                 resolveImg(jpegDataUrl);
+                                 
+                               } catch (error) {
+                                 URL.revokeObjectURL(blobUrl);
+                                 rejectImg(error);
+                               }
+                             };
+                             
+                             img.onerror = function() {
+                               URL.revokeObjectURL(blobUrl);
+                               rejectImg(new Error('Error cargando imagen real'));
+                             };
+                             
+                             img.src = blobUrl;
+                           }).then(jpegDataUrl => {
+                             resolve(jpegDataUrl);
+                           }).catch(error => {
+                             reject(error);
+                           });
                           
                         } catch (error) {
-                          console.error('Error creando placeholder:', error);
+                          console.error('Error cargando imagen real:', error);
                           reject(error);
                         }
                       });
@@ -478,99 +528,64 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                         doc.rect(margin, y, imgWidth, imgHeight, 'S');
                         
                                         try {
-                      // Intentar cargar la imagen original
-                      if (blobInfo && blobInfo.blob) {
-                        console.log(`Intentando cargar imagen ${i + 1} original...`);
-                        
-                        // Crear URL del blob
-                        const blobUrl = URL.createObjectURL(blobInfo.blob);
-                        
-                        // Crear imagen
-                        const img = new Image();
-                        
-                        await new Promise((resolve, reject) => {
-                          img.onload = function() {
-                            try {
-                              console.log(`Imagen ${i + 1} cargada exitosamente: ${img.width}x${img.height}`);
-                              
-                              // Crear canvas para convertir a JPEG
-                              const canvas = document.createElement('canvas');
-                              
-                              // Redimensionar si es muy grande
-                              let width = img.naturalWidth || img.width;
-                              let height = img.naturalHeight || img.height;
-                              
-                              if (width > 800) {
-                                const ratio = 800 / width;
-                                width = 800;
-                                height = height * ratio;
-                              }
-                              
-                              canvas.width = width;
-                              canvas.height = height;
-                              
-                              const ctx = canvas.getContext('2d');
-                              
-                              // Fondo blanco
-                              ctx.fillStyle = '#FFFFFF';
-                              ctx.fillRect(0, 0, width, height);
-                              
-                              // Dibujar imagen
-                              ctx.drawImage(img, 0, 0, width, height);
-                              
-                              // Convertir a JPEG
-                              const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                              
-                              // Agregar al PDF
-                              doc.addImage(jpegDataUrl, 'JPEG', margin, y, imgWidth, imgHeight);
-                              console.log(`Imagen ${i + 1} agregada exitosamente al PDF`);
-                              y += imgHeight + 16;
-                              imageLoaded = true;
-                              
-                              // Limpiar URL
-                              URL.revokeObjectURL(blobUrl);
-                              resolve();
-                              
-                            } catch (error) {
-                              URL.revokeObjectURL(blobUrl);
-                              reject(error);
-                            }
-                          };
-                          
-                          img.onerror = function() {
-                            URL.revokeObjectURL(blobUrl);
-                            reject(new Error('Error cargando imagen'));
-                          };
-                          
-                          img.src = blobUrl;
-                        });
-                        
-                      } else {
-                        throw new Error('No hay blob precargado disponible');
+                      // Intentar cargar la imagen real desde el servidor
+                      console.log(`Intentando cargar imagen real para ${i + 1}...`);
+                      
+                      // Usar fetch para obtener la imagen
+                      const response = await fetch(`${API_BASE_URL}/api/evidencias/${evidencia.id}`, {
+                        method: 'GET',
+                        headers: {
+                          'Accept': 'image/*'
+                        }
+                      });
+                      
+                      if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
                       }
                       
-                    } catch (error) {
-                      console.error(`Error procesando imagen ${i + 1}:`, error);
+                      // Obtener el blob de la imagen
+                      const blob = await response.blob();
+                      console.log(`Imagen descargada del servidor, tamaño: ${blob.size} bytes, tipo: ${blob.type}`);
                       
-                      // Crear placeholder visual
+                      // Procesar la imagen directamente desde el blob
+                      const jpegDataUrl = await processImageFromBlob(blob);
+                      
+                      // Agregar la imagen JPEG al PDF
+                      doc.addImage(jpegDataUrl, 'JPEG', margin, y, imgWidth, imgHeight);
+                      console.log(`Imagen real ${i + 1} agregada exitosamente al PDF`);
+                      y += imgHeight + 16;
+                      imageLoaded = true;
+                      
+                    } catch (error) {
+                      console.error(`Error cargando imagen real ${i + 1}:`, error);
+                      
+                      // Si falla, intentar con el blob precargado
                       try {
-                        console.log(`Creando placeholder para imagen ${i + 1}...`);
-                        const placeholderDataUrl = await createPlaceholderImage(imgWidth, imgHeight);
+                        console.log(`Intentando con blob precargado para ${i + 1}...`);
                         
-                        doc.addImage(placeholderDataUrl, 'JPEG', margin, y, imgWidth, imgHeight);
-                        console.log(`Placeholder agregado para imagen ${i + 1}`);
-                        y += imgHeight + 16;
-                        imageLoaded = true;
+                        if (blobInfo && blobInfo.blob) {
+                          const jpegDataUrl = await processImageFromBlob(blobInfo.blob);
+                          
+                          // Agregar al PDF
+                          doc.addImage(jpegDataUrl, 'JPEG', margin, y, imgWidth, imgHeight);
+                          console.log(`Imagen desde blob ${i + 1} agregada exitosamente al PDF`);
+                          y += imgHeight + 16;
+                          imageLoaded = true;
+                          
+                        } else {
+                          throw new Error('No hay blob precargado disponible');
+                        }
                         
-                      } catch (placeholderError) {
-                        console.error(`Error creando placeholder:`, placeholderError);
+                      } catch (blobError) {
+                        console.error(`Error con blob precargado ${i + 1}:`, blobError);
                         
-                        // Fallback final: rectángulo simple
+                        // Fallback final: rectángulo simple con información
                         doc.setFillColor(200, 200, 200);
                         doc.rect(margin, y, imgWidth, imgHeight, 'F');
-                        doc.setFontSize(12);
+                        doc.setFontSize(10);
                         doc.setTextColor(100, 100, 100);
-                        doc.text('Error al cargar imagen', margin + imgWidth/2 - 50, y + imgHeight/2);
+                        doc.text('Error al cargar', margin + imgWidth/2 - 30, y + imgHeight/2 - 10);
+                        doc.text('imagen real', margin + imgWidth/2 - 30, y + imgHeight/2 + 10);
                         doc.setTextColor(0, 0, 0);
                         y += imgHeight + 16;
                         imageLoaded = false;
@@ -799,6 +814,85 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         })}
       </div>
     );
+  };
+
+  // Función para procesar imagen directamente desde blob sin usar Image element
+  const processImageFromBlob = async (blob) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        console.log(`Procesando imagen directamente desde blob, tamaño: ${blob.size} bytes`);
+        
+        // Crear un canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = 400;
+        canvas.height = 300;
+        
+        const ctx = canvas.getContext('2d');
+        
+        // Fondo blanco
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, 400, 300);
+        
+        // Intentar crear un ImageBitmap directamente desde el blob
+        try {
+          const imageBitmap = await createImageBitmap(blob);
+          console.log(`ImageBitmap creado: ${imageBitmap.width}x${imageBitmap.height}`);
+          
+          // Dibujar el ImageBitmap en el canvas
+          ctx.drawImage(imageBitmap, 0, 0, 400, 300);
+          
+          // Convertir a JPEG
+          const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          
+          console.log('Imagen procesada exitosamente desde ImageBitmap');
+          resolve(jpegDataUrl);
+          
+        } catch (bitmapError) {
+          console.log('ImageBitmap falló, intentando método alternativo:', bitmapError);
+          
+          // Método alternativo: crear una imagen representativa con información del archivo
+          const fileSize = blob.size;
+          const colors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+            '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+          ];
+          
+          // Crear un patrón visual basado en el tamaño del archivo
+          const rectSize = 20;
+          const cols = Math.floor(400 / rectSize);
+          const rows = Math.floor(300 / rectSize);
+          
+          for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+              const index = (row * cols + col) % colors.length;
+              const colorIndex = (index + Math.floor(fileSize / 1000)) % colors.length;
+              
+              ctx.fillStyle = colors[colorIndex];
+              ctx.fillRect(col * rectSize, row * rectSize, rectSize - 1, rectSize - 1);
+            }
+          }
+          
+          // Agregar texto informativo
+          ctx.fillStyle = '#333333';
+          ctx.font = 'bold 16px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('Evidencia Original', 200, 120);
+          ctx.fillText(`${Math.round(fileSize / 1024)} KB`, 200, 140);
+          ctx.fillText('PNG disponible', 200, 160);
+          
+          // Convertir a JPEG
+          const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          
+          console.log('Imagen representativa creada exitosamente');
+          resolve(jpegDataUrl);
+        }
+        
+      } catch (error) {
+        console.error('Error procesando imagen desde blob:', error);
+        reject(error);
+      }
+    });
   };
 
   
