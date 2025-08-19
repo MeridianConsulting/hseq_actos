@@ -236,7 +236,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
            const ct = (contentType || out.type || '').toLowerCase();
            const previewable = ct.startsWith('image/') || ct.startsWith('video/') || ct === 'application/pdf';
           if (!previewable) {
-             console.log(`Evidencia ${ev.id} no es previewable (${ct})`);
             return null;
           }
            const objectUrl = URL.createObjectURL(out);
@@ -251,8 +250,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     
     const mapped = {};
     entries.forEach((pair) => { if (pair) mapped[pair[0]] = pair[1]; });
-    
-    console.log(`Evidencias precargadas exitosamente: ${Object.keys(mapped).length}/${evidencias.length}`);
     
     setEvidenceUrls((prev) => ({ ...prev, ...mapped }));
   };
@@ -581,79 +578,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
           currentRow++;
         }
         
-        // Agregar imágenes de evidencias
-        const imageEvidencias = (report.evidencias || []).filter((ev) => isImageEvidence(ev, evidenceUrls));
-        
-                 if (imageEvidencias.length > 0) {
-           currentRow += 2;
-           worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-           const imageHeader = worksheet.getCell(`A${currentRow}`);
-           imageHeader.value = 'IMÁGENES DE EVIDENCIAS';
-           imageHeader.style = headerStyle;
-           currentRow++;
-           
-           
-           
-           // Ya tienes: imageHeader... currentRow++;
-           // Insertemos imágenes reales aquí:
-           const maxExcelImgW = 800;  // píxeles (~8 cm en Excel)
-           const maxExcelImgH = 450;  // píxeles
 
-           for (let i = 0; i < imageEvidencias.length; i++) {
-             const evidencia = imageEvidencias[i];
-             
-             // 1) Título y metadatos (opcional)
-             worksheet.getCell(`A${currentRow}`).value = `Imagen ${i + 1}:`;
-             worksheet.getCell(`A${currentRow}`).style = { font: { bold: true, size: 11 } };
-             worksheet.getCell(`B${currentRow}`).value = evidencia.url_archivo || 'Sin nombre';
-             worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
-             currentRow++;
-             
-             // 2) Rasterizar a JPEG y añadir al workbook
-             try {
-               const { dataUrl, width, height } = await getImageForExport(
-                 evidencia,
-                 { maxW: maxExcelImgW, maxH: maxExcelImgH },
-                 { evidenceUrls, evidenceService }
-               );
-
-               const base64 = dataUrlToBase64(dataUrl);
-               const imageId = workbook.addImage({ base64, extension: 'jpeg' });
-
-               // 3) Reservar espacio vertical suficiente (aprox: 1 px ≈ 0.75 pt)
-               const rowsNeeded = Math.ceil((height * 0.75) / 18); // 18pt por fila aprox
-               for (let r = 0; r < rowsNeeded; r++) {
-                 worksheet.getRow(currentRow + r).height = 18; // asegura altura consistente
-               }
-
-               // 4) Posicionar imagen: desde columna A (0) y fila actual-1, con tamaño en píxeles
-               worksheet.addImage(imageId, {
-                 tl: { col: 0, row: currentRow - 1 },
-                 ext: { width, height },
-                 editAs: 'oneCell',
-               });
-
-               // Dejar espacio tras la imagen
-               currentRow += rowsNeeded + 1;
-
-               // 5) (Opcional) Tipo/Fecha debajo
-             worksheet.getCell(`A${currentRow}`).value = 'Tipo:';
-             worksheet.getCell(`B${currentRow}`).value = evidencia.tipo_archivo || 'Desconocido';
-             worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
-             currentRow++;
-             
-             worksheet.getCell(`A${currentRow}`).value = 'Fecha:';
-             worksheet.getCell(`B${currentRow}`).value = formatFieldValue('creado_en', evidencia.creado_en);
-             worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
-               currentRow += 2;
-             } catch (err) {
-               // Fallback: si algo falla, dejamos nota
-               worksheet.getCell(`A${currentRow}`).value = 'No se pudo insertar la imagen (se mantiene como información).';
-               worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-               currentRow += 2;
-             }
-           }
-        }
       } else {
         worksheet.getCell(`A${currentRow}`).value = 'No hay evidencias adjuntas';
         worksheet.getCell(`A${currentRow}`).style = { font: { italic: true } };
@@ -786,56 +711,10 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
        doc.setFont('helvetica', 'normal');
 
        if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
-         // Primero listar todas las evidencias
+         // Listar todas las evidencias
          report.evidencias.forEach((evidencia, index) => {
            writeLine(`Evidencia ${index + 1}: ${evidencia.url_archivo || 'Sin nombre'} (${evidencia.tipo_archivo || 'Tipo desconocido'})`);
          });
-
-         // Luego agregar las imágenes que ya están cargadas
-         const imageEvidencias = (report.evidencias || []).filter((ev) => isImageEvidence(ev, evidenceUrls));
-
-         if (imageEvidencias.length > 0) {
-           y += 16;
-           doc.setFont('helvetica', 'bold');
-           writeLine('Imágenes de Evidencias:');
-           doc.setFont('helvetica', 'normal');
-
-           console.log('Evidencias totales:', report.evidencias?.length || 0);
-           console.log('Imágenes detectadas:', imageEvidencias.length, imageEvidencias.map(e => ({ id: e.id, url: e.url_archivo, tipo: e.tipo_archivo, ctCache: evidenceUrls[e.id]?.contentType })));
-
-           const maxImgW = pageWidth - margin * 2;
-           const maxImgH = 320;
-
-                       for (let i = 0; i < imageEvidencias.length; i++) {
-              const evidencia = imageEvidencias[i];
-
-             // Título
-                writeLine(`Imagen ${i + 1}: ${evidencia.url_archivo || 'Sin nombre'}`);
-                y += 8;
-                
-             try {
-               const { dataUrl, width, height } = await getImageForExport(
-                 evidencia,
-                 { maxW: maxImgW, maxH: maxImgH },
-                 { evidenceUrls, evidenceService }
-               );
-
-               console.log('Insertando en PDF:', evidencia.id, width, height);
-
-               // Salto de página si hace falta
-               if (y + height > pageHeight - margin) {
-                          doc.addPage();
-                 y = margin;
-               }
-
-               doc.addImage(dataUrl, 'JPEG', margin, y, width, height);
-               y += height + 16;
-             } catch (err) {
-               writeLine('No se pudo cargar esta imagen.');
-                  y += 16;
-                }
-            }
-         }
        } else {
          writeLine('No hay evidencias adjuntas');
        }
@@ -940,18 +819,15 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
        return `${API_BASE_URL}/uploads/${encodeURIComponent(s)}`;
      };
 
-       // Función para descargar una imagen individual
+               // Función para descargar una imagen individual
     const handleDownloadImage = async (evidencia) => {
       try {
-        console.log('Iniciando descarga de imagen:', evidencia.id);
-        
-        // Siempre descargar desde el servidor para evitar problemas de blob
-        console.log('Descargando desde servidor...');
-        const response = await fetch(`${API_BASE_URL}/api/evidencias/${evidencia.id}`, {
+        // Usar la misma URL directa que funciona para la visualización
+        const imageUrl = buildPublicImageUrl(evidencia.url_archivo);
+        const response = await fetch(imageUrl, {
           method: 'GET',
           headers: { 
-            'Accept': 'image/*',
-            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+            'Accept': 'image/*'
           }
         });
         
@@ -961,7 +837,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         
         // Obtener el blob con el tipo correcto
         const blob = await response.blob();
-        console.log('Descarga exitosa desde API, tamaño:', blob.size, 'tipo:', blob.type);
         
         // Verificar que el blob tenga contenido
         if (!blob || blob.size === 0) {
@@ -989,8 +864,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
           }
         }
         
-        console.log('Descargando archivo:', fileName, 'con tipo:', contentType);
-        
         // Crear un nuevo blob con el tipo MIME correcto
         const correctBlob = new Blob([blob], { type: contentType });
         
@@ -1011,11 +884,9 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
           } catch (cleanupError) {
-            console.log('Error en limpieza:', cleanupError);
+            // Error en limpieza, ignorar
           }
         }, 2000);
-        
-        console.log('Descarga completada exitosamente');
         
         // Mostrar mensaje de éxito
         alert('Imagen descargada exitosamente: ' + fileName);
@@ -1137,16 +1008,28 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                   </div>
                                      <div className="flex items-center space-x-2">
                                            {isImage && (
-                        <button
-                          onClick={() => window.open(buildPublicImageUrl(evidencia.url_archivo), '_blank')}
-                          className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs flex items-center space-x-1 transition-colors duration-200"
-                          title="Abrir imagen en nueva pestaña"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                          </svg>
-                          <span>Abrir</span>
-                        </button>
+                        <>
+                          <button
+                            onClick={() => window.open(buildPublicImageUrl(evidencia.url_archivo), '_blank')}
+                            className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs flex items-center space-x-1 transition-colors duration-200"
+                            title="Abrir imagen en nueva pestaña"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                            <span>Abrir</span>
+                          </button>
+                          <button
+                            onClick={() => handleDownloadImage(evidencia)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs flex items-center space-x-1 transition-colors duration-200"
+                            title="Descargar imagen"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <span>Descargar</span>
+                          </button>
+                        </>
                       )}
                    </div>
                 </div>

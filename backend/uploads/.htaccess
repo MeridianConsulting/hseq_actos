@@ -1,34 +1,22 @@
-<IfModule mod_authz_core.c>
-	# Permitir acceso directo solo a imágenes comunes
-	<FilesMatch "\.(jpg|jpeg|png|gif|webp)$">
-		Require all granted
-	</FilesMatch>
-	# Denegar acceso directo a otros archivos potencialmente sensibles
-	<FilesMatch "\.(pdf|doc|docx|mp4|webm|ogg)$">
-		Require all denied
-	</FilesMatch>
-</IfModule>
-<IfModule !mod_authz_core.c>
-	# Compatibilidad con Apache 2.2
-	<FilesMatch "\.(jpg|jpeg|png|gif|webp)$">
-		Order allow,deny
-		Allow from all
-	</FilesMatch>
-	<FilesMatch "\.(pdf|doc|docx|mp4|webm|ogg)$">
-		Order allow,deny
-		Deny from all
-	</FilesMatch>
-</IfModule>
+# Habilitar mod_rewrite
+RewriteEngine On
+
+# Permitir acceso directo a archivos PHP para pruebas
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteCond %{REQUEST_URI} \.php$ [NC]
+RewriteRule ^(.*)$ $1 [L]
+
+# Redirigir todas las solicitudes de imágenes a través de index.php para aplicar CORS
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteCond %{REQUEST_URI} \.(jpg|jpeg|png|gif|webp|bmp|svg)$ [NC]
+RewriteRule ^(.*)$ index.php [L,QSA]
+
+# Denegar acceso directo a otros archivos potencialmente sensibles
+<FilesMatch "\.(pdf|doc|docx|mp4|webm|ogg)$">
+	Require all denied
+</FilesMatch>
 
 <IfModule mod_headers.c>
-	Header set X-Content-Type-Options "nosniff"
-	Header set X-Frame-Options "DENY"
-	# Permitir caché razonable en imágenes públicas
-	<FilesMatch "\.(jpg|jpeg|png|gif|webp)$">
-		Header set Cache-Control "public, max-age=604800, immutable"
-		# Evitar bloqueos ORB (Cross-Origin-Resource-Policy) al servir imágenes a React dev server
-		Header set Cross-Origin-Resource-Policy "cross-origin"
-	</FilesMatch>
 	# Evitar cache para tipos denegados (por si algún proxy los entrega)
 	<FilesMatch "\.(pdf|doc|docx|mp4|webm|ogg)$">
 		Header set Cache-Control "no-store"
