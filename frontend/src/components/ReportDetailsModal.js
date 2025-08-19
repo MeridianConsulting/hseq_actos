@@ -1136,7 +1136,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                                            {/* Botón para abrir en nueva pestaña que aparece al hacer hover */}
                       <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-t-xl">
                         <button
-                          onClick={() => window.open(`${API_BASE_URL}/api/evidencias/${evidencia.id}?token=${encodeURIComponent(localStorage.getItem('token') || '')}`, '_blank')}
+                          onClick={() => window.open(buildPublicImageUrl(evidencia.url_archivo), '_blank')}
                           className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200"
                           title="Abrir imagen en nueva pestaña"
                         >
@@ -1199,7 +1199,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                                      <div className="flex items-center space-x-2">
                                            {isImage && (
                         <button
-                          onClick={() => window.open(`${API_BASE_URL}/api/evidencias/${evidencia.id}?token=${encodeURIComponent(localStorage.getItem('token') || '')}`, '_blank')}
+                          onClick={() => window.open(buildPublicImageUrl(evidencia.url_archivo), '_blank')}
                           className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs flex items-center space-x-1 transition-colors duration-200"
                           title="Abrir imagen en nueva pestaña"
                         >
