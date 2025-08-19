@@ -4,6 +4,182 @@ import { evidenceService, API_BASE_URL } from '../services/api';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 
+// Valida si un blob es realmente una imagen (evita HTML/401)
+const isProbablyImageBlob = async (blob) => {
+  try {
+    const buf = await blob.slice(0, 12).arrayBuffer();
+    const b = new Uint8Array(buf);
+    // JPEG
+    if (b[0]===0xFF && b[1]===0xD8 && b[2]===0xFF) return true;
+    // PNG
+    if (b[0]===0x89 && b[1]===0x50 && b[2]===0x4E && b[3]===0x47) return true;
+    // GIF
+    if (b[0]===0x47 && b[1]===0x49 && b[2]===0x46) return true;
+    // WEBP (RIFF....WEBP)
+    if (b[0]===0x52 && b[1]===0x49 && b[2]===0x46 && b[3]===0x46 && b[8]===0x57 && b[9]===0x45 && b[10]===0x42 && b[11]===0x50) return true;
+  } catch {}
+  return false;
+};
+
+// Mapea extensión -> mime de imagen
+const extToMime = (name='') => {
+  const ext = String(name).toLowerCase().split('.').pop();
+  const map = { jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', gif:'image/gif', webp:'image/webp', bmp:'image/bmp' };
+  return map[ext] || '';
+};
+
+// Si el blob no declara image/*, fuerzo el tipo según la extensión del archivo
+const coerceImageBlobType = (blob, evObj) => {
+  const mime = (blob?.type || '').toLowerCase();
+  if (mime.startsWith('image/')) return blob;
+  const forced = extToMime(evObj?.url_archivo || '');
+  return forced ? new Blob([blob], { type: forced }) : blob;
+};
+
+// Endpoint API autenticado (misma app) para esquivar CORS del público
+const fetchApiImageBlob = async (id) => {
+  const token = localStorage.getItem('token') || '';
+
+  // 1) Authorization header
+  let resp = await fetch(`${API_BASE_URL}/api/evidencias/${id}`, {
+    method: 'GET',
+    headers: { 'Accept': 'image/*', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+    credentials: 'include',
+  });
+  if (resp.ok) return await resp.blob();
+
+  // 2) Fallback con ?token=
+  resp = await fetch(`${API_BASE_URL}/api/evidencias/${id}?token=${encodeURIComponent(token)}`, {
+    method: 'GET',
+    headers: { 'Accept': 'image/*' },
+    credentials: 'include',
+  });
+  if (!resp.ok) throw new Error(`API HTTP ${resp.status}`);
+  return await resp.blob();
+};
+
+// Convierte un Blob de imagen (png/jpg/webp/gif, etc.) a JPEG DataURL y devuelve tamaño real reescalado
+const rasterizeBlobToJPEG = async (blob, maxW = 1024, maxH = 768, quality = 0.9) => {
+  // 1) Intentar con ImageBitmap (rápido y sin CORS para blobs propios)
+  const draw = async (source, naturalW, naturalH) => {
+    const ratio = Math.min(maxW / naturalW, maxH / naturalH, 1);
+    const w = Math.max(1, Math.round(naturalW * ratio));
+    const h = Math.max(1, Math.round(naturalH * ratio));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(source, 0, 0, w, h);
+    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+    return { dataUrl, width: w, height: h };
+  };
+
+  try {
+    const bmp = await createImageBitmap(blob);
+    const out = await draw(bmp, bmp.width, bmp.height);
+    bmp.close?.();
+    return out;
+  } catch {
+    // 2) Fallback con <img>
+    const url = URL.createObjectURL(blob);
+    try {
+      const img = await new Promise((res, rej) => {
+        const _img = new Image();
+        _img.onload = () => res(_img);
+        _img.onerror = rej;
+        _img.src = url;
+      });
+      const out = await draw(img, img.naturalWidth || img.width, img.naturalHeight || img.height);
+      URL.revokeObjectURL(url);
+      return out;
+    } catch (e) {
+      URL.revokeObjectURL(url);
+      throw e;
+    }
+  }
+};
+
+// Obtiene blob de evidencia (usa el cache de evidenceUrls si existe)
+const getEvidenceBlob = async (evidenciaId, evidenceUrls, evidenceService, evObj) => {
+  const cached = evidenceUrls?.[evidenciaId];
+  if (cached?.blob) {
+    if (await isProbablyImageBlob(cached.blob)) {
+      return { blob: cached.blob, contentType: cached.contentType || '' };
+    }
+    // blob malo en caché → ignorar y seguir
+  }
+
+  // 1) Intento URL pública (ya sabemos que funciona)
+  try {
+    const url = resolveEvidenceUrl(evObj);
+    const resp = await fetch(url, { method: 'GET', headers: { 'Accept': 'image/*' }, mode: 'cors' });
+    if (resp.ok) {
+      let pubBlob = await resp.blob();
+      pubBlob = coerceImageBlobType(pubBlob, evObj);
+      if (await isProbablyImageBlob(pubBlob)) {
+        return { blob: pubBlob, contentType: pubBlob.type || '' };
+      }
+    }
+  } catch (_) {}
+
+  // 2) Intento service
+  try {
+    const { blob, contentType } = await evidenceService.getEvidenceBlob(evidenciaId);
+    let out = coerceImageBlobType(blob, evObj);
+    if (!(await isProbablyImageBlob(out))) {
+      out = coerceImageBlobType(await fetchApiImageBlob(evidenciaId), evObj);
+    }
+    if (!(await isProbablyImageBlob(out))) throw new Error('not-image');
+    return { blob: out, contentType: out.type || contentType || '' };
+  } catch (e1) {
+    // 3) Intento API directo
+    try {
+      let apiBlob = coerceImageBlobType(await fetchApiImageBlob(evidenciaId), evObj);
+      if (!(await isProbablyImageBlob(apiBlob))) throw new Error('not-image');
+      return { blob: apiBlob, contentType: apiBlob.type || '' };
+    } catch (e2) {
+      // 4) Último recurso: URL público sin validación
+      const url = resolveEvidenceUrl(evObj);
+      const resp = await fetch(url, { method: 'GET', headers: { 'Accept': 'image/*' } });
+      if (!resp.ok) throw new Error(`Public HTTP ${resp.status}`);
+      const pubBlob = coerceImageBlobType(await resp.blob(), evObj);
+      return { blob: pubBlob, contentType: pubBlob.type || '' };
+    }
+  }
+};
+
+// Azúcar: devuelve {dataUrl,width,height} listo para PDF/Excel (fuerza JPEG)
+const getImageForExport = async (evidencia, { maxW = 1100, maxH = 700 } = {}, deps) => {
+  const { evidenceUrls, evidenceService } = deps;
+  const { blob } = await getEvidenceBlob(evidencia.id, evidenceUrls, evidenceService, evidencia);
+  return rasterizeBlobToJPEG(blob, maxW, maxH);
+};
+
+// Utilidad para ExcelJS: extraer la parte base64 de un dataURL
+const dataUrlToBase64 = (dataUrl) => dataUrl.split(',')[1] || '';
+
+// Devuelve URL absoluta válida sin doble-prefijo
+const resolveEvidenceUrl = (ev) => {
+  const raw = String(ev?.url_archivo || '').trim();
+  if (/^https?:\/\//i.test(raw)) return raw;            // ya es absoluta
+  if (raw.startsWith('uploads/')) return `${API_BASE_URL}/${raw}`;
+  return `${API_BASE_URL}/uploads/${encodeURIComponent(raw)}`;
+};
+
+// Detecta si la evidencia es imagen usando (1) cache de blobs, (2) tipo declarado, (3) extensión
+const isImageEvidence = (ev, evidenceUrls) => {
+  const ct = (evidenceUrls?.[ev.id]?.contentType || ev.tipo_archivo || '').toLowerCase();
+  const name = String(ev.url_archivo || '').toLowerCase();
+  return ct.startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp)$/.test(name); // OJO: \. no \\.
+};
+
+// buildPublicImageUrl robusto (respeta absolutas)
+const buildPublicImageUrl = (fileNameOrUrl) => {
+  const s = String(fileNameOrUrl || '').trim();
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith('uploads/')) return `${API_BASE_URL}/${s}`;
+  return `${API_BASE_URL}/uploads/${encodeURIComponent(s)}`;
+};
 
 const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   const [report, setReport] = useState(null);
@@ -56,14 +232,16 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         try {
           
           const { blob, contentType } = await evidenceService.getEvidenceBlob(ev.id);
-          const previewable = (contentType || '').startsWith('image/') || (contentType || '').startsWith('video/') || contentType === 'application/pdf';
+           let out = coerceImageBlobType(blob, ev);
+           const ct = (contentType || out.type || '').toLowerCase();
+           const previewable = ct.startsWith('image/') || ct.startsWith('video/') || ct === 'application/pdf';
           if (!previewable) {
-            console.log(`Evidencia ${ev.id} no es previewable (${contentType})`);
+             console.log(`Evidencia ${ev.id} no es previewable (${ct})`);
             return null;
           }
-          const objectUrl = URL.createObjectURL(blob);
+           const objectUrl = URL.createObjectURL(out);
           
-          return [ev.id, { url: objectUrl, contentType, blob }];
+           return [ev.id, { url: objectUrl, contentType: out.type || contentType, blob: out }];
         } catch (error) {
           
           return null;
@@ -167,47 +345,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     }
   };
 
-  // Función para verificar si una imagen está disponible
-  const isImageAvailable = async (imageUrl) => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      const timeout = setTimeout(() => {
-        resolve(false);
-      }, 3000);
-      
-      img.onload = () => {
-        clearTimeout(timeout);
-        resolve(true);
-      };
-      
-      img.onerror = () => {
-        clearTimeout(timeout);
-        resolve(false);
-      };
-      
-      img.src = imageUrl;
-    });
-  };
 
-  // Función para verificar si un blob está disponible y válido
-  const isBlobValid = (blobInfo) => {
-    if (!blobInfo || !blobInfo.url || !blobInfo.blob) {
-      return false;
-    }
-    
-    // Verificar que el blob tenga contenido
-    if (blobInfo.blob.size === 0) {
-      return false;
-    }
-    
-    // Verificar que sea una imagen
-    const contentType = blobInfo.contentType || '';
-    if (!contentType.startsWith('image/')) {
-      return false;
-    }
-    
-    return true;
-  };
 
   const formatFieldValue = (field, value) => {
     if (!value) return 'No especificado';
@@ -444,11 +582,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         }
         
         // Agregar imágenes de evidencias
-        const imageEvidencias = report.evidencias.filter((ev) => {
-          const t = (ev.tipo_archivo || '').toLowerCase();
-          const n = (ev.url_archivo || '').toLowerCase();
-          return t.startsWith('image/') || /\.(jpe?g|png|gif|webp)$/i.test(n);
-        });
+        const imageEvidencias = (report.evidencias || []).filter((ev) => isImageEvidence(ev, evidenceUrls));
         
                  if (imageEvidencias.length > 0) {
            currentRow += 2;
@@ -458,53 +592,67 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
            imageHeader.style = headerStyle;
            currentRow++;
            
-           // Precargar evidencias si no están cargadas
-           if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
-             console.log('Precargando evidencias para Excel...');
-             await prefetchEvidenceBlobs(report.evidencias);
-             // Esperar un poco más para asegurar que los blobs se procesen completamente
-             await new Promise(resolve => setTimeout(resolve, 2000));
-             console.log('Evidencias precargadas:', Object.keys(evidenceUrls).length);
-           }
            
-           // Agregar información de las imágenes como texto en lugar de imágenes reales
-           // Esto es más confiable y evita problemas de compatibilidad
+           
+           // Ya tienes: imageHeader... currentRow++;
+           // Insertemos imágenes reales aquí:
+           const maxExcelImgW = 800;  // píxeles (~8 cm en Excel)
+           const maxExcelImgH = 450;  // píxeles
+
            for (let i = 0; i < imageEvidencias.length; i++) {
              const evidencia = imageEvidencias[i];
              
-             // Agregar información de la imagen
+             // 1) Título y metadatos (opcional)
              worksheet.getCell(`A${currentRow}`).value = `Imagen ${i + 1}:`;
              worksheet.getCell(`A${currentRow}`).style = { font: { bold: true, size: 11 } };
              worksheet.getCell(`B${currentRow}`).value = evidencia.url_archivo || 'Sin nombre';
-             worksheet.getCell(`B${currentRow}`).style = cellStyle;
              worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
              currentRow++;
              
-             // Agregar información adicional
+             // 2) Rasterizar a JPEG y añadir al workbook
+             try {
+               const { dataUrl, width, height } = await getImageForExport(
+                 evidencia,
+                 { maxW: maxExcelImgW, maxH: maxExcelImgH },
+                 { evidenceUrls, evidenceService }
+               );
+
+               const base64 = dataUrlToBase64(dataUrl);
+               const imageId = workbook.addImage({ base64, extension: 'jpeg' });
+
+               // 3) Reservar espacio vertical suficiente (aprox: 1 px ≈ 0.75 pt)
+               const rowsNeeded = Math.ceil((height * 0.75) / 18); // 18pt por fila aprox
+               for (let r = 0; r < rowsNeeded; r++) {
+                 worksheet.getRow(currentRow + r).height = 18; // asegura altura consistente
+               }
+
+               // 4) Posicionar imagen: desde columna A (0) y fila actual-1, con tamaño en píxeles
+               worksheet.addImage(imageId, {
+                 tl: { col: 0, row: currentRow - 1 },
+                 ext: { width, height },
+                 editAs: 'oneCell',
+               });
+
+               // Dejar espacio tras la imagen
+               currentRow += rowsNeeded + 1;
+
+               // 5) (Opcional) Tipo/Fecha debajo
              worksheet.getCell(`A${currentRow}`).value = 'Tipo:';
-             worksheet.getCell(`A${currentRow}`).style = { font: { italic: true, size: 10 } };
              worksheet.getCell(`B${currentRow}`).value = evidencia.tipo_archivo || 'Desconocido';
-             worksheet.getCell(`B${currentRow}`).style = { ...cellStyle, font: { size: 10 } };
              worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
              currentRow++;
              
              worksheet.getCell(`A${currentRow}`).value = 'Fecha:';
-             worksheet.getCell(`A${currentRow}`).style = { font: { italic: true, size: 10 } };
              worksheet.getCell(`B${currentRow}`).value = formatFieldValue('creado_en', evidencia.creado_en);
-             worksheet.getCell(`B${currentRow}`).style = { ...cellStyle, font: { size: 10 } };
              worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
-             currentRow++;
-             
-             // Agregar nota sobre la imagen
-             worksheet.getCell(`A${currentRow}`).value = 'Nota:';
-             worksheet.getCell(`A${currentRow}`).style = { font: { italic: true, size: 10, color: { argb: 'FF2E5BBA' } } };
-             worksheet.getCell(`B${currentRow}`).value = 'La imagen original está disponible en el sistema HSEQ';
-             worksheet.getCell(`B${currentRow}`).style = { ...cellStyle, font: { size: 10, color: { argb: 'FF2E5BBA' } } };
-             worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
-             currentRow += 2; // Espacio entre imágenes
+               currentRow += 2;
+             } catch (err) {
+               // Fallback: si algo falla, dejamos nota
+               worksheet.getCell(`A${currentRow}`).value = 'No se pudo insertar la imagen (se mantiene como información).';
+               worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
+               currentRow += 2;
+             }
            }
-          
-          
         }
       } else {
         worksheet.getCell(`A${currentRow}`).value = 'No hay evidencias adjuntas';
@@ -540,7 +688,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       }, 1000);
       
              // Mostrar mensaje de éxito
-       alert('Reporte Excel con formato profesional generado exitosamente. Las imágenes se muestran como información detallada para mayor compatibilidad.');
+       alert('Reporte Excel con formato profesional generado exitosamente. Las imágenes están embebidas en el documento.');
       
     } catch (error) {
       console.error('Error generando Excel:', error);
@@ -559,13 +707,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       // eslint-disable-next-line no-console
       
       
-      // Precargar evidencias si no están cargadas
-      if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
-        
-        await prefetchEvidenceBlobs(report.evidencias);
-        // Esperar un poco para que los blobs se procesen
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      
       
       const doc = new jsPDF({ unit: 'pt', format: 'a4' });
       
@@ -650,11 +792,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
          });
 
          // Luego agregar las imágenes que ya están cargadas
-         const imageEvidencias = report.evidencias.filter((ev) => {
-           const t = (ev.tipo_archivo || '').toLowerCase();
-           const n = (ev.url_archivo || '').toLowerCase();
-           return t.startsWith('image/') || /\\.(jpe?g|png|gif|webp)$/i.test(n);
-         });
+         const imageEvidencias = (report.evidencias || []).filter((ev) => isImageEvidence(ev, evidenceUrls));
 
          if (imageEvidencias.length > 0) {
            y += 16;
@@ -662,244 +800,40 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
            writeLine('Imágenes de Evidencias:');
            doc.setFont('helvetica', 'normal');
 
+           console.log('Evidencias totales:', report.evidencias?.length || 0);
+           console.log('Imágenes detectadas:', imageEvidencias.length, imageEvidencias.map(e => ({ id: e.id, url: e.url_archivo, tipo: e.tipo_archivo, ctCache: evidenceUrls[e.id]?.contentType })));
+
+           const maxImgW = pageWidth - margin * 2;
+           const maxImgH = 320;
+
                        for (let i = 0; i < imageEvidencias.length; i++) {
               const evidencia = imageEvidencias[i];
-              try {
-                
-                
-                // Verificar si hay espacio suficiente en la página
-                if (y > pageHeight - 200) {
-                  doc.addPage();
-                  y = margin;
-                }
-                
-                // Agregar título de la imagen
+
+             // Título
                 writeLine(`Imagen ${i + 1}: ${evidencia.url_archivo || 'Sin nombre'}`);
                 y += 8;
                 
-                // Intentar cargar la imagen usando múltiples métodos
-                let imageLoaded = false;
-                
-                try {
-                  // Método 1: Usar el blob existente en evidenceUrls
-                  const blobInfo = evidenceUrls[evidencia.id];
-                  
-                  console.log(`¿Es blob válido?`, isBlobValid(blobInfo));
-                  
-                  // Siempre intentar cargar la imagen, incluso si el blob parece inválido
-                  
-                   
-                                       try {
-                    // Definir dimensiones por defecto
-                        const maxWidth = pageWidth - margin * 2;
-                        const maxHeight = 300;
-                        let imgWidth = 400;
-                        let imgHeight = 300;
-                        
-                        // Escalar proporcionalmente si es necesario
-                        if (imgWidth > maxWidth) {
-                          const ratio = maxWidth / imgWidth;
-                          imgWidth = maxWidth;
-                          imgHeight = imgHeight * ratio;
-                        }
-                        
-                        if (imgHeight > maxHeight) {
-                          const ratio = maxHeight / imgHeight;
-                          imgHeight = maxHeight;
-                          imgWidth = imgWidth * ratio;
-                        }
-                        
-                    // Función para cargar imagen real desde el servidor
-                    const loadRealImageFromServer = async (evidenciaId) => {
-                      return new Promise(async (resolve, reject) => {
-                        try {
-                          
-                          
-                          // Usar fetch para obtener la imagen
-                          const response = await fetch(`${API_BASE_URL}/api/evidencias/${evidenciaId}`, {
-                            method: 'GET',
-                            headers: {
-                              'Accept': 'image/*'
-                            }
-                          });
-                          
-                          if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                          }
-                          
-                          // Obtener el blob de la imagen
-                          const blob = await response.blob();
-                          
-                          
-                          // Crear URL del blob
-                          const blobUrl = URL.createObjectURL(blob);
-                          
-                          // Crear imagen
-                          const img = new Image();
-                          
-                                                     await new Promise((resolveImg, rejectImg) => {
-                             img.onload = function() {
-                               try {
-                                 
-                                 
-                                 // Crear canvas para convertir a JPEG
-                                 const canvas = document.createElement('canvas');
-                                 
-                                 // Redimensionar si es muy grande
-                                 let width = img.naturalWidth || img.width;
-                                 let height = img.naturalHeight || img.height;
-                                 
-                                 if (width > 800) {
-                                   const ratio = 800 / width;
-                                   width = 800;
-                                   height = height * ratio;
-                                 }
-                                 
-                                 canvas.width = width;
-                                 canvas.height = height;
-                                 
-                                 const ctx = canvas.getContext('2d');
-                                 
-                                 // Fondo blanco
-                                 ctx.fillStyle = '#FFFFFF';
-                                 ctx.fillRect(0, 0, width, height);
-                                 
-                                 // Dibujar imagen
-                                 ctx.drawImage(img, 0, 0, width, height);
-                                 
-                                 // Convertir a JPEG
-                                 const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                                 
-                                 // Limpiar URL del blob
-                                 URL.revokeObjectURL(blobUrl);
-                                 
-                                 
-                                 resolveImg(jpegDataUrl);
-                                 
-                               } catch (error) {
-                                 URL.revokeObjectURL(blobUrl);
-                                 rejectImg(error);
-                               }
-                             };
-                             
-                             img.onerror = function() {
-                               URL.revokeObjectURL(blobUrl);
-                               rejectImg(new Error('Error cargando imagen real'));
-                             };
-                             
-                             img.src = blobUrl;
-                           }).then(jpegDataUrl => {
-                             resolve(jpegDataUrl);
-                           }).catch(error => {
-                             reject(error);
-                           });
-                          
-                        } catch (error) {
-                          
-                          reject(error);
-                        }
-                      });
-                    };
-                        
-                        // Verificar si hay espacio suficiente en la página
-                        if (y + imgHeight > pageHeight - margin) {
-                          
+             try {
+               const { dataUrl, width, height } = await getImageForExport(
+                 evidencia,
+                 { maxW: maxImgW, maxH: maxImgH },
+                 { evidenceUrls, evidenceService }
+               );
+
+               console.log('Insertando en PDF:', evidencia.id, width, height);
+
+               // Salto de página si hace falta
+               if (y + height > pageHeight - margin) {
                           doc.addPage();
-                          y = margin + 20;
-                        }
-                        
-                        // Agregar un rectángulo de fondo
-                        doc.setFillColor(250, 250, 250);
-                              doc.rect(margin, y, imgWidth, imgHeight, 'F');
-                        
-                        // Agregar un borde
-                        doc.setDrawColor(200, 200, 200);
-                        doc.rect(margin, y, imgWidth, imgHeight, 'S');
-                        
-                                        try {
-                      // Intentar cargar la imagen real desde el servidor
-                      
-                      
-                      // Usar fetch para obtener la imagen
-                      const response = await fetch(`${API_BASE_URL}/api/evidencias/${evidencia.id}`, {
-                        method: 'GET',
-                        headers: {
-                          'Accept': 'image/*'
-                        }
-                      });
-                      
-                      if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                      }
-                      
-                      // Obtener el blob de la imagen
-                      const blob = await response.blob();
-                      
-                      
-                      // Procesar la imagen directamente desde el blob
-                      const jpegDataUrl = await processImageFromBlob(blob);
-                      
-                      // Agregar la imagen JPEG al PDF
-                      doc.addImage(jpegDataUrl, 'JPEG', margin, y, imgWidth, imgHeight);
-                      
-                      y += imgHeight + 16;
-                      imageLoaded = true;
-                      
-                    } catch (error) {
-                      
-                      
-                      // Si falla, intentar con el blob precargado
-                      try {
-                        
-                        
-                        if (blobInfo && blobInfo.blob) {
-                          const jpegDataUrl = await processImageFromBlob(blobInfo.blob);
-                          
-                          // Agregar al PDF
-                          doc.addImage(jpegDataUrl, 'JPEG', margin, y, imgWidth, imgHeight);
-                          
-                          y += imgHeight + 16;
-                          imageLoaded = true;
-                          
-                        } else {
-                          throw new Error('No hay blob precargado disponible');
-                        }
-                        
-                      } catch (blobError) {
-                        
-                        
-                        // Fallback final: rectángulo simple con información
-                        doc.setFillColor(200, 200, 200);
-                        doc.rect(margin, y, imgWidth, imgHeight, 'F');
-                        doc.setFontSize(10);
-                        doc.setTextColor(100, 100, 100);
-                        doc.text('Error al cargar', margin + imgWidth/2 - 30, y + imgHeight/2 - 10);
-                        doc.text('imagen real', margin + imgWidth/2 - 30, y + imgHeight/2 + 10);
-                        doc.setTextColor(0, 0, 0);
-                        y += imgHeight + 16;
-                        imageLoaded = false;
-                      }
-                    }
-                  } catch (generalError) {
-                    
-                  }
-                
-                // Si el blob no es válido o no se pudo procesar, mostrar mensaje
-                if (!imageLoaded) {
-                  
-                  writeLine(`Imagen ${i + 1}: ${evidencia.url_archivo || 'Sin nombre'}`);
-                  writeLine(`No se pudo cargar la imagen`);
+                 y = margin;
+               }
+
+               doc.addImage(dataUrl, 'JPEG', margin, y, width, height);
+               y += height + 16;
+             } catch (err) {
+               writeLine('No se pudo cargar esta imagen.');
                   y += 16;
                 }
-                
-                } catch (blobProcessingError) {
-                  
-                  writeLine(`Error al procesar imagen: ${evidencia.url_archivo}`);
-                }
-              } catch (imageError) {
-                
-                writeLine(`Error al procesar imagen: ${evidencia.url_archivo}`);
-              }
             }
          }
        } else {
@@ -999,7 +933,12 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     }
   };
 
-     const buildPublicImageUrl = (fileName) => `${API_BASE_URL}/uploads/${encodeURIComponent(fileName || '')}`;
+     const buildPublicImageUrl = (fileNameOrUrl) => {
+       const s = String(fileNameOrUrl || '').trim();
+       if (/^https?:\/\//i.test(s)) return s;
+       if (s.startsWith('uploads/')) return `${API_BASE_URL}/${s}`;
+       return `${API_BASE_URL}/uploads/${encodeURIComponent(s)}`;
+     };
 
        // Función para descargar una imagen individual
     const handleDownloadImage = async (evidencia) => {
@@ -1219,107 +1158,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     );
   };
 
-  // Función para procesar imagen directamente desde blob sin usar Image element
-     const processImageFromBlob = async (blob) => {
-     return new Promise(async (resolve, reject) => {
-       try {
-         
-         
-         // Crear un canvas
-         const canvas = document.createElement('canvas');
-         canvas.width = 400;
-         canvas.height = 300;
-         
-         const ctx = canvas.getContext('2d');
-         
-         // Fondo blanco
-         ctx.fillStyle = '#FFFFFF';
-         ctx.fillRect(0, 0, 400, 300);
-         
-         // Intentar crear un ImageBitmap directamente desde el blob
-         try {
-           const imageBitmap = await createImageBitmap(blob);
-           
-           
-           // Dibujar el ImageBitmap en el canvas
-           ctx.drawImage(imageBitmap, 0, 0, 400, 300);
-           
-           // Convertir a JPEG
-           const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-           
-           
-           resolve(jpegDataUrl);
-           
-         } catch (bitmapError) {
-           
-           
-           // Método alternativo: crear una imagen representativa con información del archivo
-           const fileSize = blob.size;
-           const colors = [
-             '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-             '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
-           ];
-           
-           // Crear un patrón visual basado en el tamaño del archivo
-           const rectSize = 20;
-           const cols = Math.floor(400 / rectSize);
-           const rows = Math.floor(300 / rectSize);
-           
-           for (let row = 0; row < rows; row++) {
-             for (let col = 0; col < cols; col++) {
-               const index = (row * cols + col) % colors.length;
-               const colorIndex = (index + Math.floor(fileSize / 1000)) % colors.length;
-               
-               ctx.fillStyle = colors[colorIndex];
-               ctx.fillRect(col * rectSize, row * rectSize, rectSize - 1, rectSize - 1);
-             }
-           }
-           
-           // Agregar texto informativo
-           ctx.fillStyle = '#333333';
-           ctx.font = 'bold 16px Arial';
-           ctx.textAlign = 'center';
-           ctx.textBaseline = 'middle';
-           ctx.fillText('Evidencia Original', 200, 120);
-           ctx.fillText(`${Math.round(fileSize / 1024)} KB`, 200, 140);
-           ctx.fillText('PNG disponible', 200, 160);
-           
-           // Convertir a JPEG
-           const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-           
-           
-           resolve(jpegDataUrl);
-         }
-         
-       } catch (error) {
-         
-         reject(error);
-       }
-     });
-   };
 
-       // Función para convertir imagen a buffer para Excel de forma más simple
-    const convertImageToBuffer = async (blob) => {
-      return new Promise((resolve, reject) => {
-        try {
-          const reader = new FileReader();
-          reader.onload = () => {
-            try {
-              // Convertir directamente a Uint8Array desde ArrayBuffer
-              const arrayBuffer = reader.result;
-              const bytes = new Uint8Array(arrayBuffer);
-              resolve(bytes);
-            } catch (error) {
-              reject(error);
-            }
-          };
-          reader.onerror = () => reject(new Error('Error leyendo archivo'));
-          reader.readAsArrayBuffer(blob);
-        } catch (error) {
-          reject(error);
-        }
-      });
-    };
 
   
 
