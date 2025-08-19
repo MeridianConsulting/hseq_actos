@@ -5,7 +5,7 @@ import UsersAdmin from './admin/UsersAdmin';
 import Login from './pages/Login';
 import CollaboratorDashboard from './pages/CollaboratorDashboard';
 import SupportDashboard from './pages/SupportDashboard';
-import Notifications from './pages/Notifications';
+
 import { isAuthenticated, getUser, getRoleRoute } from './utils/auth';
 import SEO from './components/SEO';
 
@@ -81,14 +81,7 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/notifications" 
-              element={
-                <ProtectedRoute>
-                  <Notifications />
-                </ProtectedRoute>
-              } 
-            />
+
             {/* Ruta por defecto para rutas no encontradas */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -93,12 +93,6 @@ const Header = () => {
               Usuarios
             </Link>
           </li>
-          <li>
-            <Link to="/notifications" onClick={closeMenu} className={location.pathname === '/notifications' ? 'active' : ''}>
-              <i className="fas fa-bell"></i>
-              Notificaciones
-            </Link>
-          </li>
           <li className="user-menu">
             <span className="user-name">
               <i className="fas fa-user-circle"></i>
@@ -120,12 +114,6 @@ const Header = () => {
             <Link to="/support" onClick={closeMenu} className={location.pathname === '/support' ? 'active' : ''}>
               <i className="fas fa-headset"></i>
               Soporte
-            </Link>
-          </li>
-          <li>
-            <Link to="/notifications" onClick={closeMenu} className={location.pathname === '/notifications' ? 'active' : ''}>
-              <i className="fas fa-bell"></i>
-              Notificaciones
             </Link>
           </li>
           <li className="user-menu">

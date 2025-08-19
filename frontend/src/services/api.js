@@ -324,50 +324,7 @@ export const userService = {
     }
 };
 
-/**
- * Servicios de notificaciones
- */
-export const notificationService = {
-    /**
-     * Obtener reportes vencidos
-     * @returns {Promise<Object>}
-     */
-    getOverdueReports: async () => {
-        try {
-            const response = await api.get('/api/reports/overdue');
-            return response;
-        } catch (error) {
-            throw new Error(error.response?.data?.message || 'Error al obtener reportes vencidos');
-        }
-    },
 
-    /**
-     * Notificar reportes vencidos
-     * @returns {Promise<Object>}
-     */
-    notifyOverdueReports: async () => {
-        try {
-            const response = await api.post('/api/reports/notify-overdue');
-            return response;
-        } catch (error) {
-            throw new Error(error.response?.data?.message || 'Error al notificar reportes vencidos');
-        }
-    },
-
-    /**
-     * Probar envío de correo
-     * @param {Object} emailData
-     * @returns {Promise<Object>}
-     */
-    testEmail: async (emailData) => {
-        try {
-            const response = await api.post('/api/test-email', emailData);
-            return response;
-        } catch (error) {
-            throw new Error(error.response?.data?.message || 'Error al enviar correo de prueba');
-        }
-    }
-};
 
 /**
  * Servicios de evidencias (descarga segura)

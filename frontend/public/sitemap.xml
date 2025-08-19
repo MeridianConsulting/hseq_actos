@@ -10,11 +10,7 @@
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
-  <url>
-    <loc>https://hseq.meridianltda.com/notifications</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
-  </url>
+
 </urlset>
 
 
