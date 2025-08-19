@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 19-08-2025 a las 17:13:05
+-- Tiempo de generación: 19-08-2025 a las 17:22:03
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.0.30
 
@@ -126,7 +126,7 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (38, 'Wilber Castaneda Castaneda', '80150738', 'Wilbercastaeda@gmail.com', '80150738', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (39, 'Jose Mauricio Aponte Abril', '11189101', 'jose.aponte@meridianecp.com', '11189101', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (40, 'Angela Maria Hernandez Tapias', '42116896', 'angelama.hernandez@ecopetrol.com.co', '42116896', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
-(41, 'José Mateo López Cifuentes', '1011202252', 'desarrolloit@meridian.com.co', '1011202252', 'admin', 'administracion', 1, '2025-08-19 14:38:10'),
+(41, 'José Mateo López Cifuentes', '1011202252', 'desarrolloit@meridian.com.co', '$2y$10$CwKGmnRZdgD4t7CeYEk.XeaCflzUNKT8lukfot9QfvNYj5X2dtAx2', 'admin', 'ADMINISTRACION', 1, '2025-08-19 14:38:10'),
 (44, 'Nora Gisell Moreno Moreno', '52030991', 'nmoreno@meridian.com.co', '52030991', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (45, 'William Augusto Franco Castellanos', '79613401', 'wfranco@meridian.com.co', '79613401', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (46, 'Cesar Augusto Urrego Avendaño', '79490148', 'currego@meridian.com.co', '79490148', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
@@ -134,14 +134,14 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (48, 'Zandra Patricia Mayorga Gomez', '52005033', 'coordinadoracontable@meridian.com.co', '52005033', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (49, 'Gustavo Adolfo Giraldo Correa', '1053788938', 'ggiraldo@meridian.com.co', '1053788938', 'colaborador', 'FRONTERA - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (50, 'Aura Alejandra Contreras Torres', '1014251428', 'asistenteadministrativo1@meridian.com.co', '1014251428', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
-(51, 'Michael Stiven Ruiz Caro', '1007493802', 'soportehseqproyectos@meridian.com.co', '1007493802', 'colaborador', 'COMPANY MAN - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(51, 'Michael Stiven Ruiz Caro', '1007493802', 'soportehseqproyectos@meridian.com.co', '1007493802', 'soporte', 'COMPANY MAN - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (52, 'Nidia Carolina Grandas Castañeda', '1136887341', 'proyectos3@meridian.com.co', '1136887341', 'colaborador', 'COMPANY MAN - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
-(53, 'Luis Miguel Guevara Marles', '1119211830', 'hseq@meridian.com.co', '1119211830', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(53, 'Luis Miguel Guevara Marles', '1119211830', 'hseq@meridian.com.co', '1119211830', 'admin', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (54, 'Sandra Milena Florez Prado', '1014180459', 'asistenteadministrativo2@meridian.com.co', '1014180459', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (55, 'Eloy Gabriel Gomez Reyes', '1020733194', 'coordinaciongestionhumana@meridian.com.co', '1020733194', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
-(56, 'Diana Marcela Jacobo Mancera', '1031145571', 'soportehseq@meridian.com.co', '1031145571', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
-(57, 'Laura Daniela Segura Morera', '1121936876', 'profesionalhseq@meridian.com.co', '1121936876', 'colaborador', 'COMPANY MAN - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
-(58, 'Erika Liliana Mancipe Rodriguez', '52978024', 'aprendizhseq@meridian.com.co', '52978024', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(56, 'Diana Marcela Jacobo Mancera', '1031145571', 'soportehseq@meridian.com.co', '1031145571', 'soporte', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(57, 'Laura Daniela Segura Morera', '1121936876', 'profesionalhseq@meridian.com.co', '1121936876', 'soporte', 'COMPANY MAN - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(58, 'Erika Liliana Mancipe Rodriguez', '52978024', 'aprendizhseq@meridian.com.co', '52978024', 'soporte', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (59, 'Andres Camilo Cardenas Reyes', '1007627524', 'soporteit.nivel1@meridian.com.co', '1007627524', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (60, 'Andres Felipe Loaiza Caviedes', '1014663204', 'loaizaf187@gmail.com', '1014663204', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (61, 'Wendy Zamanda Fonseca Hurtado', '1026267917', 'zamandafh1988@gmail.com', '1026267917', 'colaborador', 'FRONTERA', 1, '2025-08-19 15:08:27'),
