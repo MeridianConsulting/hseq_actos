@@ -12,6 +12,7 @@ import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveRadar } from '@nivo/radar';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { reportService, userService } from '../services/api';
+import ReportsTable from '../components/ReportsTable';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -1365,6 +1366,37 @@ const Dashboard = () => {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Nueva sección: Gestión completa de reportes (solo Admin) */}
+          {isAdmin() && (
+            <div className="mt-12 mb-8">
+              <div 
+                className="backdrop-blur-2xl rounded-3xl p-8 border"
+                style={{
+                  backgroundColor: 'rgba(252, 247, 255, 0.12)',
+                  borderColor: 'rgba(252, 247, 255, 0.25)'
+                }}
+              >
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                    Gestión Completa de Reportes
+                  </h3>
+                  <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.75)' }}>
+                    Visualiza, filtra y gestiona todos los reportes del sistema con herramientas avanzadas
+                  </p>
+                </div>
+
+                {/* Reports Table Component */}
+                <ReportsTable 
+                  user={user}
+                  showStatusActions={false}
+                  title="Todos los Reportes"
+                  containerClassName=""
+                  useDarkTheme={false}
+                />
               </div>
             </div>
           )}
