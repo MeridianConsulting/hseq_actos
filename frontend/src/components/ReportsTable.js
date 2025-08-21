@@ -333,215 +333,229 @@ const ReportsTable = ({
 
   return (
     <div className={containerClassName}>
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div 
-          className={`backdrop-blur-md rounded-2xl p-6 shadow-xl border ${
-            useDarkTheme 
-              ? 'bg-gray-900/80 border-gray-700' 
-              : 'bg-white/10 border-white/20'
-          }`}
-        >
-          <div className="flex items-center">
-            <div className="bg-yellow-500 p-3 rounded-full">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className={`text-sm ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Pendientes</p>
-              <p className={`text-2xl font-bold drop-shadow ${useDarkTheme ? 'text-white' : 'text-white'}`}>{stats.pending}</p>
-            </div>
-          </div>
-        </div>
+             {/* Statistics Cards */}
+       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                 <div 
+           className={`backdrop-blur-md rounded-2xl p-4 sm:p-6 shadow-xl border ${
+             useDarkTheme 
+               ? 'bg-gray-900/80 border-gray-700' 
+               : 'bg-white/10 border-white/20'
+           }`}
+         >
+           <div className="flex items-center">
+             <div className="bg-yellow-500 p-2 sm:p-3 rounded-full">
+               <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+               </svg>
+             </div>
+             <div className="ml-3 sm:ml-4">
+               <p className={`text-xs sm:text-sm ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Pendientes</p>
+               <p className={`text-xl sm:text-2xl font-bold drop-shadow ${useDarkTheme ? 'text-white' : 'text-white'}`}>{stats.pending}</p>
+             </div>
+           </div>
+         </div>
 
-        <div 
-          className={`backdrop-blur-md rounded-2xl p-6 shadow-xl border ${
-            useDarkTheme 
-              ? 'bg-gray-900/80 border-gray-700' 
-              : 'bg-white/10 border-white/20'
-          }`}
-        >
-          <div className="flex items-center">
-            <div className="bg-blue-500 p-3 rounded-full">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className={`text-sm ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>En Revisión</p>
-              <p className={`text-2xl font-bold drop-shadow ${useDarkTheme ? 'text-white' : 'text-white'}`}>{stats.inReview}</p>
-            </div>
-          </div>
-        </div>
+                 <div 
+           className={`backdrop-blur-md rounded-2xl p-4 sm:p-6 shadow-xl border ${
+             useDarkTheme 
+               ? 'bg-gray-900/80 border-gray-700' 
+               : 'bg-white/10 border-white/20'
+           }`}
+         >
+           <div className="flex items-center">
+             <div className="bg-blue-500 p-2 sm:p-3 rounded-full">
+               <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+               </svg>
+             </div>
+             <div className="ml-3 sm:ml-4">
+               <p className={`text-xs sm:text-sm ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>En Revisión</p>
+               <p className={`text-xl sm:text-2xl font-bold drop-shadow ${useDarkTheme ? 'text-white' : 'text-white'}`}>{stats.inReview}</p>
+             </div>
+           </div>
+         </div>
 
-        <div 
-          className={`backdrop-blur-md rounded-2xl p-6 shadow-xl border ${
-            useDarkTheme 
-              ? 'bg-gray-900/80 border-gray-700' 
-              : 'bg-white/10 border-white/20'
-          }`}
-        >
-          <div className="flex items-center">
-            <div className="bg-green-500 p-3 rounded-full">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className={`text-sm ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Cerrados</p>
-              <p className={`text-2xl font-bold drop-shadow ${useDarkTheme ? 'text-white' : 'text-white'}`}>{stats.closed}</p>
-            </div>
-          </div>
-        </div>
+                 <div 
+           className={`backdrop-blur-md rounded-2xl p-4 sm:p-6 shadow-xl border ${
+             useDarkTheme 
+               ? 'bg-gray-900/80 border-gray-700' 
+               : 'bg-white/10 border-white/20'
+           }`}
+         >
+           <div className="flex items-center">
+             <div className="bg-green-500 p-2 sm:p-3 rounded-full">
+               <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+               </svg>
+             </div>
+             <div className="ml-3 sm:ml-4">
+               <p className={`text-xs sm:text-sm ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Cerrados</p>
+               <p className={`text-xl sm:text-2xl font-bold drop-shadow ${useDarkTheme ? 'text-white' : 'text-white'}`}>{stats.closed}</p>
+             </div>
+           </div>
+         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex items-center space-x-2 mb-8">
-        <button
-          onClick={() => setActiveTab('pending')}
-          className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
-            activeTab === 'pending'
-              ? useDarkTheme 
-                ? 'bg-white text-blue-600 shadow-lg'
-                : 'bg-white/20 text-white shadow-lg'
-              : useDarkTheme
-                ? 'bg-white bg-opacity-10 text-white hover:bg-opacity-20'
-                : 'bg-white/10 text-white hover:bg-white/20'
-          }`}
-        >
-          Pendientes
-        </button>
-        <button
-          onClick={() => setActiveTab('in_review')}
-          className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
-            activeTab === 'in_review'
-              ? useDarkTheme 
-                ? 'bg-white text-blue-600 shadow-lg'
-                : 'bg-white/20 text-white shadow-lg'
-              : useDarkTheme
-                ? 'bg-white bg-opacity-10 text-white hover:bg-opacity-20'
-                : 'bg-white/10 text-white hover:bg-white/20'
-          }`}
-        >
-          En Revisión
-        </button>
-        <button
-          onClick={() => setActiveTab('closed')}
-          className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
-            activeTab === 'closed'
-              ? useDarkTheme 
-                ? 'bg-white text-blue-600 shadow-lg'
-                : 'bg-white/20 text-white shadow-lg'
-              : useDarkTheme
-                ? 'bg-white bg-opacity-10 text-white hover:bg-opacity-20'
-                : 'bg-white/10 text-white hover:bg-white/20'
-          }`}
-        >
-          Cerrados
-        </button>
-        <button
-          onClick={() => { loadStats(); loadReports(); }}
-          className={`py-3 px-4 rounded-lg font-semibold ${
-            useDarkTheme 
-              ? 'bg-gray-800 text-white hover:bg-gray-700'
-              : 'bg-white/15 text-white hover:bg-white/25'
-          }`}
-          title="Refrescar lista y estadísticas"
-        >
-          Refrescar
-        </button>
+             {/* Navigation Tabs */}
+       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-2 mb-8">
+                 <button
+           onClick={() => setActiveTab('pending')}
+           className={`flex-1 py-2 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold transition-all duration-200 text-sm sm:text-base ${
+             activeTab === 'pending'
+               ? useDarkTheme 
+                 ? 'bg-white text-blue-600 shadow-lg'
+                 : 'bg-white/20 text-white shadow-lg'
+               : useDarkTheme
+                 ? 'bg-white bg-opacity-10 text-white hover:bg-opacity-20'
+                 : 'bg-white/10 text-white hover:bg-white/20'
+           }`}
+         >
+           Pendientes
+         </button>
+                 <button
+           onClick={() => setActiveTab('in_review')}
+           className={`flex-1 py-2 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold transition-all duration-200 text-sm sm:text-base ${
+             activeTab === 'in_review'
+               ? useDarkTheme 
+                 ? 'bg-white text-blue-600 shadow-lg'
+                 : 'bg-white/20 text-white shadow-lg'
+               : useDarkTheme
+                 ? 'bg-white bg-opacity-10 text-white hover:bg-opacity-20'
+                 : 'bg-white/10 text-white hover:bg-white/20'
+           }`}
+         >
+           En Revisión
+         </button>
+                 <button
+           onClick={() => setActiveTab('closed')}
+           className={`flex-1 py-2 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold transition-all duration-200 text-sm sm:text-base ${
+             activeTab === 'closed'
+               ? useDarkTheme 
+                 ? 'bg-white text-blue-600 shadow-lg'
+                 : 'bg-white/20 text-white shadow-lg'
+               : useDarkTheme
+                 ? 'bg-white bg-opacity-10 text-white hover:bg-opacity-20'
+                 : 'bg-white/10 text-white hover:bg-white/20'
+           }`}
+         >
+           Cerrados
+         </button>
+                 <button
+           onClick={() => { loadStats(); loadReports(); }}
+           className={`py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold text-sm sm:text-base transition-colors duration-200 ${
+             useDarkTheme 
+               ? 'bg-gray-800 text-white hover:bg-gray-700'
+               : 'bg-white/15 text-white hover:bg-white/25'
+           }`}
+           title="Refrescar lista y estadísticas"
+         >
+           Refrescar
+         </button>
       </div>
 
-      {/* Filter Bar */}
-      <form onSubmit={handleSearch} className={`backdrop-blur-md rounded-2xl p-4 mb-6 grid grid-cols-1 md:grid-cols-6 gap-3 border ${
-        useDarkTheme 
-          ? 'bg-gray-900/80 border-gray-700' 
-          : 'bg-white/10 border-white/20'
-      }`}>
-        <div>
-          <label className={`block text-xs mb-1 ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Tipo de reporte</label>
-          <select name="tipo_reporte" value={filters.tipo_reporte} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            useDarkTheme 
-              ? 'bg-gray-800 border-gray-600 text-gray-100' 
-              : 'bg-white/10 border-white/20 text-white placeholder-white/50'
-          }`}>
+             {/* Filter Bar */}
+       <form onSubmit={handleSearch} className={`filter-bar backdrop-blur-md rounded-2xl p-4 mb-6 border ${
+         useDarkTheme 
+           ? 'bg-gray-900/80 border-gray-700' 
+           : 'bg-white/10 border-white/20'
+       }`}>
+         {/* Filter Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-4">
+         <div>
+           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Tipo de reporte</label>
+           <select name="tipo_reporte" value={filters.tipo_reporte} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+             useDarkTheme 
+               ? 'bg-gray-800 border-gray-600 text-gray-100' 
+               : 'bg-white/10 border-white/20 text-white placeholder-white/50'
+           }`}>
             <option value="">Todos</option>
             {reportTypes.map(rt => (
               <option key={rt.id} value={rt.id}>{rt.title.replace(/^\d+\.\s*/,'')}</option>
             ))}
           </select>
         </div>
-        <div>
-          <label className={`block text-xs mb-1 ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Criticidad</label>
-          <select name="grado_criticidad" value={filters.grado_criticidad} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            useDarkTheme 
-              ? 'bg-gray-800 border-gray-600 text-gray-100' 
-              : 'bg-white/10 border-white/20 text-white placeholder-white/50'
-          }`}>
+                 <div>
+           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Criticidad</label>
+           <select name="grado_criticidad" value={filters.grado_criticidad} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+             useDarkTheme 
+               ? 'bg-gray-800 border-gray-600 text-gray-100' 
+               : 'bg-white/10 border-white/20 text-white placeholder-white/50'
+           }`}>
             <option value="">Todas</option>
             {gradosCriticidad.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
           </select>
         </div>
-        <div>
-          <label className={`block text-xs mb-1 ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Afectación</label>
-          <select name="tipo_afectacion" value={filters.tipo_afectacion} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            useDarkTheme 
-              ? 'bg-gray-800 border-gray-600 text-gray-100' 
-              : 'bg-white/10 border-white/20 text-white placeholder-white/50'
-          }`}>
+                 <div>
+           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Afectación</label>
+           <select name="tipo_afectacion" value={filters.tipo_afectacion} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+             useDarkTheme 
+               ? 'bg-gray-800 border-gray-600 text-gray-100' 
+               : 'bg-white/10 border-white/20 text-white placeholder-white/50'
+           }`}>
             <option value="">Todas</option>
             {tiposAfectacion.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
           </select>
         </div>
-        <div>
-          <label className={`block text-xs mb-1 ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Desde</label>
-          <input type="date" name="date_from" value={filters.date_from} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            useDarkTheme 
-              ? 'bg-gray-800 border-gray-600 text-gray-100' 
-              : 'bg-white/10 border-white/20 text-white placeholder-white/50'
-          }`} />
+                 <div>
+           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Desde</label>
+           <input type="date" name="date_from" value={filters.date_from} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+             useDarkTheme 
+               ? 'bg-gray-800 border-gray-600 text-gray-100' 
+               : 'bg-white/10 border-white/20 text-white placeholder-white/50'
+           }`} />
         </div>
-        <div>
-          <label className={`block text-xs mb-1 ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Hasta</label>
-          <input type="date" name="date_to" value={filters.date_to} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            useDarkTheme 
-              ? 'bg-gray-800 border-gray-600 text-gray-100' 
-              : 'bg-white/10 border-white/20 text-white placeholder-white/50'
-          }`} />
+                 <div>
+           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Hasta</label>
+           <input type="date" name="date_to" value={filters.date_to} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+             useDarkTheme 
+               ? 'bg-gray-800 border-gray-600 text-gray-100' 
+               : 'bg-white/10 border-white/20 text-white placeholder-white/50'
+           }`} />
         </div>
-        <div>
-          <label className={`block text-xs mb-1 ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Buscar</label>
-          <input type="text" name="q" placeholder="Texto libre" value={filters.q} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            useDarkTheme 
-              ? 'bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-400' 
-              : 'bg-white/10 border-white/20 text-white placeholder-white/50'
-          }`} />
-        </div>
-                  <div className="md:col-span-6 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Aplicar</button>
-              <button type="button" onClick={handleReset} className={`px-4 py-2 rounded-lg ${
-                useDarkTheme 
-                  ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                  : 'bg-white/20 hover:bg-white/30 text-white'
-              }`}>Limpiar</button>
-              <button type="button" onClick={exportCsv} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg">Exportar CSV</button>
-            </div>
-            <div className={`flex items-center space-x-2 text-sm ${
-              useDarkTheme ? 'text-gray-200' : 'text-white/80'
-            }`}>
-              <span>Por página</span>
-              <select value={filters.per_page} onChange={handlePerPageChange} className={`border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                useDarkTheme 
-                  ? 'bg-gray-800 border-gray-600 text-gray-100'
-                  : 'bg-white/10 border-white/20 text-white'
-              }`}>
-                {[10,20,50,100].map(n => (<option key={n} value={n}>{n}</option>))}
-              </select>
-            </div>
-          </div>
-      </form>
+                 <div>
+           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Buscar</label>
+           <input type="text" name="q" placeholder="Texto libre" value={filters.q} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+             useDarkTheme 
+               ? 'bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-400' 
+               : 'bg-white/10 border-white/20 text-white placeholder-white/50'
+           }`} />
+         </div>
+         </div>
+         
+         {/* Action Buttons and Pagination */}
+         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+               <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm transition-colors duration-200">
+                 Aplicar
+               </button>
+               <button type="button" onClick={handleReset} className={`px-3 sm:px-4 py-2 rounded-lg text-sm transition-colors duration-200 ${
+                 useDarkTheme 
+                   ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                   : 'bg-white/20 hover:bg-white/30 text-white'
+               }`}>
+                 Limpiar
+               </button>
+               <button type="button" onClick={exportCsv} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm transition-colors duration-200">
+                 <span className="hidden sm:inline">Exportar</span>
+                 <span className="sm:hidden">Exportar</span>
+                 <span className="hidden sm:inline"> CSV</span>
+               </button>
+             </div>
+             <div className={`flex items-center space-x-2 text-sm ${
+               useDarkTheme ? 'text-gray-200' : 'text-white/80'
+             }`}>
+               <span className="hidden sm:inline">Por página</span>
+               <span className="sm:hidden">Página</span>
+               <select value={filters.per_page} onChange={handlePerPageChange} className={`border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+                 useDarkTheme 
+                   ? 'bg-gray-800 border-gray-600 text-gray-100'
+                   : 'bg-white/10 border-white/20 text-white'
+               }`}>
+                 {[10,20,50,100].map(n => (<option key={n} value={n}>{n}</option>))}
+                              </select>
+             </div>
+           </div>
+         </form>
 
       {/* Message */}
       {message && (
@@ -695,42 +709,51 @@ const ReportsTable = ({
                   )}
                 </div>
                 
-                <div className="flex justify-end space-x-2">
-                  {showStatusActions && report.estado === 'pendiente' && (
-                    <button
-                      onClick={() => handleStatusChange(report.id, 'en_revision')}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
-                    >
-                      Tomar Caso
-                    </button>
-                  )}
-                  {showStatusActions && report.estado === 'en_revision' && (
-                    <>
-                      <button
-                        onClick={() => handleOpenApprovalModal(report)}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
-                      >
-                        Aprobar
-                      </button>
-                      <button
-                        onClick={() => handleStatusChange(report.id, 'rechazado')}
-                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
-                      >
-                        Rechazar
-                      </button>
-                    </>
-                  )}
-                  <button 
-                    onClick={() => handleViewDetails(report.id)}
-                    className={`px-4 py-2 rounded-lg text-sm transition-colors duration-200 ${
-                      useDarkTheme 
-                        ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                        : 'bg-white/20 hover:bg-white/30 text-white'
-                    }`}
-                  >
-                    Ver Detalles
-                  </button>
-                </div>
+                                 <div className="flex justify-end space-x-2">
+                   {showStatusActions && report.estado === 'pendiente' && (
+                     <button
+                       onClick={() => handleStatusChange(report.id, 'en_revision')}
+                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
+                     >
+                       Tomar Caso
+                     </button>
+                   )}
+                   {showStatusActions && report.estado === 'en_revision' && (
+                     <>
+                       <button
+                         onClick={() => handleOpenApprovalModal(report)}
+                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
+                       >
+                         Aprobar
+                       </button>
+                       <button
+                         onClick={() => handleStatusChange(report.id, 'rechazado')}
+                         className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
+                       >
+                         Rechazar
+                       </button>
+                     </>
+                   )}
+                   {showStatusActions && (report.estado === 'aprobado' || report.estado === 'rechazado') && (
+                     <button
+                       onClick={() => handleStatusChange(report.id, 'en_revision')}
+                       className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
+                       title="Volver a enviar a revisión"
+                     >
+                       Reabrir
+                     </button>
+                   )}
+                   <button 
+                     onClick={() => handleViewDetails(report.id)}
+                     className={`px-4 py-2 rounded-lg text-sm transition-colors duration-200 ${
+                       useDarkTheme 
+                         ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                         : 'bg-white/20 hover:bg-white/30 text-white'
+                     }`}
+                   >
+                     Ver Detalles
+                   </button>
+                 </div>
               </div>
             ))}
           </div>
