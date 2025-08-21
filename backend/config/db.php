@@ -25,7 +25,7 @@ class Database {
     }
 
     public function getConnection(){
-        // Modo de conexión: 'local', 'host' o 'auto' (intenta host y cae a local)
+        // Modo de conexión: 'local', 'host', 'hosting' o 'auto' (intenta hosting, host y cae a local)
         $mode = getenv('DB_MODE') ?: 'auto';
 
         // Config remota (host) vía variables DB_*
@@ -44,9 +44,20 @@ class Database {
             'pass' => getenv('LOCAL_DB_PASS') !== false ? getenv('LOCAL_DB_PASS') : '',
         ];
 
+        // Config hosting específica
+        $hostingConfig = [
+            'host' => 'localhost',
+            'name' => 'hseq',
+            'user' => 'hseq', // si falla, prueba 'eufbe81hvmyp'
+            'pass' => 'U!~CM9fXDQEE',
+        ];
+
         $hostConfigUsable = !empty($hostConfig['host']) && !empty($hostConfig['name']) && !empty($hostConfig['user']);
 
         try{
+            if ($mode === 'hosting') {
+                return $this->connectWithConfig($hostingConfig);
+            }
             if ($mode === 'host') {
                 return $this->connectWithConfig($hostConfig);
             }
@@ -54,7 +65,13 @@ class Database {
                 return $this->connectWithConfig($localConfig);
             }
 
-            // auto: intenta host primero si está configurado, si falla o no está, cae a local
+            // auto: intenta hosting primero, luego host, y finalmente local
+            try {
+                return $this->connectWithConfig($hostingConfig);
+            } catch (Exception $e) {
+                // continuar a host
+            }
+            
             if ($hostConfigUsable) {
                 try {
                     return $this->connectWithConfig($hostConfig);
