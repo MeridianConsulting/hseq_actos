@@ -376,19 +376,19 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     if (!value && value !== 0) return null;
     
     return (
-      <div className="flex items-start space-x-3 p-4 bg-white bg-opacity-5 rounded-lg">
+      <div className="flex items-start space-x-2 sm:space-x-3 p-3 sm:p-4 bg-white bg-opacity-5 rounded-lg">
         {icon && (
           <div className="flex-shrink-0 mt-1">
-            <div className="w-5 h-5 text-blue-400">
+            <div className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400">
               {icon}
             </div>
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <dt className="text-sm font-medium text-white text-opacity-70 mb-1">
+          <dt className="text-xs sm:text-sm font-medium text-white text-opacity-70 mb-1">
             {label}
           </dt>
-          <dd className="text-white leading-relaxed">
+          <dd className="text-white leading-relaxed text-sm sm:text-base">
             {formatFieldValue(fieldName, value)}
           </dd>
         </div>
@@ -913,7 +913,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     }
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {evidencias.map((evidencia, index) => {
           const blobInfo = evidenceUrls[evidencia.id];
           const type = (blobInfo && blobInfo.contentType) || evidencia.tipo_archivo || '';
@@ -922,7 +922,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
           const isPdf = type === 'application/pdf';
           return (
             <div key={evidencia.id} className="group relative bg-white bg-opacity-5 rounded-xl hover:bg-opacity-10 transition-all duration-300">
-              <div className="flex items-center justify-center w-full h-56" style={{ backgroundColor: 'rgba(0,0,0,0.15)' }}>
+              <div className="flex items-center justify-center w-full h-48 sm:h-56" style={{ backgroundColor: 'rgba(0,0,0,0.15)' }}>
                                  {isImage ? (
                    <div className="relative w-full h-full group">
                      <img
@@ -993,11 +993,11 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                   </div>
                 </div>
               </div>
-              <div className="p-4">
-                <div className="flex items-center justify-between">
+              <div className="p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                   <div>
-                    <p className="text-white font-medium">Evidencia {index + 1}</p>
-                    <p className="text-white text-opacity-50 text-sm">
+                    <p className="text-white font-medium text-sm sm:text-base">Evidencia {index + 1}</p>
+                    <p className="text-white text-opacity-50 text-xs sm:text-sm">
                       {new Date(evidencia.creado_en).toLocaleDateString('es-ES', {
                         year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                       })}
@@ -1052,23 +1052,23 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2 sm:p-4 backdrop-blur-sm">
+      <div className="report-details-modal bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl sm:rounded-3xl max-w-5xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-gray-900 to-gray-800 rounded-t-3xl p-6 border-b border-gray-700">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
+        <div className="sticky top-0 bg-gradient-to-r from-gray-900 to-gray-800 rounded-t-2xl sm:rounded-t-3xl p-4 sm:p-6 border-b border-gray-700">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 sm:gap-0">
+            <div className="flex items-center space-x-3 sm:space-x-4">
               {report && (
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getStatusColor(report.estado)}`}>
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center ${getStatusColor(report.estado)}`}>
                   {getEventTypeIcon(report.tipo_reporte)}
                 </div>
               )}
               <div>
-                <h2 className="text-2xl font-bold text-white">
+                <h2 className="text-xl sm:text-2xl font-bold text-white">
                   Detalles del Reporte
                 </h2>
                 {report && (
-                  <p className="text-white text-opacity-60 text-sm">
+                  <p className="text-white text-opacity-60 text-xs sm:text-sm">
                     {getEventTypeLabel(report.tipo_reporte)}
                   </p>
                 )}
@@ -1076,9 +1076,9 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
             </div>
             <button
               onClick={onClose}
-              className="w-10 h-10 bg-white bg-opacity-10 hover:bg-opacity-20 rounded-full flex items-center justify-center transition-all duration-200"
+              className="w-8 h-8 sm:w-10 sm:h-10 bg-white bg-opacity-10 hover:bg-opacity-20 rounded-full flex items-center justify-center transition-all duration-200 self-end sm:self-auto"
             >
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
             </button>
@@ -1086,7 +1086,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {isLoading ? (
             <div className="text-center py-16">
               <div className="w-16 h-16 mx-auto mb-6">
@@ -1105,38 +1105,38 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
               <p className="text-white text-opacity-50">{error}</p>
             </div>
           ) : report ? (
-            <div className="space-y-8">
+            <div className="space-y-6 sm:space-y-8">
               {/* Estado y Asunto */}
-              <div className="bg-gradient-to-r from-blue-500 bg-opacity-10 to-purple-500 bg-opacity-10 rounded-2xl p-6 border border-blue-500 border-opacity-20">
-                <div className="flex items-center justify-between mb-4">
+              <div className="bg-gradient-to-r from-blue-500 bg-opacity-10 to-purple-500 bg-opacity-10 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-blue-500 border-opacity-20">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
                   <div className="flex items-center space-x-3">
-                    <span className={`px-4 py-2 rounded-full text-sm font-semibold text-white ${getStatusColor(report.estado)}`}>
+                    <span className={`px-3 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm font-semibold text-white ${getStatusColor(report.estado)}`}>
                       {getStatusLabel(report.estado)}
                     </span>
                   </div>
-                  <div className="text-right">
-                    <p className="text-white text-opacity-60 text-sm">Reportado por</p>
-                    <p className="text-white font-semibold">{report.nombre_usuario}</p>
+                  <div className="text-left sm:text-right">
+                    <p className="text-white text-opacity-60 text-xs sm:text-sm">Reportado por</p>
+                    <p className="text-white font-semibold text-sm sm:text-base">{report.nombre_usuario}</p>
                   </div>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-2">
                   {report.asunto || report.asunto_conversacion || 'Sin asunto'}
                 </h3>
-                <p className="text-white text-opacity-80">
+                <p className="text-white text-opacity-80 text-sm sm:text-base">
                   {formatFieldValue('fecha_evento', report.fecha_evento)}
                   {report.hora_evento && ` • ${report.hora_evento}`}
                 </p>
               </div>
 
               {/* Información Específica según Tipo */}
-              <div className="bg-white bg-opacity-5 rounded-2xl p-6">
-                <h3 className="text-xl font-bold text-white mb-6 flex items-center">
-                  <svg className="w-6 h-6 mr-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-white bg-opacity-5 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
                   Información del Evento
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                   {report.tipo_reporte === 'hallazgos' && (
                     <>
                       {renderField('Lugar del Hallazgo', report.lugar_hallazgo || report.lugar_hallazgo_otro, null, 
@@ -1225,14 +1225,14 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
 
               {/* Información de Revisión */}
               {(report.fecha_revision || report.comentarios_revision) && (
-                <div className="bg-white bg-opacity-5 rounded-2xl p-6">
-                  <h3 className="text-xl font-bold text-white mb-6 flex items-center">
-                    <svg className="w-6 h-6 mr-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-white bg-opacity-5 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6 flex items-center">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     Información de Revisión
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {renderField('Fecha de Revisión', report.fecha_revision, 'fecha_revision',
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -1248,15 +1248,15 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
               )}
 
               {/* Evidencias */}
-              <div className="bg-white bg-opacity-5 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-white flex items-center">
-                    <svg className="w-6 h-6 mr-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-white bg-opacity-5 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0 mb-4 sm:mb-6">
+                  <h3 className="text-lg sm:text-xl font-bold text-white flex items-center">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
                     Evidencias Adjuntas
                   </h3>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-2">
                     <button type="button"
                       onClick={handleDownloadExcel}
                       disabled={isDownloadingExcel}

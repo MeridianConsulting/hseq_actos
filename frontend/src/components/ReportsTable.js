@@ -569,12 +569,12 @@ const ReportsTable = ({
       )}
 
       {/* Reports List */}
-      <div className={`backdrop-blur-md rounded-3xl p-8 shadow-2xl border ${
+      <div className={`reports-table-container backdrop-blur-md rounded-3xl p-4 sm:p-6 lg:p-8 shadow-2xl border ${
         useDarkTheme 
           ? 'bg-gray-900/80 border-gray-700' 
           : 'bg-white/10 border-white/20'
       }`}>
-        <h3 className={`text-2xl font-bold mb-6 ${
+        <h3 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${
           useDarkTheme ? 'text-white' : 'text-white'
         }`}>
           {title} {activeTab === 'pending' ? 'Pendientes' : activeTab === 'in_review' ? 'En Revisión' : 'Cerrados'}
@@ -597,23 +597,23 @@ const ReportsTable = ({
         ) : (
           <div className="space-y-4">
             {filteredReports.map(report => (
-              <div key={report.id} className={`rounded-xl p-6 border ${
+              <div key={report.id} className={`rounded-xl p-4 sm:p-6 border ${
                 useDarkTheme 
                   ? 'bg-gray-800/90 border-gray-700' 
                   : 'bg-white/20 border-white/30'
               }`}>
-                <div className="flex justify-between items-start mb-4">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-0 mb-4">
                   <div className="flex items-center space-x-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(report.estado)} drop-shadow`}>
+                    <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(report.estado)} drop-shadow`}>
                       {report.estado}
                     </span>
-                    <span className={`text-sm ${
+                    <span className={`text-xs sm:text-sm ${
                       useDarkTheme ? 'text-gray-300' : 'text-white/80'
                     }`}>
                       ID: {report.id}
                     </span>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <p className={`text-sm font-semibold drop-shadow ${
                       useDarkTheme ? 'text-white' : 'text-white'
                     }`}>{getEventTypeLabel(report.tipo_reporte)}</p>
@@ -624,10 +624,10 @@ const ReportsTable = ({
                 </div>
                 
                 <div className="mb-4">
-                  <p className={`mb-2 leading-relaxed ${
+                  <p className={`mb-2 leading-relaxed text-sm sm:text-base ${
                     useDarkTheme ? 'text-gray-200' : 'text-white/90'
                   }`}>{getDescriptionText(report)}</p>
-                  <div className={`flex justify-between text-sm ${
+                  <div className={`flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0 text-xs sm:text-sm ${
                     useDarkTheme ? 'text-gray-300' : 'text-white/70'
                   }`}>
                     <span>Reportado por: {report.nombre_usuario}</span>
@@ -653,7 +653,7 @@ const ReportsTable = ({
                           return (
                             <div key={evidencia.id} className="flex-shrink-0">
                               {isImage ? (
-                                <div className={`w-16 h-16 rounded-lg overflow-hidden border ${
+                                <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden border ${
                                   useDarkTheme 
                                     ? 'bg-gray-700 border-gray-600' 
                                     : 'bg-white/20 border-white/30'
@@ -670,7 +670,7 @@ const ReportsTable = ({
                                   <div className={`w-full h-full flex items-center justify-center ${
                                     useDarkTheme ? 'bg-gray-700' : 'bg-white/20'
                                   }`} style={{display: 'none'}}>
-                                    <svg className={`w-6 h-6 ${
+                                    <svg className={`w-4 h-4 sm:w-6 sm:h-6 ${
                                       useDarkTheme ? 'text-gray-500' : 'text-white/50'
                                     }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z"/>
@@ -678,12 +678,12 @@ const ReportsTable = ({
                                   </div>
                                 </div>
                               ) : (
-                                <div className={`w-16 h-16 rounded-lg border flex items-center justify-center ${
+                                <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-lg border flex items-center justify-center ${
                                   useDarkTheme 
                                     ? 'bg-gray-700 border-gray-600' 
                                     : 'bg-white/20 border-white/30'
                                 }`}>
-                                  <svg className={`w-6 h-6 ${
+                                  <svg className={`w-4 h-4 sm:w-6 sm:h-6 ${
                                     useDarkTheme ? 'text-gray-500' : 'text-white/50'
                                   }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -694,7 +694,7 @@ const ReportsTable = ({
                           );
                         })}
                         {report.evidencias.length > 3 && (
-                          <div className={`flex-shrink-0 w-16 h-16 rounded-lg border flex items-center justify-center ${
+                          <div className={`flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-lg border flex items-center justify-center ${
                             useDarkTheme 
                               ? 'bg-gray-700 border-gray-600' 
                               : 'bg-white/20 border-white/30'
@@ -709,11 +709,11 @@ const ReportsTable = ({
                   )}
                 </div>
                 
-                                 <div className="flex justify-end space-x-2">
+                                 <div className="flex flex-col sm:flex-row justify-end gap-2 sm:space-x-2">
                    {showStatusActions && report.estado === 'pendiente' && (
                      <button
                        onClick={() => handleStatusChange(report.id, 'en_revision')}
-                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
+                       className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm transition-colors duration-200"
                      >
                        Tomar Caso
                      </button>
@@ -722,13 +722,13 @@ const ReportsTable = ({
                      <>
                        <button
                          onClick={() => handleOpenApprovalModal(report)}
-                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
+                         className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm transition-colors duration-200"
                        >
                          Aprobar
                        </button>
                        <button
                          onClick={() => handleStatusChange(report.id, 'rechazado')}
-                         className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
+                         className="bg-red-600 hover:bg-red-700 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm transition-colors duration-200"
                        >
                          Rechazar
                        </button>
@@ -737,7 +737,7 @@ const ReportsTable = ({
                    {showStatusActions && (report.estado === 'aprobado' || report.estado === 'rechazado') && (
                      <button
                        onClick={() => handleStatusChange(report.id, 'en_revision')}
-                       className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
+                       className="bg-orange-600 hover:bg-orange-700 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm transition-colors duration-200"
                        title="Volver a enviar a revisión"
                      >
                        Reabrir
@@ -745,7 +745,7 @@ const ReportsTable = ({
                    )}
                    <button 
                      onClick={() => handleViewDetails(report.id)}
-                     className={`px-4 py-2 rounded-lg text-sm transition-colors duration-200 ${
+                     className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm transition-colors duration-200 ${
                        useDarkTheme 
                          ? 'bg-gray-700 hover:bg-gray-600 text-white'
                          : 'bg-white/20 hover:bg-white/30 text-white'
@@ -761,10 +761,10 @@ const ReportsTable = ({
         
         {/* Paginación */}
         {meta && meta.total_pages > 1 && (
-          <div className={`flex items-center justify-between mt-6 ${
+          <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 ${
             useDarkTheme ? 'text-gray-200' : 'text-white/80'
           }`}>
-            <button disabled={filters.page <= 1} onClick={() => handlePageChange(filters.page - 1)} className={`px-4 py-2 rounded ${
+            <button disabled={filters.page <= 1} onClick={() => handlePageChange(filters.page - 1)} className={`px-3 sm:px-4 py-2 rounded text-sm ${
               filters.page <= 1 
                 ? useDarkTheme 
                   ? 'bg-gray-700 cursor-not-allowed' 
@@ -775,10 +775,11 @@ const ReportsTable = ({
             }`}>
               Anterior
             </button>
-            <div>
-              Página {meta.page} de {meta.total_pages} • Total: {meta.total}
+            <div className="text-center text-sm">
+              <span className="hidden sm:inline">Página {meta.page} de {meta.total_pages} • Total: {meta.total}</span>
+              <span className="sm:hidden">{meta.page} / {meta.total_pages} ({meta.total})</span>
             </div>
-            <button disabled={meta.page >= meta.total_pages} onClick={() => handlePageChange(filters.page + 1)} className={`px-4 py-2 rounded ${
+            <button disabled={meta.page >= meta.total_pages} onClick={() => handlePageChange(filters.page + 1)} className={`px-3 sm:px-4 py-2 rounded text-sm ${
               meta.page >= meta.total_pages 
                 ? useDarkTheme 
                   ? 'bg-gray-700 cursor-not-allowed' 
