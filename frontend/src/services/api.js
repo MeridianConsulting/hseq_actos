@@ -1,67 +1,20 @@
-// Configuración base de API (fetch)
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost/hseq/backend';
+// Cliente HTTP único usando axios
+import http from './http';
+import { apiBaseUrl } from '../config/api';
 
-const buildUrl = (path, params) => {
-    let url = `${API_BASE_URL}${path}`;
-    if (params && Object.keys(params).length > 0) {
-        const usp = new URLSearchParams();
-        Object.entries(params).forEach(([k, v]) => {
-            if (v !== undefined && v !== null && v !== '') usp.append(k, v);
-        });
-        const qs = usp.toString();
-        if (qs) url += (url.includes('?') ? '&' : '?') + qs;
-    }
-    return url;
-};
+// Función helper para manejar respuestas de axios
+const handleResponse = (response) => response.data;
 
-const doFetch = async (method, path, { data, params, headers = {}, responseType } = {}) => {
-    const token = localStorage.getItem('token');
-    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
-    const reqHeaders = { ...headers };
-    if (token) reqHeaders['Authorization'] = `Bearer ${token}`;
-    // No establecer Content-Type en GET/HEAD ni cuando usemos FormData
-    if (!isFormData && !reqHeaders['Content-Type'] && method !== 'GET' && method !== 'HEAD') {
-        reqHeaders['Content-Type'] = 'application/json';
-    }
-
-    const res = await fetch(buildUrl(path, params), {
-        method,
-        headers: reqHeaders,
-        body: method === 'GET' || method === 'HEAD' ? undefined : (isFormData ? data : (data ? JSON.stringify(data) : undefined)),
-        // Evitar envío de cookies del navegador; usamos exclusivamente JWT en header
-        credentials: 'omit',
-        cache: 'no-store',
-    });
-
-    if (res.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-        throw new Error('No autorizado');
-    }
-
-    if (!res.ok) {
-        let errMsg = 'Error de red';
-        try {
-            const j = await res.json();
-            errMsg = j?.message || errMsg;
-        } catch (_) { /* ignore */ }
-        throw new Error(errMsg);
-    }
-
-    if (responseType === 'blob') {
-        const blob = await res.blob();
-        return { data: blob, headers: res.headers };
-    }
-
-    return await res.json();
+// Función helper para manejar errores
+const handleError = (error) => {
+    throw new Error(error.response?.data?.message || 'Error de red');
 };
 
 const api = {
-    get: (path, opts = {}) => doFetch('GET', path, opts),
-    post: (path, data, opts = {}) => doFetch('POST', path, { ...opts, data }),
-    put: (path, data, opts = {}) => doFetch('PUT', path, { ...opts, data }),
-    delete: (path, opts = {}) => doFetch('DELETE', path, opts),
+    get: (path, opts = {}) => http.get(path, opts).then(handleResponse).catch(handleError),
+    post: (path, data, opts = {}) => http.post(path, data, opts).then(handleResponse).catch(handleError),
+    put: (path, data, opts = {}) => http.put(path, data, opts).then(handleResponse).catch(handleError),
+    delete: (path, opts = {}) => http.delete(path, opts).then(handleResponse).catch(handleError),
 };
 
 /**
@@ -75,7 +28,7 @@ export const reportService = {
      */
     createReport: async (data) => {
         try {
-            const response = await api.post('/api/reports', data);
+            const response = await api.post('reports', data);
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al crear reporte');
@@ -93,7 +46,7 @@ export const reportService = {
             const formData = new FormData();
             formData.append('file', file);
 
-            const response = await api.post(`/api/reports/${reportId}/evidencias`, formData);
+            const response = await api.post(`reports/${reportId}/evidencias`, formData);
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al subir evidencia');
@@ -115,7 +68,7 @@ export const reportService = {
                 }
             });
             const qs = params.toString();
-            const response = await api.get(`/api/reports${qs ? `?${qs}` : ''}`);
+            const response = await api.get(`reports${qs ? `?${qs}` : ''}`);
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener reportes');
@@ -129,7 +82,7 @@ export const reportService = {
      */
     fetchReportsByUser: async (userId) => {
         try {
-            const response = await api.get(`/api/reports/user?user_id=${userId}`);
+            const response = await api.get(`reports/user?user_id=${userId}`);
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener reportes del usuario');
@@ -143,7 +96,7 @@ export const reportService = {
      */
     fetchReportById: async (reportId) => {
         try {
-            const response = await api.get(`/api/reports/${reportId}`);
+            const response = await api.get(`reports/${reportId}`);
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener reporte');
@@ -157,7 +110,7 @@ export const reportService = {
      */
     updateReportStatus: async (payload) => {
         try {
-            const response = await api.put(`/api/reports/status`, payload);
+            const response = await api.put(`reports/status`, payload);
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al actualizar estado del reporte');
@@ -170,7 +123,7 @@ export const reportService = {
      */
     fetchReportStats: async () => {
         try {
-            const response = await api.get('/api/reports/stats');
+            const response = await api.get('reports/stats');
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener estadísticas');
@@ -186,7 +139,7 @@ export const reportService = {
             const params = new URLSearchParams();
             if (period) params.append('period', period);
             const query = params.toString();
-            const response = await api.get(`/api/reports/dashboard-stats${query ? `?${query}` : ''}`);
+            const response = await api.get(`reports/dashboard-stats${query ? `?${query}` : ''}`);
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener estadísticas del dashboard');
@@ -199,7 +152,7 @@ export const reportService = {
      */
     fetchCriticalityStats: async () => {
         try {
-            const response = await api.get('/api/reports/criticality-stats');
+            const response = await api.get('reports/criticality-stats');
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener estadísticas por criticidad');
@@ -212,7 +165,7 @@ export const reportService = {
      */
     fetchAffectationStats: async () => {
         try {
-            const response = await api.get('/api/reports/affectation-stats');
+            const response = await api.get('reports/affectation-stats');
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener estadísticas por afectación');
@@ -232,7 +185,7 @@ export const authService = {
      */
     login: async (cedula, password) => {
         try {
-            const response = await api.post('/api/auth/login', { cedula, password });
+            const response = await api.post('auth/login', { cedula, password });
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al iniciar sesión');
@@ -259,7 +212,7 @@ export const userService = {
      */
     fetchUsers: async (filters = {}) => {
         try {
-            const response = await api.get('/api/users', { params: filters });
+            const response = await api.get('users', { params: filters });
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener usuarios');
@@ -273,7 +226,7 @@ export const userService = {
      */
     createUser: async (data) => {
         try {
-            const response = await api.post('/api/users', data);
+            const response = await api.post('users', data);
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al crear usuario');
@@ -288,7 +241,7 @@ export const userService = {
      */
     updateUser: async (userId, data) => {
         try {
-            const response = await api.put(`/api/users/${userId}`, data);
+            const response = await api.put(`users/${userId}`, data);
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al actualizar usuario');
@@ -302,7 +255,7 @@ export const userService = {
      */
     deleteUser: async (userId) => {
         try {
-            const response = await api.delete(`/api/users/${userId}`);
+            const response = await api.delete(`users/${userId}`);
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al eliminar usuario');
@@ -316,7 +269,7 @@ export const userService = {
      */
     resetPassword: async (userId) => {
         try {
-            const response = await api.post(`/api/users/${userId}/reset-password`);
+            const response = await api.post(`users/${userId}/reset-password`);
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al reiniciar contraseña');
@@ -347,7 +300,7 @@ export const evidenceService = {
             try {
                 const token = localStorage.getItem('token');
                 const q = token ? `?token=${encodeURIComponent(token)}` : '';
-                const response = await doFetch('GET', `/api/evidencias/${evidenceId}${q}`, { responseType: 'blob' });
+                const response = await http.get(`evidencias/${evidenceId}${q}`, { responseType: 'blob' });
                 const disp = response.headers.get('content-disposition') || '';
                 let fileName;
                 const match = /filename="?([^";]+)"?/i.exec(disp);
@@ -374,7 +327,7 @@ export const evidenceService = {
     })(),
 
     // Construye URL pública directa a imagen en /uploads (para vistas rápidas sin auth)
-    getPublicImageUrl: (fileName) => `${API_BASE_URL}/uploads/${encodeURIComponent(fileName || '')}`,
+    getPublicImageUrl: (fileName) => `${apiBaseUrl}/uploads/${encodeURIComponent(fileName || '')}`,
 };
 
 export default api; 

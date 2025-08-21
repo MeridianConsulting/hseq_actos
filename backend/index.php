@@ -84,18 +84,7 @@ require_once __DIR__ . '/controllers/reportController.php';
 ob_start();
 
 $method = $_SERVER['REQUEST_METHOD'];
-$requestUri = $_SERVER['REQUEST_URI'];
-
-// Extraer el path de la URL correctamente
-$path = parse_url($requestUri, PHP_URL_PATH);
-
-// Remover el directorio base del path
-$scriptDir = dirname($_SERVER['SCRIPT_NAME']);
-if ($scriptDir !== '/') {
-    $path = str_replace($scriptDir, '', $path);
-}
-
-$path = trim($path, "/");
+$path = isset($_GET['path']) ? trim($_GET['path'], '/') : '';
 
 function handleRequest($method, $path){
     // Limpiar buffer antes de procesar
@@ -106,7 +95,7 @@ function handleRequest($method, $path){
     // (log interno deshabilitado en producción)
     
     // Ruta de login
-    if($path === 'api/auth/login' && $method === "POST"){
+    if($path === 'auth/login' && $method === "POST"){
         try {
             $input = file_get_contents("php://input");
             
@@ -185,8 +174,8 @@ function handleRequest($method, $path){
     
     // Middleware simple de autenticación para rutas protegidas
     $protectedPaths = [
-        'api/reports',
-        'api/users',
+        'reports',
+        'users',
     ];
 
     $requiresAuth = false;
@@ -197,12 +186,12 @@ function handleRequest($method, $path){
     // Excepciones públicas (no requieren token) para GET
     if ($requiresAuth && $method === 'GET') {
         if (
-            $path === 'api/reports' ||
-            preg_match('/^api\\/reports\\/(\\d+)$/', $path) ||
-            $path === 'api/reports/stats' ||
-            $path === 'api/reports/dashboard-stats' ||
-            $path === 'api/images' ||
-            preg_match('/^api\\/evidencias\\/(\\d+)$/', $path)
+            $path === 'reports' ||
+            preg_match('/^reports\\/(\\d+)$/', $path) ||
+            $path === 'reports/stats' ||
+            $path === 'reports/dashboard-stats' ||
+            $path === 'images' ||
+            preg_match('/^evidencias\\/(\\d+)$/', $path)
         ) {
             $requiresAuth = false;
         }
@@ -334,7 +323,7 @@ function handleRequest($method, $path){
     };
 
     // Rutas de reportes
-    if($path === 'api/reports' && $method === "POST"){
+    if($path === 'reports' && $method === "POST"){
         try {
             $input = file_get_contents("php://input");
             
@@ -411,7 +400,7 @@ function handleRequest($method, $path){
         }
     }
     
-    if($path === 'api/reports' && $method === "GET"){
+    if($path === 'reports' && $method === "GET"){
         try {
             $reportController = new ReportController();
             
@@ -441,7 +430,7 @@ function handleRequest($method, $path){
         }
     }
     
-    if($path === 'api/reports/user' && $method === "GET"){
+    if($path === 'reports/user' && $method === "GET"){
         try {
             if (!isset($_GET['user_id'])) {
                 http_response_code(400);
@@ -468,7 +457,7 @@ function handleRequest($method, $path){
         }
     }
     
-    if($path === 'api/reports/stats' && $method === "GET"){
+    if($path === 'reports/stats' && $method === "GET"){
         try {
             $reportController = new ReportController();
             $result = $reportController->getReportStats();
@@ -487,7 +476,7 @@ function handleRequest($method, $path){
     }
     
     // Endpoint para actualizar estado de reportes
-    if($path === 'api/reports/status' && $method === "PUT"){
+    if($path === 'reports/status' && $method === "PUT"){
         if (!$requireRole(['soporte','admin'])) { return; }
         try {
             $input = file_get_contents("php://input");
@@ -551,7 +540,7 @@ function handleRequest($method, $path){
     }
 
     // Endpoint para obtener reportes vencidos (>30 días)
-    if($path === 'api/reports/overdue' && $method === 'GET'){
+    if($path === 'reports/overdue' && $method === 'GET'){
         try {
             if (!$requireRole(['soporte','admin'])) { return; }
             
@@ -578,7 +567,7 @@ function handleRequest($method, $path){
     }
 
     // Endpoint para obtener reportes próximos a vencer (por defecto: a 5 días de vencer)
-    if($path === 'api/reports/upcoming' && $method === 'GET'){
+    if($path === 'reports/upcoming' && $method === 'GET'){
         try {
             if (!$requireRole(['soporte','admin'])) { return; }
 
@@ -615,7 +604,7 @@ function handleRequest($method, $path){
     }
 
     // Endpoint para probar envío de correos
-    if($path === 'api/test-email' && $method === 'POST'){
+    if($path === 'test-email' && $method === 'POST'){
         try {
             if (!$requireRole(['admin'])) { return; }
             
@@ -639,7 +628,7 @@ function handleRequest($method, $path){
     }
 
     // Endpoint para notificar reportes vencidos (>30 días sin cerrar)
-    if($path === 'api/reports/notify-overdue' && $method === 'POST'){
+    if($path === 'reports/notify-overdue' && $method === 'POST'){
         try {
             // solo soporte/admin
             if (!isset($GLOBALS['auth_user_role']) || !in_array($GLOBALS['auth_user_role'], ['soporte','admin'], true)) {
@@ -677,7 +666,7 @@ function handleRequest($method, $path){
     // Endpoint para notificar por correo a todos los miembros HSEQ (soporte y admin)
     // sobre reportes próximos a vencer. Permite recibir HTML ya renderizado (por ejemplo
     // desde una plantilla React Email renderizada por Node) y asunto personalizado.
-    if($path === 'api/reports/notify-upcoming' && $method === 'POST'){
+    if($path === 'reports/notify-upcoming' && $method === 'POST'){
         try {
             if (!isset($GLOBALS['auth_user_role']) || !in_array($GLOBALS['auth_user_role'], ['soporte','admin'], true)) {
                 http_response_code(403);
@@ -836,7 +825,7 @@ function handleRequest($method, $path){
     }
 
     // Endpoint público para listar imágenes (solo metadatos y URLs públicas)
-    if ($path === 'api/images' && $method === 'GET') {
+    if ($path === 'images' && $method === 'GET') {
         try {
             $conn = (new Database())->getConnection();
             // Permitir filtros simples opcionales
@@ -1006,7 +995,7 @@ function handleRequest($method, $path){
     }
 
     // Rutas de administración de usuarios
-    if($path === 'api/users' && $method === 'GET'){
+    if($path === 'users' && $method === 'GET'){
         if (!$requireRole(['admin'])) { return; }
         try {
             $controller = new EmployeeController();
@@ -1036,7 +1025,7 @@ function handleRequest($method, $path){
             return;
         }
     }
-    elseif($path === 'api/users' && $method === 'POST'){
+    elseif($path === 'users' && $method === 'POST'){
         if (!$requireRole(['admin'])) { return; }
         try {
             $data = json_decode(file_get_contents('php://input'), true);
@@ -1097,7 +1086,7 @@ function handleRequest($method, $path){
         }
     }
     // Endpoint de prueba para verificar funcionamiento
-    elseif($path === 'api/test' && $method === "POST"){
+    elseif($path === 'test' && $method === "POST"){
         try {
             $input = file_get_contents("php://input");
             $data = json_decode($input, true);
@@ -1121,7 +1110,7 @@ function handleRequest($method, $path){
     }
 
     // Endpoint para obtener estadísticas del dashboard
-    elseif($path === 'api/reports/dashboard-stats' && $method === "GET"){
+    elseif($path === 'reports/dashboard-stats' && $method === "GET"){
         try {
             $reportController = new ReportController();
             $result = $reportController->getDashboardStats();

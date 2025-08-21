@@ -30,8 +30,7 @@
     "start": "node scripts/sync-env.js && react-scripts start",
     "build": "node scripts/sync-env.js && react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "email:upcoming": "tsx scripts/render-upcoming-email.tsx"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [

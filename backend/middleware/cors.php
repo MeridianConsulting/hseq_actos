@@ -4,7 +4,7 @@ if (ob_get_length()) ob_clean();
 
 // Configurar las cabeceras CORS - SOLO UNA VEZ
 // Permitir definir orígenes permitidos desde .env, separados por comas
-$allowed = getenv('CORS_ALLOWED_ORIGINS') ?: 'http://localhost:3000';
+$allowed = getenv('CORS_ALLOWED_ORIGINS') ?: 'http://localhost:3000,https://hseq.meridianltda.com';
 $origins = array_map('trim', explode(',', $allowed));
 $requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if ($requestOrigin && in_array($requestOrigin, $origins, true)) {
@@ -29,7 +29,7 @@ header('Referrer-Policy: strict-origin-when-cross-origin');
 header("Permissions-Policy: geolocation=(), microphone=(), camera=(), usb=(), payment=()");
 // CSP muy estricta para API (no entrega HTML ejecutable)
 // No aplicar CSP estricta a la ruta de evidencias (contenido binario) ni a uploads
-if (!preg_match('#^/hseq/backend/(api/evidencias/|uploads/)#', $_SERVER['REQUEST_URI'] ?? '')) {
+if (!preg_match('#^/hseq/backend/(evidencias/|uploads/)#', $_SERVER['REQUEST_URI'] ?? '')) {
     header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
 }
 // Evitar cachear respuestas sensibles por defecto

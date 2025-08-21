@@ -1,16 +1,16 @@
 RewriteEngine On
+RewriteBase /backend/
+
+# Archivos/directorios reales pasan directos
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
 
 # Marcar solicitudes de evidencias para ajustar headers
 RewriteRule ^api/evidencias/ - [E=IS_EVIDENCE:1]
 
-# Alternativamente, marcar por Request_URI (por compatibilidad con distintos contextos)
-SetEnvIf Request_URI ^/hseq/backend/api/evidencias/ IS_EVIDENCE=1
-SetEnvIf Request_URI ^/api/evidencias/ IS_EVIDENCE=1
-
-# Redirigir todas las peticiones a index.php
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php [QSA,L]
+# Enruta /backend/api/... -> /backend/index.php?path=...
+RewriteRule ^api/(.*)$ index.php?path=$1 [QSA,L]
 
 # NO configurar headers CORS aquí, ya se hace en PHP
 

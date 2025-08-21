@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReportService from '../services/reportService';
-import { evidenceService, API_BASE_URL } from '../services/api';
+import { evidenceService } from '../services/api';
+import { buildApi } from '../config/api';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 
@@ -41,7 +42,7 @@ const fetchApiImageBlob = async (id) => {
   const token = localStorage.getItem('token') || '';
 
   // 1) Authorization header
-  let resp = await fetch(`${API_BASE_URL}/api/evidencias/${id}`, {
+  let resp = await fetch(buildApi(`evidencias/${id}`), {
     method: 'GET',
     headers: { 'Accept': 'image/*', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
     credentials: 'include',
@@ -49,7 +50,7 @@ const fetchApiImageBlob = async (id) => {
   if (resp.ok) return await resp.blob();
 
   // 2) Fallback con ?token=
-  resp = await fetch(`${API_BASE_URL}/api/evidencias/${id}?token=${encodeURIComponent(token)}`, {
+  resp = await fetch(buildApi(`evidencias/${id}?token=${encodeURIComponent(token)}`), {
     method: 'GET',
     headers: { 'Accept': 'image/*' },
     credentials: 'include',
@@ -162,8 +163,8 @@ const dataUrlToBase64 = (dataUrl) => dataUrl.split(',')[1] || '';
 const resolveEvidenceUrl = (ev) => {
   const raw = String(ev?.url_archivo || '').trim();
   if (/^https?:\/\//i.test(raw)) return raw;            // ya es absoluta
-  if (raw.startsWith('uploads/')) return `${API_BASE_URL}/${raw}`;
-  return `${API_BASE_URL}/uploads/${encodeURIComponent(raw)}`;
+  if (raw.startsWith('uploads/')) return buildApi(raw);
+  return buildApi(`uploads/${encodeURIComponent(raw)}`);
 };
 
 // Detecta si la evidencia es imagen usando (1) cache de blobs, (2) tipo declarado, (3) extensión
@@ -177,8 +178,8 @@ const isImageEvidence = (ev, evidenceUrls) => {
 const buildPublicImageUrl = (fileNameOrUrl) => {
   const s = String(fileNameOrUrl || '').trim();
   if (/^https?:\/\//i.test(s)) return s;
-  if (s.startsWith('uploads/')) return `${API_BASE_URL}/${s}`;
-  return `${API_BASE_URL}/uploads/${encodeURIComponent(s)}`;
+  if (s.startsWith('uploads/')) return buildApi(s);
+  return buildApi(`uploads/${encodeURIComponent(s)}`);
 };
 
 const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
@@ -854,8 +855,8 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
      const buildPublicImageUrl = (fileNameOrUrl) => {
        const s = String(fileNameOrUrl || '').trim();
        if (/^https?:\/\//i.test(s)) return s;
-       if (s.startsWith('uploads/')) return `${API_BASE_URL}/${s}`;
-       return `${API_BASE_URL}/uploads/${encodeURIComponent(s)}`;
+       if (s.startsWith('uploads/')) return buildApi(s);
+       return buildApi(`uploads/${encodeURIComponent(s)}`);
      };
 
                // Función para descargar una imagen individual
@@ -972,7 +973,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                        onError={(e) => {
                          // Fallback al endpoint autenticado si la imagen pública falla
                          const token = localStorage.getItem('token') || '';
-                         const fallback = `${API_BASE_URL}/api/evidencias/${evidencia.id}?token=${encodeURIComponent(token)}`;
+                         const fallback = buildApi(`evidencias/${evidencia.id}?token=${encodeURIComponent(token)}`);
                          if (!e.target.dataset.fallback) {
                            e.target.dataset.fallback = '1';
                            e.target.src = fallback;
@@ -998,7 +999,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                    </div>
                 ) : isVideo ? (
                   <video 
-                    src={`${API_BASE_URL}/api/evidencias/${evidencia.id}?token=${encodeURIComponent(localStorage.getItem('token') || '')}`}
+                    src={buildApi(`evidencias/${evidencia.id}?token=${encodeURIComponent(localStorage.getItem('token') || '')}`)}
                     className="w-full h-full object-contain rounded-t-xl"
                     controls
                     preload="metadata"

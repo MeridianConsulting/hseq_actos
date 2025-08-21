@@ -1,13 +1,5 @@
-// Cambia la URL base para usar la ruta correcta
-const API_BASE_URL = 'http://localhost/hseq/backend';
-
-// Headers con token JWT si existe
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    return headers;
-};
+// Importar cliente HTTP
+import http from './http';
 
 class ReportService {
     /**
@@ -75,27 +67,8 @@ class ReportService {
             
             //
             
-            const response = await fetch(`${API_BASE_URL}/api/reports`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(formattedData)
-            });
-
-            // Verificar si la respuesta es JSON válido
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                // Si no es JSON, obtener el texto de la respuesta para debug
-                const textResponse = await response.text();
-                throw new Error('El servidor devolvió una respuesta no válida. Verifique la consola para más detalles.');
-            }
-
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al crear el reporte');
-            }
-            
-            return data;
+            const response = await http.post('reports', formattedData);
+            return response;
         } catch (error) {
             //
             throw error;
@@ -115,20 +88,8 @@ class ReportService {
                 }
             });
             const qs = params.toString();
-            const url = `${API_BASE_URL}/api/reports${qs ? `?${qs}` : ''}`;
-
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: getAuthHeaders()
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al obtener reportes');
-            }
-
-            return data;
+            const response = await http.get(`reports${qs ? `?${qs}` : ''}`);
+            return response;
         } catch (error) {
             //
             throw error;
@@ -140,18 +101,8 @@ class ReportService {
      */
     static async getReportsByUser(userId) {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/reports/user?user_id=${userId}`, {
-                method: 'GET',
-                headers: getAuthHeaders()
-            });
-
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al obtener reportes del usuario');
-            }
-            
-            return data;
+            const response = await http.get(`reports/user?user_id=${userId}`);
+            return response;
         } catch (error) {
             //
             throw error;
@@ -163,18 +114,8 @@ class ReportService {
      */
     static async getReportStats() {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/reports/stats`, {
-                method: 'GET',
-                headers: getAuthHeaders()
-            });
-
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al obtener estadísticas');
-            }
-            
-            return data;
+            const response = await http.get('reports/stats');
+            return response;
         } catch (error) {
             //
             throw error;
@@ -266,24 +207,13 @@ class ReportService {
      */
     static async updateReportStatus(reportId, status, revisorId = null, comentarios = null) {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/reports/status`, {
-                method: 'PUT',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    report_id: reportId,
-                    status: status,
-                    revisor_id: revisorId,
-                    comentarios: comentarios
-                })
+            const response = await http.put('reports/status', {
+                report_id: reportId,
+                status: status,
+                revisor_id: revisorId,
+                comentarios: comentarios
             });
-
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al actualizar estado del reporte');
-            }
-            
-            return data;
+            return response;
         } catch (error) {
             //
             throw error;
@@ -295,18 +225,8 @@ class ReportService {
      */
     static async getReportById(reportId) {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/reports/${reportId}`, {
-                method: 'GET',
-                headers: getAuthHeaders()
-            });
-
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al obtener el reporte');
-            }
-            
-            return data;
+            const response = await http.get(`reports/${reportId}`);
+            return response;
         } catch (error) {
             console.error('Error en getReportById:', error);
             throw error;
@@ -323,26 +243,8 @@ class ReportService {
             
             //
             
-            const response = await fetch(`${API_BASE_URL}/api/reports/${reportId}`, {
-                method: 'PUT',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(formattedData)
-            });
-
-            // Verificar si la respuesta es JSON válido
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                const textResponse = await response.text();
-                throw new Error('El servidor devolvió una respuesta no válida');
-            }
-
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al actualizar el reporte');
-            }
-            
-            return data;
+            const response = await http.put(`reports/${reportId}`, formattedData);
+            return response;
         } catch (error) {
             //
             if (error.name === 'TypeError' && error.message.includes('fetch')) {
@@ -357,25 +259,8 @@ class ReportService {
      */
     static async deleteReport(reportId) {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/reports/${reportId}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders()
-            });
-
-            // Verificar si la respuesta es JSON válido
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                const textResponse = await response.text();
-                throw new Error('El servidor devolvió una respuesta no válida');
-            }
-
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al eliminar el reporte');
-            }
-            
-            return data;
+            const response = await http.delete(`reports/${reportId}`);
+            return response;
         } catch (error) {
             //
             if (error.name === 'TypeError' && error.message.includes('fetch')) {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReportService from '../services/reportService';
 import ReportDetailsModal from './ReportDetailsModal';
 import ApprovalModal from './ApprovalModal';
-import { API_BASE_URL } from '../services/api';
+import { buildApi } from '../config/api';
 import { gradosCriticidad, tiposAfectacion, reportTypes } from '../config/formOptions';
 
 const ReportsTable = ({ 
@@ -659,7 +659,7 @@ const ReportsTable = ({
                                     : 'bg-white/20 border-white/30'
                                 }`}>
                                   <img 
-                                    src={`${API_BASE_URL}/api/evidencias/${evidencia.id}?token=${encodeURIComponent(localStorage.getItem('token') || '')}`}
+                                    src={buildApi(`evidencias/${evidencia.id}?token=${encodeURIComponent(localStorage.getItem('token') || '')}`)}
                                     alt={`Evidencia ${index + 1}`}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
