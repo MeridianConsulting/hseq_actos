@@ -68,7 +68,7 @@ class ReportService {
             //
             
             const response = await http.post('reports', formattedData);
-            return response;
+            return response.data; // Devolver solo los datos, no todo el objeto response
         } catch (error) {
             //
             throw error;

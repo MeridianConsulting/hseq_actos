@@ -2,36 +2,41 @@
 // Limpiar cualquier salida previa
 if (ob_get_length()) ob_clean();
 
-// Configurar las cabeceras CORS - SOLO UNA VEZ
-// Permitir definir orígenes permitidos desde .env, separados por comas
-$allowed = getenv('CORS_ALLOWED_ORIGINS') ?: 'http://localhost:3000,https://hseq.meridianltda.com';
-$origins = array_map('trim', explode(',', $allowed));
+// Configurar las cabeceras CORS
 $requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if ($requestOrigin && in_array($requestOrigin, $origins, true)) {
+
+// Lista de orígenes permitidos
+$allowedOrigins = [
+    'http://localhost:3000',
+    'https://hseq.meridianltda.com',
+    'http://hseq.meridianltda.com'
+];
+
+// Verificar si el origen de la petición está permitido
+if ($requestOrigin && in_array($requestOrigin, $allowedOrigins)) {
     header('Access-Control-Allow-Origin: ' . $requestOrigin);
-} else if (count($origins) === 1) {
-    header('Access-Control-Allow-Origin: ' . $origins[0]);
-}
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-// Exponer cabeceras útiles para el frontend (p.ej., Content-Disposition al descargar blobs)
-header('Access-Control-Expose-Headers: Content-Disposition, Content-Type');
-// Solo permitir credenciales si se especifica un origen explícito
-if (!empty($requestOrigin) && $requestOrigin !== '*') {
-    header('Access-Control-Allow-Credentials: true');
+} else {
+    // Si no hay origen o no está en la lista, permitir el dominio de producción por defecto
+    header('Access-Control-Allow-Origin: https://hseq.meridianltda.com');
 }
 
-// Cabeceras de seguridad para todas las respuestas de la API (solo JSON)
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Expose-Headers: Content-Disposition, Content-Type');
+
+// Cabeceras de seguridad para todas las respuestas de la API
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 header('Referrer-Policy: strict-origin-when-cross-origin');
-// Política de permisos mínima
 header("Permissions-Policy: geolocation=(), microphone=(), camera=(), usb=(), payment=()");
-// CSP muy estricta para API (no entrega HTML ejecutable)
+
+// CSP ajustada para permitir recursos necesarios del frontend
 // No aplicar CSP estricta a la ruta de evidencias (contenido binario) ni a uploads
 if (!preg_match('#^/hseq/backend/(evidencias/|uploads/)#', $_SERVER['REQUEST_URI'] ?? '')) {
-    header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+    header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
 }
+
 // Evitar cachear respuestas sensibles por defecto
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
