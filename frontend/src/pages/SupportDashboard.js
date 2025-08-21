@@ -32,7 +32,7 @@ const SupportDashboard = () => {
           <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-8 mb-8 shadow-2xl border border-gray-700">
             <div className="text-center">
               <h2 className="text-3xl font-bold text-white mb-4 drop-shadow">
-                ¡Bienvenido, {user?.nombre}!
+                ¡Bienvenid@, {user?.nombre}!
               </h2>
               <p className="text-gray-200 text-lg">
                 Gestiona y revisa los reportes de seguridad para mantener un ambiente de trabajo seguro
