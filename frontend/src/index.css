@@ -42,6 +42,230 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--color-background);
   color: var(--color-dark);
+  overflow-x: hidden;
+}
+
+/* Responsive container utilities */
+.responsive-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-container {
+    padding: 0 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-container {
+    padding: 0 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-container {
+    padding: 0 2.5rem;
+  }
+}
+
+/* Responsive grid utilities */
+.responsive-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .responsive-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+  }
+}
+
+/* Responsive text utilities */
+.responsive-text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.responsive-text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.responsive-text-base {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.responsive-text-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+.responsive-text-xl {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+.responsive-text-2xl {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+.responsive-text-3xl {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+
+.responsive-text-4xl {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+}
+
+.responsive-text-5xl {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+@media (min-width: 640px) {
+  .responsive-text-xs { font-size: 0.75rem; }
+  .responsive-text-sm { font-size: 0.875rem; }
+  .responsive-text-base { font-size: 1rem; }
+  .responsive-text-lg { font-size: 1.125rem; }
+  .responsive-text-xl { font-size: 1.25rem; }
+  .responsive-text-2xl { font-size: 1.5rem; }
+  .responsive-text-3xl { font-size: 1.875rem; }
+  .responsive-text-4xl { font-size: 2.25rem; }
+  .responsive-text-5xl { font-size: 3rem; }
+}
+
+@media (min-width: 768px) {
+  .responsive-text-xs { font-size: 0.75rem; }
+  .responsive-text-sm { font-size: 0.875rem; }
+  .responsive-text-base { font-size: 1rem; }
+  .responsive-text-lg { font-size: 1.125rem; }
+  .responsive-text-xl { font-size: 1.25rem; }
+  .responsive-text-2xl { font-size: 1.5rem; }
+  .responsive-text-3xl { font-size: 1.875rem; }
+  .responsive-text-4xl { font-size: 2.25rem; }
+  .responsive-text-5xl { font-size: 3rem; }
+}
+
+@media (min-width: 1024px) {
+  .responsive-text-xs { font-size: 0.75rem; }
+  .responsive-text-sm { font-size: 0.875rem; }
+  .responsive-text-base { font-size: 1rem; }
+  .responsive-text-lg { font-size: 1.125rem; }
+  .responsive-text-xl { font-size: 1.25rem; }
+  .responsive-text-2xl { font-size: 1.5rem; }
+  .responsive-text-3xl { font-size: 1.875rem; }
+  .responsive-text-4xl { font-size: 2.25rem; }
+  .responsive-text-5xl { font-size: 3rem; }
+}
+
+/* Responsive spacing utilities */
+.responsive-p-1 { padding: 0.25rem; }
+.responsive-p-2 { padding: 0.5rem; }
+.responsive-p-3 { padding: 0.75rem; }
+.responsive-p-4 { padding: 1rem; }
+.responsive-p-5 { padding: 1.25rem; }
+.responsive-p-6 { padding: 1.5rem; }
+.responsive-p-8 { padding: 2rem; }
+.responsive-p-10 { padding: 2.5rem; }
+.responsive-p-12 { padding: 3rem; }
+
+.responsive-m-1 { margin: 0.25rem; }
+.responsive-m-2 { margin: 0.5rem; }
+.responsive-m-3 { margin: 0.75rem; }
+.responsive-m-4 { margin: 1rem; }
+.responsive-m-5 { margin: 1.25rem; }
+.responsive-m-6 { margin: 1.5rem; }
+.responsive-m-8 { margin: 2rem; }
+.responsive-m-10 { margin: 2.5rem; }
+.responsive-m-12 { margin: 3rem; }
+
+@media (min-width: 640px) {
+  .responsive-p-1 { padding: 0.5rem; }
+  .responsive-p-2 { padding: 0.75rem; }
+  .responsive-p-3 { padding: 1rem; }
+  .responsive-p-4 { padding: 1.25rem; }
+  .responsive-p-5 { padding: 1.5rem; }
+  .responsive-p-6 { padding: 2rem; }
+  .responsive-p-8 { padding: 2.5rem; }
+  .responsive-p-10 { padding: 3rem; }
+  .responsive-p-12 { padding: 4rem; }
+  
+  .responsive-m-1 { margin: 0.5rem; }
+  .responsive-m-2 { margin: 0.75rem; }
+  .responsive-m-3 { margin: 1rem; }
+  .responsive-m-4 { margin: 1.25rem; }
+  .responsive-m-5 { margin: 1.5rem; }
+  .responsive-m-6 { margin: 2rem; }
+  .responsive-m-8 { margin: 2.5rem; }
+  .responsive-m-10 { margin: 3rem; }
+  .responsive-m-12 { margin: 4rem; }
+}
+
+@media (min-width: 768px) {
+  .responsive-p-1 { padding: 0.75rem; }
+  .responsive-p-2 { padding: 1rem; }
+  .responsive-p-3 { padding: 1.25rem; }
+  .responsive-p-4 { padding: 1.5rem; }
+  .responsive-p-5 { padding: 2rem; }
+  .responsive-p-6 { padding: 2.5rem; }
+  .responsive-p-8 { padding: 3rem; }
+  .responsive-p-10 { padding: 4rem; }
+  .responsive-p-12 { padding: 5rem; }
+  
+  .responsive-m-1 { margin: 0.75rem; }
+  .responsive-m-2 { margin: 1rem; }
+  .responsive-m-3 { margin: 1.25rem; }
+  .responsive-m-4 { margin: 1.5rem; }
+  .responsive-m-5 { margin: 2rem; }
+  .responsive-m-6 { margin: 2.5rem; }
+  .responsive-m-8 { margin: 3rem; }
+  .responsive-m-10 { margin: 4rem; }
+  .responsive-m-12 { margin: 5rem; }
+}
+
+@media (min-width: 1024px) {
+  .responsive-p-1 { padding: 1rem; }
+  .responsive-p-2 { padding: 1.25rem; }
+  .responsive-p-3 { padding: 1.5rem; }
+  .responsive-p-4 { padding: 2rem; }
+  .responsive-p-5 { padding: 2.5rem; }
+  .responsive-p-6 { padding: 3rem; }
+  .responsive-p-8 { padding: 4rem; }
+  .responsive-p-10 { padding: 5rem; }
+  .responsive-p-12 { padding: 6rem; }
+  
+  .responsive-m-1 { margin: 1rem; }
+  .responsive-m-2 { margin: 1.25rem; }
+  .responsive-m-3 { margin: 1.5rem; }
+  .responsive-m-4 { margin: 2rem; }
+  .responsive-m-5 { margin: 2.5rem; }
+  .responsive-m-6 { margin: 3rem; }
+  .responsive-m-8 { margin: 4rem; }
+  .responsive-m-10 { margin: 5rem; }
+  .responsive-m-12 { margin: 6rem; }
 }
 
 /* Componentes personalizados de Tailwind */
@@ -56,5 +280,230 @@ body {
   
   .input-field {
     @apply w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-300 placeholder-slate-400;
+  }
+
+  /* Responsive card utilities */
+  .responsive-card {
+    @apply backdrop-blur-2xl rounded-2xl border transition-all duration-300;
+    background-color: rgba(252, 247, 255, 0.12);
+    border-color: rgba(252, 247, 255, 0.25);
+    box-shadow: 0 10px 30px -5px rgba(4, 8, 15, 0.3);
+  }
+
+  .responsive-card:hover {
+    @apply transform scale-105;
+    box-shadow: 0 20px 40px -10px rgba(4, 8, 15, 0.4);
+  }
+
+  /* Responsive chart container */
+  .responsive-chart-container {
+    @apply relative overflow-hidden transition-all duration-300;
+    background: linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%);
+    border: 1px solid rgba(252, 247, 255, 0.2);
+    border-radius: 1.5rem;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 20px 40px -10px rgba(4, 8, 15, 0.3);
+  }
+
+  .responsive-chart-container:hover {
+    @apply transform -translate-y-1;
+    box-shadow: 0 25px 50px -15px rgba(4, 8, 15, 0.4);
+    border-color: rgba(252, 247, 255, 0.3);
+  }
+
+  /* Responsive button utilities */
+  .responsive-btn {
+    @apply font-semibold transition-all duration-300 transform hover:scale-105;
+    border-radius: 0.75rem;
+  }
+
+  .responsive-btn-primary {
+    @apply responsive-btn;
+    background: linear-gradient(45deg, var(--color-accent), var(--color-accent-light), var(--color-accent-dark));
+    color: var(--color-dark);
+    box-shadow: 0 10px 25px -5px rgba(244, 211, 94, 0.4);
+  }
+
+  .responsive-btn-primary:hover {
+    box-shadow: 0 20px 40px -12px rgba(244, 211, 94, 0.5);
+  }
+
+  /* Responsive form utilities */
+  .responsive-input {
+    @apply w-full backdrop-blur-sm border rounded-2xl focus:outline-none focus:ring-2 transition-all duration-500;
+    background-color: rgba(252, 247, 255, 0.08);
+    border-color: rgba(252, 247, 255, 0.25);
+    color: var(--color-secondary);
+  }
+
+  .responsive-input:focus {
+    border-color: rgba(99, 201, 219, 0.6);
+    box-shadow: 0 0 0 2px rgba(99, 201, 219, 0.5);
+    background-color: rgba(252, 247, 255, 0.12);
+  }
+
+  .responsive-input:hover {
+    background-color: rgba(252, 247, 255, 0.1);
+    border-color: rgba(252, 247, 255, 0.35);
+  }
+
+  .responsive-input::placeholder {
+    color: rgba(252, 247, 255, 0.4);
+  }
+}
+
+/* Responsive breakpoint utilities */
+@media (max-width: 639px) {
+  .sm\:hidden { display: none; }
+  .sm\:block { display: block; }
+  .sm\:flex { display: flex; }
+  .sm\:grid { display: grid; }
+}
+
+@media (max-width: 767px) {
+  .md\:hidden { display: none; }
+  .md\:block { display: block; }
+  .md\:flex { display: flex; }
+  .md\:grid { display: grid; }
+}
+
+@media (max-width: 1023px) {
+  .lg\:hidden { display: none; }
+  .lg\:block { display: block; }
+  .lg\:flex { display: flex; }
+  .lg\:grid { display: grid; }
+}
+
+@media (max-width: 1279px) {
+  .xl\:hidden { display: none; }
+  .xl\:block { display: block; }
+  .xl\:flex { display: flex; }
+  .xl\:grid { display: grid; }
+}
+
+/* Mobile-first responsive utilities */
+.mobile-first-container {
+  width: 100%;
+  padding: 0 1rem;
+  margin: 0 auto;
+}
+
+@media (min-width: 640px) {
+  .mobile-first-container {
+    max-width: 640px;
+    padding: 0 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-first-container {
+    max-width: 768px;
+    padding: 0 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mobile-first-container {
+    max-width: 1024px;
+    padding: 0 2.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .mobile-first-container {
+    max-width: 1280px;
+    padding: 0 3rem;
+  }
+}
+
+/* Responsive typography scale */
+.responsive-heading-1 {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 700;
+}
+
+.responsive-heading-2 {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+}
+
+.responsive-heading-3 {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+}
+
+.responsive-heading-4 {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 500;
+}
+
+@media (min-width: 640px) {
+  .responsive-heading-1 {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  
+  .responsive-heading-2 {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+  
+  .responsive-heading-3 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  
+  .responsive-heading-4 {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-heading-1 {
+    font-size: 3rem;
+    line-height: 1;
+  }
+  
+  .responsive-heading-2 {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  
+  .responsive-heading-3 {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+  
+  .responsive-heading-4 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-heading-1 {
+    font-size: 3.75rem;
+    line-height: 1;
+  }
+  
+  .responsive-heading-2 {
+    font-size: 3rem;
+    line-height: 1;
+  }
+  
+  .responsive-heading-3 {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  
+  .responsive-heading-4 {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
   }
 } 

@@ -106,8 +106,8 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Login Card - CENTRADO PERFECTAMENTE */}
-      <div className={`relative w-full max-w-md mx-auto z-10 transition-all duration-1000 delay-200 ${isVisible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-10 opacity-0 scale-95'}`}>
+      {/* Login Card - Fully Responsive */}
+      <div className={`relative w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl mx-auto z-10 transition-all duration-1000 delay-200 px-4 sm:px-6 md:px-8 ${isVisible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-10 opacity-0 scale-95'}`}>
         {/* Multiple Shadow Layers for Depth using brand colors */}
         <div 
           className="absolute -inset-1 rounded-3xl blur-lg opacity-40 animate-pulse"
@@ -139,8 +139,8 @@ const Login = () => {
             }}
           ></div>
           
-          {/* Logo Meridian - Movido dentro del contenedor */}
-          <div className={`relative px-8 pt-8 pb-4 text-center transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
+          {/* Logo Meridian - Responsive */}
+          <div className={`relative px-4 sm:px-6 md:px-8 pt-6 sm:pt-8 pb-4 text-center transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
             <div className="relative group inline-block">
               <div 
                 className="absolute -inset-2 rounded-xl blur-sm group-hover:blur opacity-0 group-hover:opacity-100 transition-all duration-500"
@@ -151,7 +151,7 @@ const Login = () => {
               <img 
                 src={logo} 
                 alt="Meridian Consulting" 
-                className="relative h-12 w-auto sm:h-14 md:h-16 filter drop-shadow-2xl group-hover:scale-110 transition-all duration-500"
+                className="relative h-10 w-auto sm:h-12 md:h-14 lg:h-16 filter drop-shadow-2xl group-hover:scale-110 transition-all duration-500"
                 style={{
                   filter: 'drop-shadow(0 10px 25px rgba(51, 97, 157, 0.3)) drop-shadow(0 0 20px rgba(99, 201, 219, 0.2))'
                 }}
@@ -161,7 +161,7 @@ const Login = () => {
           
           {/* Header with Enhanced Gradient using brand colors */}
           <div 
-            className={`relative px-8 py-6 text-center transition-all duration-700 delay-400 ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-5 opacity-0'}`}
+            className={`relative px-4 sm:px-6 md:px-8 py-4 sm:py-6 text-center transition-all duration-700 delay-400 ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-5 opacity-0'}`}
             style={{
               background: `linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 50%, var(--color-tertiary-dark) 100%)`
             }}
@@ -182,16 +182,16 @@ const Login = () => {
             
             <div className="relative z-10">
               <h1 
-                className="text-3xl font-bold mb-4 animate-text-shimmer"
+                className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 animate-text-shimmer"
                 style={{ color: 'var(--color-secondary)' }}
               >
                 HSEQ Meridian
               </h1>
-              <div className="text-sm space-y-3" style={{ color: 'rgba(252, 247, 255, 0.9)' }}>
+              <div className="text-xs sm:text-sm space-y-2 sm:space-y-3" style={{ color: 'rgba(252, 247, 255, 0.9)' }}>
                 <p className="font-semibold tracking-wide">
                   Sistema de Gestión de Seguridad y Calidad
                 </p>
-                <p className="text-xs leading-relaxed max-w-xs mx-auto" style={{ color: 'rgba(252, 247, 255, 0.75)' }}>
+                <p className="text-xs leading-relaxed max-w-xs mx-auto px-2" style={{ color: 'rgba(252, 247, 255, 0.75)' }}>
                   Reporte de incidentes, hallazgos, condiciones y actos inseguros de manera trazable y accesible
                 </p>
               </div>
@@ -200,20 +200,20 @@ const Login = () => {
 
           {/* Platform Info Section with Enhanced Design using brand colors */}
           <div 
-            className={`px-8 py-5 border-b transition-all duration-700 delay-500 ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-5 opacity-0'}`}
+            className={`px-4 sm:px-6 md:px-8 py-4 sm:py-5 border-b transition-all duration-700 delay-500 ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-5 opacity-0'}`}
             style={{
               background: `linear-gradient(90deg, rgba(252, 247, 255, 0.08), rgba(99, 201, 219, 0.05))`,
               borderColor: 'rgba(252, 247, 255, 0.15)'
             }}
           >
-            <div className="flex items-center space-x-4 group transition-colors duration-300" style={{ color: 'rgba(252, 247, 255, 0.9)' }}>
+            <div className="flex items-center space-x-3 sm:space-x-4 group transition-colors duration-300" style={{ color: 'rgba(252, 247, 255, 0.9)' }}>
               <div className="relative">
                 <div 
                   className="absolute inset-0 rounded-full blur-sm group-hover:blur-md transition-all duration-300"
                   style={{ backgroundColor: 'rgba(99, 201, 219, 0.2)' }}
                 ></div>
                 <svg 
-                  className="relative h-6 w-6 transition-colors duration-300" 
+                  className="relative h-5 w-5 sm:h-6 sm:w-6 transition-colors duration-300" 
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
@@ -222,7 +222,7 @@ const Login = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.031 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
-              <div className="text-sm">
+              <div className="text-xs sm:text-sm">
                 <p className="font-semibold transition-colors duration-300" style={{ color: 'var(--color-secondary)' }}>Acceso Seguro</p>
                 <p className="text-xs transition-colors duration-300" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Plataforma centralizada para gestión de HSEQ</p>
               </div>
