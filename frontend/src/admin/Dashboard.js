@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -17,6 +17,10 @@ import ReportsTable from '../components/ReportsTable';
 const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
+  
+  const handlePeriodChange = useCallback((period) => {
+    setSelectedPeriod(period);
+  }, []);
   const [user, setUser] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
@@ -26,19 +30,7 @@ const Dashboard = () => {
 
   const { stats, loading, error } = useDashboardStats(selectedPeriod);
 
-  useEffect(() => {
-    const userData = getUser();
-    if (userData) {
-      setUser(userData);
-      setTimeout(() => setIsVisible(true), 100);
-    }
-    // Cargar datos para asignación si es admin
-    if (isAdmin()) {
-      loadAssignmentData();
-    }
-  }, []);
-
-  const loadAssignmentData = async () => {
+  const loadAssignmentData = useCallback(async () => {
     try {
       setAssignLoading(true);
       setAssignError(null);
@@ -53,9 +45,21 @@ const Dashboard = () => {
     } finally {
       setAssignLoading(false);
     }
-  };
+  }, []);
 
-  const handleAssignToSupport = async (reportId, supportUserId) => {
+  useEffect(() => {
+    const userData = getUser();
+    if (userData) {
+      setUser(userData);
+      setTimeout(() => setIsVisible(true), 100);
+    }
+    // Cargar datos para asignación si es admin
+    if (isAdmin()) {
+      loadAssignmentData();
+    }
+  }, [loadAssignmentData]);
+
+  const handleAssignToSupport = useCallback(async (reportId, supportUserId) => {
     if (!supportUserId) return;
     try {
       setAssignLoading(true);
@@ -72,21 +76,21 @@ const Dashboard = () => {
     } finally {
       setAssignLoading(false);
     }
-  };
+  }, [loadAssignmentData]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout();
-  };
+  }, []);
 
-  const goBackToHome = () => {
+  const goBackToHome = useCallback(() => {
     navigate('/home');
-  };
+  }, [navigate]);
 
-  const goToUserAdmin = () => {
+  const goToUserAdmin = useCallback(() => {
     navigate('/admin/users');
-  };
+  }, [navigate]);
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = useCallback(() => {
     const title = 'Reporte Ejecutivo HSEQ';
     const generatedAt = new Date().toLocaleString('es-ES');
     const totalTipos = incidentsByType.reduce((a, d) => a + (Number(d.value) || 0), 0);
@@ -203,9 +207,9 @@ const Dashboard = () => {
     w.document.open();
     w.document.write(html);
     w.document.close();
-  };
+  }, []);
 
-  const handleDownloadExcel = async () => {
+  const handleDownloadExcel = useCallback(async () => {
     // Prepare data sets
     const kpiRows = [
       { KPI: kpis[0]?.title || 'Total Incidentes', Valor: kpis[0]?.value ?? '-' },
@@ -378,7 +382,7 @@ const Dashboard = () => {
       link.click();
       document.body.removeChild(link);
     }
-  };
+  }, []);
 
   // Bar chart: Reportes por periodo (dinámico por selectedPeriod)
   const incidentsByMonth = (stats?.incidentesPorMes || []).map(m => ({
@@ -675,7 +679,7 @@ const Dashboard = () => {
               {['month', 'quarter', 'year'].map((period) => (
                 <button
                   key={period}
-                  onClick={() => setSelectedPeriod(period)}
+                  onClick={() => handlePeriodChange(period)}
                   className={`py-2 px-3 md:px-4 rounded-lg font-semibold transition-all duration-300 text-sm md:text-base ${
                     selectedPeriod === period ? 'scale-105' : 'hover:scale-105'
                   }`}

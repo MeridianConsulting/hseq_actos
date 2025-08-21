@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { reportService } from '../services/api';
 
 export const useDashboardStats = (period) => {
@@ -6,7 +6,7 @@ export const useDashboardStats = (period) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -22,16 +22,15 @@ export const useDashboardStats = (period) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [period]);
 
   useEffect(() => {
     fetchStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period]);
+  }, [fetchStats]);
 
-  const refreshStats = () => {
+  const refreshStats = useCallback(() => {
     fetchStats();
-  };
+  }, [fetchStats]);
 
   return {
     stats,

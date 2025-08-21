@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ReportService from '../services/reportService';
 import ReportDetailsModal from './ReportDetailsModal';
 import ApprovalModal from './ApprovalModal';
 import { buildApi } from '../config/api';
 import { gradosCriticidad, tiposAfectacion, reportTypes } from '../config/formOptions';
+import { reportService } from '../services/api';
 
 const ReportsTable = ({ 
   user, 
@@ -55,7 +56,7 @@ const ReportsTable = ({
     }
   };
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     setIsLoading(true);
     try {
       // Cargar reportes con filtros aplicados pero sin filtrar por estado
@@ -81,18 +82,18 @@ const ReportsTable = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filters, activeTab]);
 
   useEffect(() => {
     // Cargar estadísticas y reportes al inicializar
     loadStats();
     loadReports();
-  }, []);
+  }, [loadReports]);
 
   // Recargar cuando cambie pestaña o paginación básica
   useEffect(() => {
     loadReports();
-  }, [activeTab, filters.page, filters.per_page, filters.sort_by, filters.sort_dir]);
+  }, [activeTab, filters.page, filters.per_page, filters.sort_by, filters.sort_dir, loadReports]);
 
   const handleStatusChange = async (reportId, newStatus) => {
     try {
