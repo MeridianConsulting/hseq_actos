@@ -413,30 +413,45 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       // Crear la hoja de trabajo
       const worksheet = workbook.addWorksheet('Reporte Detallado');
       
-      // Configurar estilos
+      // Configurar estilos mejorados
       const titleStyle = {
-        font: { bold: true, size: 16, color: { argb: 'FF2E5BBA' } },
-        alignment: { horizontal: 'center' }
+        font: { bold: true, size: 18, color: { argb: 'FF2E5BBA' } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F8FF' } }
       };
       
       const headerStyle = {
-        font: { bold: true, size: 12, color: { argb: 'FF2E5BBA' } },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F3FF' } },
+        font: { bold: true, size: 12, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E5BBA' } },
         border: {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' }
-        }
+          top: { style: 'thin', color: { argb: 'FF1E3A8A' } },
+          left: { style: 'thin', color: { argb: 'FF1E3A8A' } },
+          bottom: { style: 'thin', color: { argb: 'FF1E3A8A' } },
+          right: { style: 'thin', color: { argb: 'FF1E3A8A' } }
+        },
+        alignment: { vertical: 'middle' }
       };
       
       const cellStyle = {
         border: {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' }
-        }
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+        },
+        alignment: { vertical: 'middle' }
+      };
+      
+      const sectionHeaderStyle = {
+        font: { bold: true, size: 14, color: { argb: 'FF2E5BBA' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } },
+        border: {
+          top: { style: 'thin', color: { argb: 'FF2E5BBA' } },
+          left: { style: 'thin', color: { argb: 'FF2E5BBA' } },
+          bottom: { style: 'thin', color: { argb: 'FF2E5BBA' } },
+          right: { style: 'thin', color: { argb: 'FF2E5BBA' } }
+        },
+        alignment: { vertical: 'middle' }
       };
       
       // Título principal
@@ -449,7 +464,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       worksheet.mergeCells('A3:D3');
       const infoHeader = worksheet.getCell('A3');
       infoHeader.value = 'INFORMACIÓN GENERAL';
-      infoHeader.style = headerStyle;
+      infoHeader.style = sectionHeaderStyle;
       
       // Datos generales
       const generalData = [
@@ -505,7 +520,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
         const specificHeader = worksheet.getCell(`A${currentRow}`);
         specificHeader.value = `INFORMACIÓN DEL ${report.tipo_reporte.toUpperCase()}`;
-        specificHeader.style = headerStyle;
+        specificHeader.style = sectionHeaderStyle;
         currentRow++;
         
         specificData.forEach(([label, value]) => {
@@ -524,7 +539,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
         const reviewHeader = worksheet.getCell(`A${currentRow}`);
         reviewHeader.value = 'INFORMACIÓN DE REVISIÓN';
-        reviewHeader.style = headerStyle;
+        reviewHeader.style = sectionHeaderStyle;
         currentRow++;
         
         if (report.fecha_revision) {
@@ -546,50 +561,36 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         }
       }
       
-      // Evidencias
+      // Información adicional del reporte
       currentRow += 2;
       worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-      const evidenceHeader = worksheet.getCell(`A${currentRow}`);
-      evidenceHeader.value = 'EVIDENCIAS ADJUNTAS';
-      evidenceHeader.style = headerStyle;
+      const additionalHeader = worksheet.getCell(`A${currentRow}`);
+      additionalHeader.value = 'INFORMACIÓN ADICIONAL';
+      additionalHeader.style = sectionHeaderStyle;
       currentRow++;
       
-      if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
-        // Encabezados de tabla de evidencias
-        const evidenceHeaders = ['Número', 'Nombre del Archivo', 'Tipo de Archivo', 'Fecha de Creación'];
-        evidenceHeaders.forEach((header, index) => {
-          const cell = worksheet.getCell(`${String.fromCharCode(65 + index)}${currentRow}`);
-          cell.value = header;
-          cell.style = headerStyle;
-        });
+      // Agregar información adicional relevante
+      const additionalData = [
+        ['Sistema Generador', 'Sistema HSEQ - Meridian Colombia'],
+        ['Fecha de Generación', new Date().toLocaleString('es-ES')],
+        ['Usuario Generador', report.nombre_usuario || 'No especificado'],
+        ['Estado del Reporte', getStatusLabel(report.estado) || 'No especificado']
+      ];
+      
+      additionalData.forEach(([label, value]) => {
+        worksheet.getCell(`A${currentRow}`).value = label;
+        worksheet.getCell(`A${currentRow}`).style = headerStyle;
+        worksheet.getCell(`B${currentRow}`).value = value;
+        worksheet.getCell(`B${currentRow}`).style = cellStyle;
+        worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
         currentRow++;
-        
-        // Datos de evidencias
-        for (let i = 0; i < report.evidencias.length; i++) {
-          const evidencia = report.evidencias[i];
-          worksheet.getCell(`A${currentRow}`).value = i + 1;
-          worksheet.getCell(`A${currentRow}`).style = cellStyle;
-          worksheet.getCell(`B${currentRow}`).value = evidencia.url_archivo || 'Sin nombre';
-          worksheet.getCell(`B${currentRow}`).style = cellStyle;
-          worksheet.getCell(`C${currentRow}`).value = evidencia.tipo_archivo || 'Tipo desconocido';
-          worksheet.getCell(`C${currentRow}`).style = cellStyle;
-          worksheet.getCell(`D${currentRow}`).value = formatFieldValue('creado_en', evidencia.creado_en);
-          worksheet.getCell(`D${currentRow}`).style = cellStyle;
-          currentRow++;
-        }
-        
-
-      } else {
-        worksheet.getCell(`A${currentRow}`).value = 'No hay evidencias adjuntas';
-        worksheet.getCell(`A${currentRow}`).style = { font: { italic: true } };
-        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
-      }
+      });
       
       // Ajustar ancho de columnas
-      worksheet.getColumn('A').width = 25;
-      worksheet.getColumn('B').width = 40;
-      worksheet.getColumn('C').width = 20;
-      worksheet.getColumn('D').width = 25;
+      worksheet.getColumn('A').width = 30;
+      worksheet.getColumn('B').width = 50;
+      worksheet.getColumn('C').width = 25;
+      worksheet.getColumn('D').width = 30;
       
       // Generar el nombre del archivo
       const safeName = String(report.asunto || report.asunto_conversacion || 'reporte').replace(/[^a-z0-9_.-]/gi, '_');
@@ -613,7 +614,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       }, 1000);
       
              // Mostrar mensaje de éxito
-       alert('Reporte Excel con formato profesional generado exitosamente. Las imágenes están embebidas en el documento.');
+       alert('Reporte Excel con formato profesional generado exitosamente.');
       
     } catch (error) {
       console.error('Error generando Excel:', error);
@@ -651,41 +652,72 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
           const lines = doc.splitTextToSize(sourceText, maxWidth);
           lines.forEach((line) => { 
             doc.text(line, margin, y); 
-            y += 16; 
+            y += 18; 
           });
         } catch (textError) {
           
           // Fallback: escribir texto simple
           doc.text(String(text || ''), margin, y);
-          y += 16;
+          y += 18;
         }
       };
 
       // Crear contenido básico del PDF
       
-      
+      // Título principal
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
-      writeLine('Reporte HSEQ');
-
+      doc.setFontSize(20);
+      doc.setTextColor(46, 91, 186); // Azul corporativo
+      writeLine('REPORTE HSEQ DETALLADO');
+      y += 8;
+      
+      // Línea decorativa
+      doc.setDrawColor(46, 91, 186);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 16;
+      
+      // Información general
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(45, 55, 72); // Gris oscuro
+      writeLine('INFORMACIÓN GENERAL');
+      y += 8;
+      
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(11);
+      doc.setTextColor(26, 32, 44); // Negro
       const meta = [
-        `ID: ${report.id ?? ''}`,
-        `Tipo: ${getEventTypeLabel(report.tipo_reporte)}`,
+        `ID del Reporte: ${report.id ?? ''}`,
+        `Tipo de Reporte: ${getEventTypeLabel(report.tipo_reporte)}`,
         `Usuario: ${report.nombre_usuario ?? ''}`,
         `Estado: ${getStatusLabel(report.estado ?? '')}`,
-        `Fecha evento: ${report.fecha_evento ?? ''} ${report.hora_evento ?? ''}`,
-        `Creado: ${report.creado_en ?? ''}`,
+        `Fecha del Evento: ${report.fecha_evento ?? ''} ${report.hora_evento ?? ''}`,
+        `Fecha de Creación: ${report.creado_en ?? ''}`,
+        `Asunto: ${report.asunto || report.asunto_conversacion || ''}`,
       ];
       meta.forEach((line) => writeLine(line));
-      y += 8;
+      y += 16;
 
       doc.setFont('helvetica', 'bold');
-      writeLine('Detalle');
+      doc.setFontSize(14);
+      doc.setTextColor(45, 55, 72);
+      writeLine('DETALLES DEL REPORTE');
+      y += 8;
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(11);
+      doc.setTextColor(26, 32, 44);
 
-      const addField = (label, value) => { if (value) writeLine(`${label}: ${value}`); };
+      const addField = (label, value) => { 
+        if (value) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(10);
+          writeLine(`${label}:`);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(10);
+          writeLine(`  ${value}`);
+          y += 4;
+        }
+      };
 
       if (report.tipo_reporte === 'hallazgos') {
         addField('Lugar del Hallazgo', report.lugar_hallazgo || report.lugar_hallazgo_otro);
@@ -705,19 +737,26 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         addField('Descripción', report.descripcion_conversacion);
       }
 
-             y += 8;
+             y += 16;
        doc.setFont('helvetica', 'bold');
-       writeLine('Evidencias');
+       doc.setFontSize(12);
+       writeLine('Información Adicional');
        doc.setFont('helvetica', 'normal');
-
-       if (Array.isArray(report.evidencias) && report.evidencias.length > 0) {
-         // Listar todas las evidencias
-         report.evidencias.forEach((evidencia, index) => {
-           writeLine(`Evidencia ${index + 1}: ${evidencia.url_archivo || 'Sin nombre'} (${evidencia.tipo_archivo || 'Tipo desconocido'})`);
-         });
-       } else {
-         writeLine('No hay evidencias adjuntas');
-       }
+       doc.setFontSize(10);
+       y += 8;
+       
+       writeLine(`Sistema Generador: Sistema HSEQ - Meridian Colombia`);
+       writeLine(`Fecha de Generación: ${new Date().toLocaleString('es-ES')}`);
+       writeLine(`Usuario Generador: ${report.nombre_usuario || 'No especificado'}`);
+       writeLine(`Estado del Reporte: ${getStatusLabel(report.estado) || 'No especificado'}`);
+       
+       y += 16;
+       doc.setFont('helvetica', 'bold');
+       doc.setFontSize(10);
+       writeLine('Nota: Este reporte fue generado automáticamente por el Sistema HSEQ.');
+       doc.setFont('helvetica', 'normal');
+       doc.setFontSize(8);
+       writeLine('Meridian Colombia - Sistema de Gestión de Seguridad, Salud Ocupacional y Medio Ambiente');
       
       
 

@@ -92,22 +92,31 @@ const Dashboard = () => {
     const totalTipos = incidentsByType.reduce((a, d) => a + (Number(d.value) || 0), 0);
     const estilos = `
       <style>
-        * { box-sizing: border-box; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
-        body { margin: 24px; color: #0b1220; }
-        h1 { margin: 0 0 8px; font-size: 22px; }
-        h2 { margin: 16px 0 8px; font-size: 16px; }
-        p { margin: 0 0 8px; font-size: 12px; }
-        .muted { color: #5b6476; }
-        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        .kpi { padding: 8px; border: 1px solid #e6e8ee; border-radius: 8px; background: #f8fafc; }
-        .kpi .val { font-size: 18px; font-weight: 700; }
-        .table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        .table th, .table td { border: 1px solid #e6e8ee; padding: 6px 8px; text-align: left; }
-        .table th { background: #f1f5f9; }
-        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .box { border: 1px solid #e6e8ee; border-radius: 8px; padding: 10px; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background:#eef2ff; color:#3730a3; font-weight:600; font-size:10px; }
-        @media print { .no-print { display: none; } }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 30px; color: #1a202c; background: #ffffff; }
+        h1 { margin: 0 0 16px; font-size: 28px; font-weight: 700; color: #2d3748; border-bottom: 3px solid #3182ce; padding-bottom: 8px; }
+        h2 { margin: 24px 0 12px; font-size: 18px; font-weight: 600; color: #4a5568; }
+        p { margin: 0 0 12px; font-size: 14px; line-height: 1.5; }
+        .muted { color: #718096; font-size: 13px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 20px 0; }
+        .kpi { padding: 16px; border: 2px solid #e2e8f0; border-radius: 12px; background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .kpi .val { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
+        .kpi .muted { margin: 0; font-size: 12px; font-weight: 500; }
+        .table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 16px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .table th, .table td { border: 1px solid #e2e8f0; padding: 12px 16px; text-align: left; }
+        .table th { background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%); color: white; font-weight: 600; }
+        .table tr:nth-child(even) { background-color: #f7fafc; }
+        .table tr:hover { background-color: #edf2f7; }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 20px 0; }
+        .box { border: 2px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%); color: white; font-weight: 600; font-size: 11px; margin: 0 4px; }
+        .header-info { background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); padding: 16px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3182ce; }
+        @media print { 
+          .no-print { display: none; } 
+          body { margin: 20px; }
+          .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+          .grid2 { grid-template-columns: 1fr; }
+        }
       </style>`;
 
     const kpiRows = `
@@ -151,29 +160,42 @@ const Dashboard = () => {
     const html = `
       <!doctype html><html><head><meta charset="utf-8"/>${estilos}</head>
       <body>
-        <div class="no-print" style="text-align:right;margin-bottom:8px;">
-          <button onclick="window.print()" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#0ea5e9;color:#fff;">Imprimir / Guardar PDF</button>
+        <div class="no-print" style="text-align:right;margin-bottom:16px;">
+          <button onclick="window.print()" style="padding:12px 20px;border:none;border-radius:8px;background:linear-gradient(135deg, #3182ce 0%, #2c5282 100%);color:#fff;font-weight:600;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2);">📄 Imprimir / Guardar PDF</button>
         </div>
+        
         <h1>${title}</h1>
-        <p class="muted">Generado: ${generatedAt} • Periodo: ${selectedPeriod === 'month' ? 'Mensual' : selectedPeriod === 'quarter' ? 'Trimestral' : 'Anual'}</p>
-        <p class="muted">Área/Proceso destacado: <span class="badge">${areaProcesoTop}</span> • Hallazgo más reportado: <span class="badge">${hallazgoMasReportado}</span></p>
+        
+        <div class="header-info">
+          <p class="muted"><strong>📅 Generado:</strong> ${generatedAt}</p>
+          <p class="muted"><strong>📊 Periodo:</strong> ${selectedPeriod === 'month' ? 'Mensual' : selectedPeriod === 'quarter' ? 'Trimestral' : 'Anual'}</p>
+          <p class="muted"><strong>🏢 Área/Proceso destacado:</strong> <span class="badge">${areaProcesoTop}</span></p>
+          <p class="muted"><strong>🔍 Hallazgo más reportado:</strong> <span class="badge">${hallazgoMasReportado}</span></p>
+        </div>
 
-        <h2>Indicadores Clave</h2>
+        <h2>📈 Indicadores Clave de Rendimiento</h2>
         ${kpiRows}
 
         <div class="grid2">
           <div class="box">
-            <h2>Cantidad de reportes por periodo</h2>
+            <h2>📊 Cantidad de reportes por periodo</h2>
             ${tablaIncMes}
           </div>
           <div class="box">
-            <h2>Distribución por tipo</h2>
+            <h2>📋 Distribución por tipo</h2>
             ${tablaTipo}
           </div>
         </div>
 
-        <h2 style="margin-top:12px">Resumen (Totales y abiertos por criticidad)</h2>
+        <h2>📋 Resumen de Totales y Abiertos por Criticidad</h2>
         <div class="box">${abiertosCrit}</div>
+        
+        <div style="margin-top: 40px; padding: 20px; background: #f7fafc; border-radius: 8px; text-align: center; border-left: 4px solid #3182ce;">
+          <p style="margin: 0; color: #4a5568; font-size: 12px;">
+            <strong>Reporte generado automáticamente por el Sistema HSEQ</strong><br>
+            Meridian Colombia - Sistema de Gestión de Seguridad, Salud Ocupacional y Medio Ambiente
+          </p>
+        </div>
       </body></html>`;
 
     const w = window.open('', '_blank');
@@ -250,22 +272,66 @@ const Dashboard = () => {
 
       const addTableSheet = (name, headerDefs, rows) => {
         const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 1 }] });
+        
+        // Agregar título de la hoja
+        const titleRow = ws.addRow([name.toUpperCase()]);
+        titleRow.font = { bold: true, size: 16, color: { argb: 'FF2E5BBA' } };
+        titleRow.alignment = { horizontal: 'center' };
+        ws.mergeCells(`A1:${String.fromCharCode(65 + headerDefs.length - 1)}1`);
+        
+        // Agregar línea en blanco
+        ws.addRow([]);
+        
+        // Agregar tabla
+        const tableStartRow = 3;
         ws.addTable({
           name: `${name.replace(/\s+/g, '')}Table`,
-          ref: 'A1',
-          style: { theme: 'TableStyleMedium9', showRowStripes: true },
+          ref: `A${tableStartRow}`,
+          style: { 
+            theme: 'TableStyleMedium2', 
+            showRowStripes: true,
+            showFirstColumn: false,
+            showLastColumn: false
+          },
           headerRow: true,
           columns: headerDefs.map(h => ({ name: h })),
           rows: rows.map(r => headerDefs.map(h => r[h]))
         });
+        
+        // Estilizar encabezados
+        const headerRow = ws.getRow(tableStartRow);
+        headerRow.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = { 
+          type: 'pattern', 
+          pattern: 'solid', 
+          fgColor: { argb: 'FF2E5BBA' } 
+        };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+        headerRow.height = 25;
+        
+        // Estilizar datos
+        for (let i = tableStartRow + 1; i <= tableStartRow + rows.length; i++) {
+          const dataRow = ws.getRow(i);
+          dataRow.font = { size: 11 };
+          dataRow.alignment = { vertical: 'middle' };
+          dataRow.height = 20;
+          
+          // Alternar colores de filas
+          if (i % 2 === 0) {
+            dataRow.fill = { 
+              type: 'pattern', 
+              pattern: 'solid', 
+              fgColor: { argb: 'FFF8F9FA' } 
+            };
+          }
+        }
+        
+        // Ajustar ancho de columnas
         headerDefs.forEach((h, i) => {
           const maxLen = Math.max(h.length, ...rows.map(r => (r[h] ? String(r[h]).length : 0)));
-          ws.getColumn(i + 1).width = Math.min(Math.max(10, maxLen + 2), 50);
+          ws.getColumn(i + 1).width = Math.min(Math.max(15, maxLen + 3), 50);
         });
-        ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
-        ws.getRow(1).alignment = { vertical: 'middle' };
-        ws.getRow(1).height = 20;
+        
         return ws;
       };
 
