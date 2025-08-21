@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReportService from '../services/reportService';
 import ReportDetailsModal from './ReportDetailsModal';
+import ApprovalModal from './ApprovalModal';
 import { API_BASE_URL } from '../services/api';
 import { gradosCriticidad, tiposAfectacion, reportTypes } from '../config/formOptions';
 
@@ -18,6 +19,8 @@ const ReportsTable = ({
   const [message, setMessage] = useState('');
   const [selectedReportId, setSelectedReportId] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [selectedReportForApproval, setSelectedReportForApproval] = useState(null);
   
   // Filtros y paginación
   const [filters, setFilters] = useState({
@@ -206,6 +209,53 @@ const ReportsTable = ({
   const handleCloseDetails = () => {
     setShowDetailsModal(false);
     setSelectedReportId(null);
+  };
+
+  const handleOpenApprovalModal = (report) => {
+    setSelectedReportForApproval(report);
+    setShowApprovalModal(true);
+  };
+
+  const handleCloseApprovalModal = () => {
+    setShowApprovalModal(false);
+    setSelectedReportForApproval(null);
+  };
+
+  const handleApproveWithModal = async (reportId, motivoAprobacion) => {
+    try {
+      // Update the report status to 'aprobado' (approved/closed)
+      const result = await ReportService.updateReportStatus(
+        reportId, 
+        'aprobado', 
+        user?.id, 
+        `Caso aprobado por ${user?.nombre}. Motivo: ${motivoAprobacion}`
+      );
+      
+      if (result.success) {
+        // Update local state
+        setReports(prev => 
+          prev.map(report => 
+            report.id === reportId ? { ...report, estado: 'aprobado' } : report
+          )
+        );
+        setMessage('Reporte aprobado y cerrado exitosamente');
+        
+        // Update statistics
+        loadStats();
+        
+        // Clear message after 3 seconds
+        setTimeout(() => setMessage(''), 3000);
+        
+        // Call callback if exists
+        if (onStatusChange) {
+          onStatusChange(reportId, 'aprobado');
+        }
+      } else {
+        throw new Error(result.message || 'Error al aprobar el reporte');
+      }
+    } catch (error) {
+      throw new Error('Error al aprobar el reporte: ' + error.message);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -657,7 +707,7 @@ const ReportsTable = ({
                   {showStatusActions && report.estado === 'en_revision' && (
                     <>
                       <button
-                        onClick={() => handleStatusChange(report.id, 'aprobado')}
+                        onClick={() => handleOpenApprovalModal(report)}
                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors duration-200"
                       >
                         Aprobar
@@ -726,6 +776,16 @@ const ReportsTable = ({
         onClose={handleCloseDetails}
         reportId={selectedReportId}
       />
+
+      {/* Approval Modal */}
+      {selectedReportForApproval && (
+        <ApprovalModal
+          isOpen={showApprovalModal}
+          onClose={handleCloseApprovalModal}
+          report={selectedReportForApproval}
+          onApprove={handleApproveWithModal}
+        />
+      )}
     </div>
   );
 };

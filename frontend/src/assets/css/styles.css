@@ -2986,6 +2986,125 @@ body:not([data-page="dashboard"]) header.main-header.scrolled {
   }
 }
 
+/* Dashboard Responsive Styles */
+.dashboard-container {
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.dashboard-content {
+  position: relative;
+  z-index: 10;
+}
+
+.chart-container {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.chart-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 25px 50px -15px rgba(4, 8, 15, 0.4);
+}
+
+/* Responsive chart adjustments */
+@media (max-width: 768px) {
+  .chart-container {
+    height: auto !important;
+    min-height: 350px;
+    padding: 1rem !important;
+    border-radius: 1rem !important;
+  }
+  
+  .chart-container .nivo-responsive-container {
+    height: 280px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-container {
+    min-height: 300px;
+    padding: 0.75rem !important;
+    border-radius: 0.75rem !important;
+  }
+  
+  .chart-container .nivo-responsive-container {
+    height: 250px !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .chart-container {
+    padding: 1.5rem !important;
+    border-radius: 1.5rem !important;
+    height: 450px !important;
+  }
+}
+
+/* Dashboard grid responsive */
+.dashboard-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1025px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+/* Dashboard card responsive */
+.dashboard-card {
+  transition: all 0.3s ease;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-card-content {
+  overflow: hidden;
+}
+
+.dashboard-card-content p {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Dashboard section responsive */
+.dashboard-section {
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .dashboard-section h4 {
+    font-size: 1rem;
+  }
+  
+  .dashboard-section .space-y-3 > div {
+    padding: 0.75rem;
+  }
+}
+
 /* User Information Card Enhanced Styles */
 .user-info-card {
   position: relative;

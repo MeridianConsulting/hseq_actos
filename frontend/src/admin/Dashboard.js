@@ -416,17 +416,17 @@ const Dashboard = () => {
           {/* Welcome Section */}
           {user && (
             <div className={`transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              <div className="text-center mb-8">
-                <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
+              <div className="text-center mb-6 md:mb-8">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4" style={{ color: 'var(--color-secondary)' }}>
                   ¡Bienvenido, {getUserName()}!
                 </h1>
-                <p className="text-xl" style={{ color: 'rgba(252, 247, 255, 0.8)' }}>
+                <p className="text-base md:text-xl" style={{ color: 'rgba(252, 247, 255, 0.8)' }}>
                   Plataforma HSEQ - Sistema de Gestión de Seguridad y Calidad
                 </p>
               </div>
 
               {/* User Information Card - Redesigned */}
-              <div className="max-w-4xl mx-auto mb-8 transition-all duration-1000 delay-300">
+              <div className="max-w-4xl mx-auto mb-6 md:mb-8 transition-all duration-1000 delay-300">
                 <div 
                   className="backdrop-blur-2xl rounded-3xl shadow-2xl border overflow-hidden"
                   style={{
@@ -437,7 +437,7 @@ const Dashboard = () => {
                 >
                   {/* Header Section with Avatar */}
                   <div 
-                    className="relative p-8 text-center"
+                    className="relative p-4 md:p-8 text-center"
                     style={{
                       background: 'linear-gradient(135deg, rgba(51, 97, 157, 0.2) 0%, rgba(99, 201, 219, 0.1) 100%)',
                       borderBottom: '1px solid rgba(252, 247, 255, 0.1)'
@@ -458,13 +458,13 @@ const Dashboard = () => {
                     {/* Avatar and User Info */}
                     <div className="relative z-10">
                       <div 
-                        className="w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center relative group"
+                        className="w-16 h-16 md:w-24 md:h-24 rounded-full mx-auto mb-3 md:mb-4 flex items-center justify-center relative group"
                         style={{ 
                           background: 'linear-gradient(135deg, rgba(51, 97, 157, 0.3) 0%, rgba(99, 201, 219, 0.2) 100%)',
                           border: '3px solid rgba(252, 247, 255, 0.3)'
                         }}
                       >
-                        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-secondary)' }}>
+                        <svg className="w-8 h-8 md:w-12 md:h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-secondary)' }}>
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                         <div 
@@ -474,11 +474,11 @@ const Dashboard = () => {
                           }}
                         ></div>
                       </div>
-                      <h3 className="text-3xl font-bold mb-2" style={{ color: 'var(--color-secondary)' }}>
+                      <h3 className="text-xl md:text-3xl font-bold mb-2" style={{ color: 'var(--color-secondary)' }}>
                         {user.nombre}
                       </h3>
                       <span 
-                        className="inline-block px-4 py-2 rounded-full text-sm font-bold capitalize"
+                        className="inline-block px-3 md:px-4 py-1 md:py-2 rounded-full text-xs md:text-sm font-bold capitalize"
                         style={{
                           backgroundColor: isAdmin() ? 'rgba(220, 38, 38, 0.2)' : 
                                          'rgba(34, 197, 94, 0.2)',
@@ -494,7 +494,7 @@ const Dashboard = () => {
 
                   {/* User Details Grid */}
                   <div className="p-4 md:p-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 dashboard-grid">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 dashboard-grid">
                       {/* Personal Information */}
                       <div className="space-y-4 dashboard-section">
                         <h4 className="text-lg font-semibold mb-4 flex items-center" style={{ color: 'var(--color-secondary)' }}>
@@ -604,13 +604,13 @@ const Dashboard = () => {
           )}
 
           {/* Period Filter */}
-          <div className="flex justify-center mb-8">
-            <div className="flex space-x-2">
+          <div className="flex justify-center mb-6 md:mb-8">
+            <div className="flex flex-wrap justify-center gap-2">
               {['month', 'quarter', 'year'].map((period) => (
                 <button
                   key={period}
                   onClick={() => setSelectedPeriod(period)}
-                  className={`py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
+                  className={`py-2 px-3 md:px-4 rounded-lg font-semibold transition-all duration-300 text-sm md:text-base ${
                     selectedPeriod === period ? 'scale-105' : 'hover:scale-105'
                   }`}
                   style={{
@@ -630,23 +630,23 @@ const Dashboard = () => {
           </div>
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            {loading && <div className="text-center text-lg text-gray-300">Cargando KPIs...</div>}
-            {error && <div className="text-center text-lg text-red-500">{error}</div>}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+            {loading && <div className="text-center text-lg text-gray-300 col-span-full">Cargando KPIs...</div>}
+            {error && <div className="text-center text-lg text-red-500 col-span-full">{error}</div>}
             {!loading && !error && kpis.map((kpi, index) => (
               <div 
                 key={index}
-                className="backdrop-blur-2xl rounded-2xl p-6 border hover:transform hover:scale-105 transition-all duration-300"
+                className="backdrop-blur-2xl rounded-2xl p-4 md:p-6 border hover:transform hover:scale-105 transition-all duration-300"
                 style={{
                   backgroundColor: 'rgba(252, 247, 255, 0.12)',
                   borderColor: 'rgba(252, 247, 255, 0.25)',
                   boxShadow: '0 10px 30px -5px rgba(4, 8, 15, 0.3)'
                 }}
               >
-                <h3 className="text-3xl font-bold mb-1" style={{ color: kpi.color }}>
+                <h3 className="text-2xl md:text-3xl font-bold mb-1" style={{ color: kpi.color }}>
                   {kpi.value}
                 </h3>
-                <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
+                <p className="text-xs md:text-sm" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
                   {kpi.title}
                 </p>
               </div>
@@ -654,9 +654,9 @@ const Dashboard = () => {
           </div>
 
           {/* Charts Grid - Enhanced */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {loading && <div className="text-center text-lg text-gray-300">Cargando gráficos...</div>}
-            {error && <div className="text-center text-lg text-red-500">{error}</div>}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-8 mb-8">
+            {loading && <div className="text-center text-lg text-gray-300 col-span-full">Cargando gráficos...</div>}
+            {error && <div className="text-center text-lg text-red-500 col-span-full">{error}</div>}
             {!loading && !error && (
               <>
                 {/* Bar Chart - Incidentes por Mes */}
@@ -683,7 +683,7 @@ const Dashboard = () => {
                   
                   {/* Chart Header */}
                   <div className="relative z-10 mb-6">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-3 space-y-3 md:space-y-0">
                       <div className="flex items-center space-x-3">
                         <div 
                           className="w-10 h-10 rounded-xl flex items-center justify-center"
@@ -697,15 +697,15 @@ const Dashboard = () => {
                           </svg>
                         </div>
                         <div>
-                          <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                          <h3 className="text-lg md:text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
                             Cantidad de reportes por periodo
                           </h3>
-                          <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
+                          <p className="text-xs md:text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
                             Análisis mensual
                           </p>
                         </div>
                       </div>
-                      <div className="flex space-x-3">
+                      <div className="flex flex-wrap gap-2 md:space-x-3">
                         <div className="flex items-center space-x-1">
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
                           <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Incidentes</span>
@@ -723,20 +723,20 @@ const Dashboard = () => {
                   </div>
                   
                   {/* Chart Container */}
-                  <div className="relative" style={{ height: '320px' }}>
+                  <div className="relative" style={{ height: '280px', minHeight: '280px' }}>
                     <ResponsiveBar
                       data={incidentsByMonth}
                       keys={['incidentes', 'hallazgos', 'conversaciones']}
                       indexBy="month"
-                      margin={{ top: 20, right: 120, bottom: 50, left: 60 }}
+                      margin={{ top: 20, right: 80, bottom: 50, left: 40 }}
                       padding={0.35}
                       groupMode="stacked"
                       valueScale={{ type: 'linear' }}
                       colors={[ '#ef4444', '#eab308', '#3b82f6' ]}
                       theme={{
                         background: 'transparent',
-                        text: { fill: '#fcf7ff' },
-                        axis: { ticks: { text: { fill: '#fcf7ff' } } },
+                        text: { fill: '#fcf7ff', fontSize: 12 },
+                        axis: { ticks: { text: { fill: '#fcf7ff', fontSize: 10 } } },
                         grid: { line: { stroke: 'rgba(252, 247, 255, 0.1)' } }
                       }}
                       axisBottom={{
@@ -754,11 +754,11 @@ const Dashboard = () => {
                           dataFrom: 'keys',
                           anchor: 'bottom-right',
                           direction: 'column',
-                          translateX: 110,
+                          translateX: 70,
                           translateY: 0,
                           itemsSpacing: 2,
-                          itemWidth: 120,
-                          itemHeight: 20,
+                          itemWidth: 100,
+                          itemHeight: 18,
                           itemTextColor: '#fcf7ff'
                         }
                       ]}
@@ -873,9 +873,9 @@ const Dashboard = () => {
           {/* (Se movió la sección de asignación más abajo) */}
 
           {/* Second Row Charts - Enhanced */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {loading && <div className="text-center text-lg text-gray-300">Cargando gráficos...</div>}
-            {error && <div className="text-center text-lg text-red-500">{error}</div>}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-8">
+            {loading && <div className="text-center text-lg text-gray-300 col-span-full">Cargando gráficos...</div>}
+            {error && <div className="text-center text-lg text-red-500 col-span-full">{error}</div>}
             {!loading && !error && (
               <>
                 {/* Line Chart - Tendencias Mensuales */}
@@ -1075,10 +1075,10 @@ const Dashboard = () => {
 
           {/* Download Reports Section */}
           <div className="mt-12 mb-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8">
               {/* Reporte Principal */}
               <div 
-                className="backdrop-blur-2xl rounded-3xl p-8 border hover:transform hover:scale-105 transition-all duration-500"
+                className="backdrop-blur-2xl rounded-3xl p-6 md:p-8 border hover:transform hover:scale-105 transition-all duration-500"
                 style={{
                   backgroundColor: 'rgba(252, 247, 255, 0.15)',
                   borderColor: 'rgba(252, 247, 255, 0.3)',
@@ -1086,29 +1086,29 @@ const Dashboard = () => {
                 }}
               >
                 <div className="text-center">
-                  <div className="text-5xl mb-6">📊</div>
-                  <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
+                  <div className="text-4xl md:text-5xl mb-4 md:mb-6">📊</div>
+                  <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4" style={{ color: 'var(--color-secondary)' }}>
                     Reporte Ejecutivo HSEQ
                   </h3>
-                  <p className="text-sm mb-6" style={{ color: 'rgba(252, 247, 255, 0.8)' }}>
+                  <p className="text-xs md:text-sm mb-4 md:mb-6" style={{ color: 'rgba(252, 247, 255, 0.8)' }}>
                     Reporte completo con métricas, estadísticas y análisis de tendencias del sistema HSEQ
                   </p>
                   
                   {/* Stats preview */}
-                  <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
                     <div className="text-center">
-                      <div className="text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>56</div>
+                      <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>56</div>
                       <div className="text-xs opacity-70" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Incidentes</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>303</div>
+                      <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>303</div>
                       <div className="text-xs opacity-70" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Reportes</div>
                     </div>
                   </div>
                   
                   <button 
                     onClick={handleDownloadPDF}
-                    className="w-full group relative font-bold py-4 px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
+                    className="w-full group relative font-bold py-3 md:py-4 px-4 md:px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
                     style={{
                       background: 'linear-gradient(45deg, var(--color-tertiary), var(--color-tertiary-light))',
                       color: 'var(--color-dark)',
@@ -1123,10 +1123,10 @@ const Dashboard = () => {
                       }}
                     ></div>
                     <span className="relative flex items-center justify-center space-x-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      <span>DESCARGAR PDF</span>
+                      <span className="text-sm md:text-base">DESCARGAR PDF</span>
                     </span>
                   </button>
                 </div>
@@ -1261,21 +1261,21 @@ const Dashboard = () => {
             {/* Additional Info Bar */}
             <div className="mt-8 text-center">
               <div 
-                className="inline-flex items-center space-x-6 px-6 py-3 rounded-2xl backdrop-blur-lg"
+                className="inline-flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6 px-4 md:px-6 py-3 rounded-2xl backdrop-blur-lg"
                 style={{
                   backgroundColor: 'rgba(252, 247, 255, 0.1)',
                   border: '1px solid rgba(252, 247, 255, 0.2)'
                 }}
               >
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Última actualización:</span>
-                  <span className="text-sm font-medium" style={{ color: 'var(--color-secondary)' }}>
+                  <span className="text-xs md:text-sm" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Última actualización:</span>
+                  <span className="text-xs md:text-sm font-medium" style={{ color: 'var(--color-secondary)' }}>
                     {new Date().toLocaleDateString('es-ES')}
                   </span>
                 </div>
-                <div className="w-px h-4" style={{ backgroundColor: 'rgba(252, 247, 255, 0.3)' }}></div>
+                <div className="hidden md:block w-px h-4" style={{ backgroundColor: 'rgba(252, 247, 255, 0.3)' }}></div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Formatos disponibles:</span>
+                  <span className="text-xs md:text-sm" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Formatos disponibles:</span>
                   <div className="flex space-x-2">
                     <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5' }}>PDF</span>
                     <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.2)', color: '#86efac' }}>Excel</span>
@@ -1327,13 +1327,13 @@ const Dashboard = () => {
                 <div className="overflow-x-auto">
                   <table className="min-w-full">
                     <thead>
-                      <tr className="text-left text-sm" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
-                        <th className="px-6 py-3">ID</th>
-                        <th className="px-6 py-3">Tipo</th>
-                        <th className="px-6 py-3">Asunto</th>
-                        <th className="px-6 py-3">Estado</th>
-                        <th className="px-6 py-3">Asignado a</th>
-                        <th className="px-6 py-3" style={{ width: '240px' }}>Acción</th>
+                      <tr className="text-left text-xs md:text-sm" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
+                        <th className="px-2 md:px-6 py-2 md:py-3">ID</th>
+                        <th className="px-2 md:px-6 py-2 md:py-3">Tipo</th>
+                        <th className="px-2 md:px-6 py-2 md:py-3">Asunto</th>
+                        <th className="px-2 md:px-6 py-2 md:py-3">Estado</th>
+                        <th className="px-2 md:px-6 py-2 md:py-3">Asignado a</th>
+                        <th className="px-2 md:px-6 py-2 md:py-3" style={{ width: '200px' }}>Acción</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1347,23 +1347,23 @@ const Dashboard = () => {
                         const assigned = supports.find(s => String(s.id) === String(r.revisado_por));
                         return (
                           <tr key={r.id} className="border-t border-white border-opacity-10">
-                            <td className="px-6 py-4" style={{ color: 'var(--color-secondary)' }}>#{r.id}</td>
-                            <td className="px-6 py-4" style={{ color: 'var(--color-secondary)' }}>{r.tipo_reporte}</td>
-                            <td className="px-6 py-4" style={{ color: 'var(--color-secondary)' }}>{r.asunto || r.asunto_conversacion || '-'}</td>
-                            <td className="px-6 py-4">
-                              <span className="px-3 py-1 rounded-full text-xs font-bold capitalize" style={{
+                            <td className="px-2 md:px-6 py-3 md:py-4 text-xs md:text-sm" style={{ color: 'var(--color-secondary)' }}>#{r.id}</td>
+                            <td className="px-2 md:px-6 py-3 md:py-4 text-xs md:text-sm" style={{ color: 'var(--color-secondary)' }}>{r.tipo_reporte}</td>
+                            <td className="px-2 md:px-6 py-3 md:py-4 text-xs md:text-sm" style={{ color: 'var(--color-secondary)' }}>{r.asunto || r.asunto_conversacion || '-'}</td>
+                            <td className="px-2 md:px-6 py-3 md:py-4">
+                              <span className="px-2 md:px-3 py-1 rounded-full text-xs font-bold capitalize" style={{
                                 backgroundColor: r.estado === 'pendiente' ? 'rgba(234, 179, 8, 0.2)' : 'rgba(59, 130, 246, 0.2)',
                                 color: r.estado === 'pendiente' ? '#fde68a' : '#93c5fd',
                                 border: '1px solid rgba(252, 247, 255, 0.2)'
                               }}>{r.estado}</span>
                             </td>
-                            <td className="px-6 py-4" style={{ color: 'var(--color-secondary)' }}>{assigned ? assigned.nombre : '—'}</td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center space-x-2">
+                            <td className="px-2 md:px-6 py-3 md:py-4 text-xs md:text-sm" style={{ color: 'var(--color-secondary)' }}>{assigned ? assigned.nombre : '—'}</td>
+                            <td className="px-2 md:px-6 py-3 md:py-4">
+                              <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-2">
                                 <select
                                   defaultValue=""
                                   onChange={(e) => handleAssignToSupport(r.id, e.target.value)}
-                                  className="flex-1 px-3 py-2 rounded-xl bg-white bg-opacity-10 border border-white border-opacity-20 focus:outline-none text-sm"
+                                  className="w-full md:flex-1 px-2 md:px-3 py-1 md:py-2 rounded-xl bg-white bg-opacity-10 border border-white border-opacity-20 focus:outline-none text-xs md:text-sm"
                                   style={{ color: 'var(--color-secondary)' }}
                                 >
                                   <option value="" style={{ color: '#0b1220' }}>Seleccionar soporte…</option>
@@ -1373,7 +1373,7 @@ const Dashboard = () => {
                                 </select>
                                 <button
                                   onClick={loadAssignmentData}
-                                  className="px-3 py-2 rounded-xl text-xs"
+                                  className="w-full md:w-auto px-2 md:px-3 py-1 md:py-2 rounded-xl text-xs"
                                   style={{ backgroundColor: 'rgba(252, 247, 255, 0.15)', color: 'var(--color-secondary)', border: '1px solid rgba(252, 247, 255, 0.3)' }}
                                 >
                                   Actualizar
