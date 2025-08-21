@@ -89,7 +89,7 @@ class ReportService {
             });
             const qs = params.toString();
             const response = await http.get(`reports${qs ? `?${qs}` : ''}`);
-            return response;
+            return response.data; // Devolver solo los datos, no todo el objeto response
         } catch (error) {
             //
             throw error;
@@ -102,7 +102,7 @@ class ReportService {
     static async getReportsByUser(userId) {
         try {
             const response = await http.get(`reports/user?user_id=${userId}`);
-            return response;
+            return response.data; // Devolver solo los datos, no todo el objeto response
         } catch (error) {
             //
             throw error;
@@ -115,7 +115,7 @@ class ReportService {
     static async getReportStats() {
         try {
             const response = await http.get('reports/stats');
-            return response;
+            return response.data; // Devolver solo los datos, no todo el objeto response
         } catch (error) {
             //
             throw error;
@@ -213,7 +213,7 @@ class ReportService {
                 revisor_id: revisorId,
                 comentarios: comentarios
             });
-            return response;
+            return response.data; // Devolver solo los datos, no todo el objeto response
         } catch (error) {
             //
             throw error;
@@ -226,7 +226,7 @@ class ReportService {
     static async getReportById(reportId) {
         try {
             const response = await http.get(`reports/${reportId}`);
-            return response;
+            return response.data; // Devolver solo los datos, no todo el objeto response
         } catch (error) {
             console.error('Error en getReportById:', error);
             throw error;
@@ -244,7 +244,7 @@ class ReportService {
             //
             
             const response = await http.put(`reports/${reportId}`, formattedData);
-            return response;
+            return response.data; // Devolver solo los datos, no todo el objeto response
         } catch (error) {
             //
             if (error.name === 'TypeError' && error.message.includes('fetch')) {
@@ -260,7 +260,7 @@ class ReportService {
     static async deleteReport(reportId) {
         try {
             const response = await http.delete(`reports/${reportId}`);
-            return response;
+            return response.data; // Devolver solo los datos, no todo el objeto response
         } catch (error) {
             //
             if (error.name === 'TypeError' && error.message.includes('fetch')) {

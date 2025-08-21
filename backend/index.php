@@ -888,7 +888,7 @@ function handleRequest($method, $path){
     }
 
     // Endpoint para obtener un reporte específico por ID
-    if(preg_match('/^api\/reports\/(\d+)$/', $path, $matches) && $method === "GET"){
+    if(preg_match('/^(?:api\/)?reports\/(\d+)$/', $path, $matches) && $method === "GET"){
         try {
             $reportId = $matches[1];
             
@@ -916,7 +916,7 @@ function handleRequest($method, $path){
     }
 
     // Endpoint para actualizar un reporte
-    if(preg_match('/^api\/reports\/(\d+)$/', $path, $matches) && $method === "PUT"){
+    if(preg_match('/^(?:api\/)?reports\/(\d+)$/', $path, $matches) && $method === "PUT"){
         if (!$requireRole(['soporte','admin'])) { return; }
         try {
             $reportId = $matches[1];
@@ -966,7 +966,7 @@ function handleRequest($method, $path){
     }
 
     // Endpoint para eliminar un reporte
-    if(preg_match('/^api\/reports\/(\d+)$/', $path, $matches) && $method === "DELETE"){
+    if(preg_match('/^(?:api\/)?reports\/(\d+)$/', $path, $matches) && $method === "DELETE"){
         if (!$requireRole(['admin'])) { return; }
         try {
             $reportId = $matches[1];
@@ -1121,6 +1121,64 @@ function handleRequest($method, $path){
             echo json_encode([
                 "success" => false, 
                 "message" => "Error interno del servidor",
+                "error" => $e->getMessage()
+            ]);
+            return;
+        }
+    }
+    // Endpoint para servir archivos de uploads
+    elseif(preg_match('/^(?:api\/)?uploads\/(.+)$/', $path, $matches) && $method === "GET"){
+        try {
+            $fileName = $matches[1];
+            
+            // Validar nombre de archivo para evitar directory traversal
+            if (strpos($fileName, '..') !== false || strpos($fileName, '/') !== false) {
+                http_response_code(400);
+                echo json_encode([
+                    "success" => false,
+                    "message" => "Nombre de archivo inválido"
+                ]);
+                return;
+            }
+            
+            $filePath = __DIR__ . '/uploads/' . $fileName;
+            
+            if (!file_exists($filePath)) {
+                http_response_code(404);
+                echo json_encode([
+                    "success" => false,
+                    "message" => "Archivo no encontrado",
+                    "file_path" => $filePath
+                ]);
+                return;
+            }
+            
+            // Determinar el tipo MIME basado en la extensión
+            $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            $mimeTypes = [
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'pdf' => 'application/pdf',
+                'doc' => 'application/msword',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ];
+            
+            $contentType = $mimeTypes[$extension] ?? 'application/octet-stream';
+            
+            // Servir el archivo
+            header('Content-Type: ' . $contentType);
+            header('Content-Length: ' . filesize($filePath));
+            header('Cache-Control: public, max-age=31536000'); // Cache por 1 año
+            readfile($filePath);
+            return;
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Error al servir archivo",
                 "error" => $e->getMessage()
             ]);
             return;

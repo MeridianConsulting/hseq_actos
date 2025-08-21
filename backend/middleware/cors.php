@@ -32,10 +32,8 @@ header('Referrer-Policy: strict-origin-when-cross-origin');
 header("Permissions-Policy: geolocation=(), microphone=(), camera=(), usb=(), payment=()");
 
 // CSP ajustada para permitir recursos necesarios del frontend
-// No aplicar CSP estricta a la ruta de evidencias (contenido binario) ni a uploads
-if (!preg_match('#^/hseq/backend/(evidencias/|uploads/)#', $_SERVER['REQUEST_URI'] ?? '')) {
-    header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
-}
+// Siempre permitir Font Awesome y otros recursos CDN
+header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
 
 // Evitar cachear respuestas sensibles por defecto
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
