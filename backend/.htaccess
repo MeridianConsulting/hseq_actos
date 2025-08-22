@@ -1,6 +1,10 @@
 RewriteEngine On
 RewriteBase /backend/
 
+# EXCLUIR uploads del rewrite - permitir acceso directo a archivos estáticos
+RewriteCond %{REQUEST_URI} ^/backend/uploads/ [NC]
+RewriteRule ^ - [L]
+
 # Archivos/directorios reales pasan directos
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d

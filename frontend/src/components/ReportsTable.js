@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ReportService from '../services/reportService';
 import ReportDetailsModal from './ReportDetailsModal';
 import ApprovalModal from './ApprovalModal';
-import { buildApi } from '../config/api';
+import { buildApi, buildUploadsUrl } from '../config/api';
 import { gradosCriticidad, tiposAfectacion, reportTypes } from '../config/formOptions';
 import { reportService } from '../services/api';
 

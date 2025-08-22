@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReportService from '../services/reportService';
 import { evidenceService } from '../services/api';
-import { buildApi } from '../config/api';
+import { buildApi, buildUploadsUrl } from '../config/api';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 
@@ -163,8 +163,7 @@ const dataUrlToBase64 = (dataUrl) => dataUrl.split(',')[1] || '';
 const resolveEvidenceUrl = (ev) => {
   const raw = String(ev?.url_archivo || '').trim();
   if (/^https?:\/\//i.test(raw)) return raw;            // ya es absoluta
-  if (raw.startsWith('uploads/')) return buildApi(raw);
-  return buildApi(`uploads/${encodeURIComponent(raw)}`);
+  return buildUploadsUrl(raw);
 };
 
 // Detecta si la evidencia es imagen usando (1) cache de blobs, (2) tipo declarado, (3) extensión
@@ -178,8 +177,7 @@ const isImageEvidence = (ev, evidenceUrls) => {
 const buildPublicImageUrl = (fileNameOrUrl) => {
   const s = String(fileNameOrUrl || '').trim();
   if (/^https?:\/\//i.test(s)) return s;
-  if (s.startsWith('uploads/')) return buildApi(s);
-  return buildApi(`uploads/${encodeURIComponent(s)}`);
+  return buildUploadsUrl(s);
 };
 
 const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
@@ -855,8 +853,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
      const buildPublicImageUrl = (fileNameOrUrl) => {
        const s = String(fileNameOrUrl || '').trim();
        if (/^https?:\/\//i.test(s)) return s;
-       if (s.startsWith('uploads/')) return buildApi(s);
-       return buildApi(`uploads/${encodeURIComponent(s)}`);
+       return buildUploadsUrl(s);
      };
 
                // Función para descargar una imagen individual
