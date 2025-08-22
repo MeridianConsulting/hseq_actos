@@ -198,7 +198,7 @@ function handleRequest($method, $path){
     }
 
     // Descargar evidencia de forma segura (ruta independiente)
-    if (preg_match('/^api\/evidencias\/(\d+)$/', $path, $m) && $method === 'GET') {
+    if (preg_match('/^(?:api\/)?evidencias\/(\d+)$/', $path, $m) && $method === 'GET') {
         $evidenceId = (int)$m[1];
         $conn = (new Database())->getConnection();
         $stmt = $conn->prepare('SELECT id_reporte, tipo_archivo, url_archivo FROM evidencias WHERE id = ?');
@@ -766,7 +766,7 @@ function handleRequest($method, $path){
     }
 
     // Endpoint para subir evidencia multipart
-    if (preg_match('/^api\/reports\/(\d+)\/evidencias$/', $path, $m)) {
+    if (preg_match('/^(?:api\/)?reports\/(\d+)\/evidencias$/', $path, $m)) {
         if ($method !== 'POST') {
             http_response_code(405);
             echo json_encode(['success'=>false,'message'=>'Método no permitido']);
@@ -1109,6 +1109,45 @@ function handleRequest($method, $path){
         }
     }
 
+    // Endpoint de debug para verificar archivos en uploads
+    elseif($path === 'debug/uploads' && $method === "GET"){
+        try {
+            $uploadDir = __DIR__ . '/uploads/';
+            $files = [];
+            
+            if (is_dir($uploadDir)) {
+                $fileList = scandir($uploadDir);
+                foreach ($fileList as $file) {
+                    if ($file !== '.' && $file !== '..') {
+                        $filePath = $uploadDir . $file;
+                        $files[] = [
+                            'name' => $file,
+                            'size' => filesize($filePath),
+                            'modified' => date('Y-m-d H:i:s', filemtime($filePath)),
+                            'path' => $filePath
+                        ];
+                    }
+                }
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'upload_dir' => $uploadDir,
+                'dir_exists' => is_dir($uploadDir),
+                'files' => $files,
+                'total_files' => count($files)
+            ]);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al listar archivos',
+                'error' => $e->getMessage()
+            ]);
+            return;
+        }
+    }
     // Endpoint para obtener estadísticas del dashboard
     elseif($path === 'reports/dashboard-stats' && $method === "GET"){
         try {
@@ -1141,7 +1180,21 @@ function handleRequest($method, $path){
                 return;
             }
             
-            $filePath = __DIR__ . '/uploads/' . $fileName;
+            // Asegurar que el directorio de uploads existe
+            $uploadDir = __DIR__ . '/uploads/';
+            if (!is_dir($uploadDir)) {
+                if (!@mkdir($uploadDir, 0755, true)) {
+                    http_response_code(500);
+                    echo json_encode([
+                        "success" => false,
+                        "message" => "Error: No se pudo crear el directorio de uploads",
+                        "upload_dir" => $uploadDir
+                    ]);
+                    return;
+                }
+            }
+            
+            $filePath = $uploadDir . $fileName;
             
             if (!file_exists($filePath)) {
                 http_response_code(404);
