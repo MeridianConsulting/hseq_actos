@@ -4,7 +4,7 @@ import ReportDetailsModal from './ReportDetailsModal';
 import ApprovalModal from './ApprovalModal';
 import { buildApi, buildUploadsUrl } from '../config/api';
 import { gradosCriticidad, tiposAfectacion, reportTypes } from '../config/formOptions';
-import { reportService } from '../services/api';
+import { reportService, userService } from '../services/api';
 
 const ReportsTable = ({ 
   user, 
@@ -29,6 +29,7 @@ const ReportsTable = ({
     estado: '',
     grado_criticidad: '',
     tipo_afectacion: '',
+    proyecto: '',
     date_from: '',
     date_to: '',
     q: '',
@@ -39,6 +40,7 @@ const ReportsTable = ({
   });
   const [meta, setMeta] = useState(null);
   const [allReports, setAllReports] = useState([]); // Para estadísticas
+  const [proyectos, setProyectos] = useState([]); // Lista de proyectos únicos
 
   // Cargar estadísticas (todos los reportes)
   const loadStats = async () => {
@@ -53,6 +55,44 @@ const ReportsTable = ({
       }
     } catch (error) {
       console.error('Error al cargar estadísticas:', error);
+    }
+  };
+
+  // Cargar todos los proyectos desde la base de datos
+  const loadProyectos = async () => {
+    try {
+      console.log('Cargando proyectos desde la base de datos...');
+      const usersResult = await userService.fetchUsers();
+      
+      console.log('Respuesta completa de userService.fetchUsers():', usersResult);
+      
+      // Intentar diferentes estructuras de respuesta
+      let users = [];
+      if (usersResult.success && usersResult.data) {
+        users = usersResult.data;
+      } else if (usersResult.success && usersResult.users) {
+        users = usersResult.users;
+      } else if (Array.isArray(usersResult)) {
+        users = usersResult;
+      } else if (usersResult.data) {
+        users = usersResult.data;
+      }
+      
+      console.log('Usuarios extraídos:', users.length);
+      
+      // Extraer proyectos únicos de todos los usuarios
+      const proyectosUnicos = new Set();
+      users.forEach((user, index) => {
+        console.log(`Usuario ${index + 1}:`, user.nombre, 'Proyecto:', user.Proyecto);
+        if (user.Proyecto && user.Proyecto.trim() !== '') {
+          proyectosUnicos.add(user.Proyecto.trim());
+        }
+      });
+      const proyectosArray = Array.from(proyectosUnicos).sort();
+      console.log('Proyectos encontrados:', proyectosArray);
+      setProyectos(proyectosArray);
+    } catch (error) {
+      console.error('Error al cargar proyectos:', error);
     }
   };
 
@@ -85,8 +125,9 @@ const ReportsTable = ({
   }, [filters, activeTab]);
 
   useEffect(() => {
-    // Cargar estadísticas y reportes al inicializar
+    // Cargar estadísticas, proyectos y reportes al inicializar
     loadStats();
+    loadProyectos();
     loadReports();
   }, [loadReports]);
 
@@ -442,7 +483,7 @@ const ReportsTable = ({
            Cerrados
          </button>
                  <button
-           onClick={() => { loadStats(); loadReports(); }}
+           onClick={() => { loadStats(); loadProyectos(); loadReports(); }}
            className={`py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold text-sm sm:text-base transition-colors duration-200 ${
              useDarkTheme 
                ? 'bg-gray-800 text-white hover:bg-gray-700'
@@ -461,13 +502,13 @@ const ReportsTable = ({
            : 'bg-white/10 border-white/20'
        }`}>
          {/* Filter Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3 mb-4">
          <div>
-           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Tipo de reporte</label>
+           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Tipo de reporte</label>
            <select name="tipo_reporte" value={filters.tipo_reporte} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
              useDarkTheme 
                ? 'bg-gray-800 border-gray-600 text-gray-100' 
-               : 'bg-white/10 border-white/20 text-white placeholder-white/50'
+               : 'bg-white border-gray-300 text-gray-900'
            }`}>
             <option value="">Todos</option>
             {reportTypes.map(rt => (
@@ -476,49 +517,62 @@ const ReportsTable = ({
           </select>
         </div>
                  <div>
-           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Criticidad</label>
+           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Criticidad</label>
            <select name="grado_criticidad" value={filters.grado_criticidad} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
              useDarkTheme 
                ? 'bg-gray-800 border-gray-600 text-gray-100' 
-               : 'bg-white/10 border-white/20 text-white placeholder-white/50'
+               : 'bg-white border-gray-300 text-gray-900'
            }`}>
             <option value="">Todas</option>
             {gradosCriticidad.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
           </select>
         </div>
                  <div>
-           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Afectación</label>
+           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Afectación</label>
            <select name="tipo_afectacion" value={filters.tipo_afectacion} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
              useDarkTheme 
                ? 'bg-gray-800 border-gray-600 text-gray-100' 
-               : 'bg-white/10 border-white/20 text-white placeholder-white/50'
+               : 'bg-white border-gray-300 text-gray-900'
            }`}>
             <option value="">Todas</option>
             {tiposAfectacion.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
           </select>
         </div>
                  <div>
-           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Desde</label>
+           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Proyecto</label>
+           <select name="proyecto" value={filters.proyecto} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+             useDarkTheme 
+               ? 'bg-gray-800 border-gray-600 text-gray-100' 
+               : 'bg-white border-gray-300 text-gray-900'
+           }`}>
+            <option value="">Todos</option>
+            {proyectos.map(proyecto => (
+              <option key={proyecto} value={proyecto}>{proyecto}</option>
+            ))}
+          </select>
+        </div>
+                 <div>
+           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Desde</label>
            <input type="date" name="date_from" value={filters.date_from} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
              useDarkTheme 
                ? 'bg-gray-800 border-gray-600 text-gray-100' 
-               : 'bg-white/10 border-white/20 text-white placeholder-white/50'
+               : 'bg-white border-gray-300 text-gray-900'
            }`} />
         </div>
                  <div>
-           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Hasta</label>
+           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Hasta</label>
            <input type="date" name="date_to" value={filters.date_to} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
              useDarkTheme 
                ? 'bg-gray-800 border-gray-600 text-gray-100' 
-               : 'bg-white/10 border-white/20 text-white placeholder-white/50'
+               : 'bg-white border-gray-300 text-gray-900'
            }`} />
         </div>
                  <div>
-           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Buscar</label>
+           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Buscar</label>
            <input type="text" name="q" placeholder="Texto libre" value={filters.q} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
              useDarkTheme 
                ? 'bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-400' 
-               : 'bg-white/10 border-white/20 text-white placeholder-white/50'
+               : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
            }`} />
          </div>
          </div>

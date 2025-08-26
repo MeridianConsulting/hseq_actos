@@ -407,7 +407,7 @@ function handleRequest($method, $path){
             // Obtener filtros de la URL
             $filters = [];
             foreach ([
-                'tipo_reporte','estado','user_id','grado_criticidad','tipo_afectacion',
+                'tipo_reporte','estado','user_id','grado_criticidad','tipo_afectacion','proyecto',
                 'date_from','date_to','q','sort_by','sort_dir','page','per_page'
             ] as $key) {
                 if (isset($_GET[$key]) && $_GET[$key] !== '') {
@@ -996,7 +996,7 @@ function handleRequest($method, $path){
 
     // Rutas de administración de usuarios
     if($path === 'users' && $method === 'GET'){
-        if (!$requireRole(['admin'])) { return; }
+        if (!$requireRole(['admin', 'soporte'])) { return; }
         try {
             $controller = new EmployeeController();
             $filters = [];

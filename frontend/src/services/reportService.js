@@ -81,7 +81,7 @@ class ReportService {
     static async getAllReports(filters = {}) {
         try {
             const params = new URLSearchParams();
-            const allowed = ['tipo_reporte','estado','user_id','grado_criticidad','tipo_afectacion','date_from','date_to','q','sort_by','sort_dir','page','per_page'];
+            const allowed = ['tipo_reporte','estado','user_id','grado_criticidad','tipo_afectacion','proyecto','date_from','date_to','q','sort_by','sort_dir','page','per_page'];
             Object.entries(filters).forEach(([k, v]) => {
                 if (v !== undefined && v !== null && v !== '' && allowed.includes(k)) {
                     params.append(k, v);

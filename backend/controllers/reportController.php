@@ -565,6 +565,11 @@ class ReportController {
                 $params[] = $filters['tipo_afectacion'];
                 $types .= "s";
             }
+            if (!empty($filters['proyecto'])) {
+                $whereConditions[] = "u.Proyecto = ?";
+                $params[] = $filters['proyecto'];
+                $types .= "s";
+            }
 
             // Filtros por fecha (usamos creado_en)
             if (!empty($filters['date_from'])) {
