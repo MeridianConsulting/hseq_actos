@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -30,6 +30,46 @@ const Dashboard = () => {
 
   const { stats, loading, error } = useDashboardStats(selectedPeriod);
 
+  // Bar chart: Reportes por periodo (dinámico por selectedPeriod)
+  const incidentsByMonth = useMemo(() => (stats?.incidentesPorMes || []).map(m => ({
+    month: m.mes_corto || m.mes,
+    incidentes: Number(m.incidentes),
+    hallazgos: Number(m.hallazgos),
+    conversaciones: Number(m.conversaciones),
+  })), [stats?.incidentesPorMes]);
+
+  // Pie chart: Distribución por tipo
+  const incidentsByType = useMemo(() => stats?.distribucionTipo?.map(t => ({
+    id: t.tipo_reporte,
+    label: t.tipo_reporte.charAt(0).toUpperCase() + t.tipo_reporte.slice(1),
+    value: Number(t.cantidad),
+    color: t.color
+  })) || [], [stats?.distribucionTipo]);
+
+  // Resumen de reportes para gráfico de barras (sustituye Métricas de seguridad)
+  const totalReportes = useMemo(() => Number(stats?.kpis?.total_reportes) || 0, [stats?.kpis?.total_reportes]);
+  const totalCerrados = useMemo(() => Number(stats?.kpis?.total_cerrados) || 0, [stats?.kpis?.total_cerrados]);
+  const totalAbiertosCalc = useMemo(() => Math.max(totalReportes - totalCerrados, 0), [totalReportes, totalCerrados]);
+  const totalAbiertos = useMemo(() => Number(stats?.kpis?.total_abiertos) || totalAbiertosCalc, [stats?.kpis?.total_abiertos, totalAbiertosCalc]);
+
+  const abiertosPorCriticidad = useMemo(() => ({
+    Baja: Number(stats?.abiertosPorCriticidad?.baja) || 0,
+    Media: Number(stats?.abiertosPorCriticidad?.media) || 0,
+    Alta: Number(stats?.abiertosPorCriticidad?.alta) || 0,
+    'Muy Alta': Number(stats?.abiertosPorCriticidad?.muy_alta) || 0
+  }), [stats?.abiertosPorCriticidad]);
+
+  const areaProcesoTop = useMemo(() => stats?.areaProcesoTop || stats?.area_mas_reporta || '-', [stats?.areaProcesoTop, stats?.area_mas_reporta]);
+  const hallazgoMasReportado = useMemo(() => stats?.hallazgoMasReportado || stats?.hallazgo_mas_reportado || '-', [stats?.hallazgoMasReportado, stats?.hallazgo_mas_reportado]);
+
+  // KPIs
+  const kpis = useMemo(() => [
+    { title: 'Total Incidentes', value: stats?.kpis?.total_incidentes ?? '-', color: '#ef4444', icon: '⚠️' },
+    { title: 'Reportes Procesados', value: stats?.kpis?.total_reportes ?? '-', color: '#22c55e', icon: '📋' },
+    { title: 'Capacitaciones', value: stats?.kpis?.total_conversaciones ?? '-', color: '#3b82f6', icon: '🎓' },
+    { title: 'Días sin Accidentes', value: stats?.diasSinAccidentes ?? '-', color: '#f59e0b', icon: '🏆' }
+  ], [stats?.kpis, stats?.diasSinAccidentes]);
+
   const loadAssignmentData = useCallback(async () => {
     try {
       setAssignLoading(true);
@@ -45,7 +85,7 @@ const Dashboard = () => {
     } finally {
       setAssignLoading(false);
     }
-  }, []);
+  }, [reportService, userService]);
 
   useEffect(() => {
     const userData = getUser();
@@ -76,7 +116,7 @@ const Dashboard = () => {
     } finally {
       setAssignLoading(false);
     }
-  }, [loadAssignmentData]);
+  }, [loadAssignmentData, reportService]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -296,7 +336,7 @@ const Dashboard = () => {
     w.document.open();
     w.document.write(html);
     w.document.close();
-  }, []);
+  }, [stats, selectedPeriod, reportService, userService]);
 
   const handleDownloadExcel = useCallback(async () => {
     // Prepare data sets
@@ -394,6 +434,38 @@ const Dashboard = () => {
       // Ignore; Excel will be generated without the project summary sheet
     }
 
+    // Obtener todos los proyectos únicos del sistema para mostrar los que tienen 0 reportes
+    let todosLosProyectos = [];
+    try {
+      const resp = await userService.fetchUsers();
+      if (resp?.success && Array.isArray(resp.data)) {
+        const proyectosUnicos = new Set();
+        resp.data.forEach(user => {
+          if (user.Proyecto && user.Proyecto.trim() !== '') {
+            proyectosUnicos.add(user.Proyecto.trim());
+          }
+        });
+        todosLosProyectos = Array.from(proyectosUnicos).sort();
+      }
+    } catch (e) {
+      // Si hay error, continuar sin obtener todos los proyectos
+    }
+
+    // Agregar proyectos con 0 reportes al resumen
+    const proyectosConCero = todosLosProyectos
+      .filter(proyecto => !resumenPorProyecto.find(r => r.Proyecto === proyecto))
+      .map(proyecto => ({
+        Proyecto: proyecto,
+        TotalReportes: 0,
+        Incidentes: 0,
+        Hallazgos: 0,
+        Conversaciones: 0,
+        UsuariosUnicos: 0
+      }));
+
+    // Combinar proyectos con reportes y proyectos con 0 reportes
+    resumenPorProyecto = [...resumenPorProyecto, ...proyectosConCero];
+
     const periodLabel = selectedPeriod === 'month' ? 'mensual' : selectedPeriod === 'quarter' ? 'trimestral' : 'anual';
     const fileName = `reporte_hseq_${periodLabel}_${new Date().toISOString().substring(0,10)}.xlsx`;
 
@@ -404,6 +476,25 @@ const Dashboard = () => {
       const wb = new ExcelJS.Workbook();
       wb.creator = 'HSEQ';
       wb.created = new Date();
+
+      // Función para limpiar datos antes de agregarlos al Excel
+      const cleanDataForExcel = (data) => {
+        return data.map(row => {
+          const cleanRow = {};
+          Object.keys(row).forEach(key => {
+            const value = row[key];
+            // Convertir valores problemáticos a strings seguros
+            if (value === null || value === undefined) {
+              cleanRow[key] = '';
+            } else if (typeof value === 'object') {
+              cleanRow[key] = JSON.stringify(value);
+            } else {
+              cleanRow[key] = String(value);
+            }
+          });
+          return cleanRow;
+        });
+      };
 
       const addTableSheet = (name, headerDefs, rows) => {
         const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 1 }] });
@@ -470,12 +561,12 @@ const Dashboard = () => {
         return ws;
       };
 
-      addTableSheet('KPIs', ['KPI','Valor'], kpiRows);
-      addTableSheet('PorPeriodo', ['Periodo','Incidentes','Hallazgos','Conversaciones'], porPeriodo);
-      addTableSheet('PorTipo', ['Tipo','Cantidad'], porTipo);
-      addTableSheet('Resumen', ['Metrica','Valor'], resumen);
-      if (detalles.length > 0) addTableSheet('Detalles', Object.keys(detalles[0]), detalles);
-      if (resumenPorProyecto.length > 0) addTableSheet('ResumenPorProyecto', Object.keys(resumenPorProyecto[0]), resumenPorProyecto);
+      addTableSheet('KPIs', ['KPI','Valor'], cleanDataForExcel(kpiRows));
+      addTableSheet('PorPeriodo', ['Periodo','Incidentes','Hallazgos','Conversaciones'], cleanDataForExcel(porPeriodo));
+      addTableSheet('PorTipo', ['Tipo','Cantidad'], cleanDataForExcel(porTipo));
+      addTableSheet('Resumen', ['Metrica','Valor'], cleanDataForExcel(resumen));
+      if (detalles.length > 0) addTableSheet('Detalles', Object.keys(detalles[0]), cleanDataForExcel(detalles));
+      if (resumenPorProyecto.length > 0) addTableSheet('ResumenPorProyecto', Object.keys(resumenPorProyecto[0]), cleanDataForExcel(resumenPorProyecto));
 
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -495,12 +586,31 @@ const Dashboard = () => {
       const XLSXModule = await import('xlsx');
       const XLSX = XLSXModule.default || XLSXModule;
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kpiRows), 'KPIs');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(porPeriodo), 'PorPeriodo');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(porTipo), 'PorTipo');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumen), 'Resumen');
-      if (detalles.length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalles), 'Detalles');
-      if (resumenPorProyecto.length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumenPorProyecto), 'ResumenPorProyecto');
+      
+      // Función para limpiar datos para XLSX
+      const cleanDataForXLSX = (data) => {
+        return data.map(row => {
+          const cleanRow = {};
+          Object.keys(row).forEach(key => {
+            const value = row[key];
+            if (value === null || value === undefined) {
+              cleanRow[key] = '';
+            } else if (typeof value === 'object') {
+              cleanRow[key] = JSON.stringify(value);
+            } else {
+              cleanRow[key] = String(value);
+            }
+          });
+          return cleanRow;
+        });
+      };
+      
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanDataForXLSX(kpiRows)), 'KPIs');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanDataForXLSX(porPeriodo)), 'PorPeriodo');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanDataForXLSX(porTipo)), 'PorTipo');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanDataForXLSX(resumen)), 'Resumen');
+      if (detalles.length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanDataForXLSX(detalles)), 'Detalles');
+      if (resumenPorProyecto.length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanDataForXLSX(resumenPorProyecto)), 'ResumenPorProyecto');
       XLSX.writeFile(wb, fileName);
       return;
     } catch (e) {
@@ -515,26 +625,10 @@ const Dashboard = () => {
       link.click();
       document.body.removeChild(link);
     }
-  }, []);
-
-  // Bar chart: Reportes por periodo (dinámico por selectedPeriod)
-  const incidentsByMonth = (stats?.incidentesPorMes || []).map(m => ({
-    month: m.mes_corto || m.mes,
-    incidentes: Number(m.incidentes),
-    hallazgos: Number(m.hallazgos),
-    conversaciones: Number(m.conversaciones),
-  }));
-
-  // Pie chart: Distribución por tipo
-  const incidentsByType = stats?.distribucionTipo?.map(t => ({
-    id: t.tipo_reporte,
-    label: t.tipo_reporte.charAt(0).toUpperCase() + t.tipo_reporte.slice(1),
-    value: Number(t.cantidad),
-    color: t.color
-  })) || [];
+  }, [stats, selectedPeriod, reportService, userService]);
 
   // Line chart: Tendencias mensuales
-  const monthlyTrends = [
+  const monthlyTrends = useMemo(() => [
     {
       id: 'Incidentes',
       color: '#ef4444',
@@ -559,37 +653,13 @@ const Dashboard = () => {
         y: Number(m.conversaciones)
       }))
     }
-  ];
+  ], [stats?.tendencias]);
 
-  // Resumen de reportes para gráfico de barras (sustituye Métricas de seguridad)
-  const totalReportes = Number(stats?.kpis?.total_reportes) || 0;
-  const totalCerrados = Number(stats?.kpis?.total_cerrados) || 0;
-  const totalAbiertosCalc = Math.max(totalReportes - totalCerrados, 0);
-  const totalAbiertos = Number(stats?.kpis?.total_abiertos) || totalAbiertosCalc;
-
-  const abiertosPorCriticidad = {
-    Baja: Number(stats?.abiertosPorCriticidad?.baja) || 0,
-    Media: Number(stats?.abiertosPorCriticidad?.media) || 0,
-    Alta: Number(stats?.abiertosPorCriticidad?.alta) || 0,
-    'Muy Alta': Number(stats?.abiertosPorCriticidad?.muy_alta) || 0
-  };
-
-  const reportesResumenChart = [
+  const reportesResumenChart = useMemo(() => [
     { categoria: 'Total', 'Total': totalReportes, 'Cerrados': 0, 'Abiertos Baja': 0, 'Abiertos Media': 0, 'Abiertos Alta': 0, 'Abiertos Muy Alta': 0 },
     { categoria: 'Cerrados', 'Total': 0, 'Cerrados': totalCerrados, 'Abiertos Baja': 0, 'Abiertos Media': 0, 'Abiertos Alta': 0, 'Abiertos Muy Alta': 0 },
     { categoria: 'Abiertos', 'Total': 0, 'Cerrados': 0, 'Abiertos Baja': abiertosPorCriticidad.Baja, 'Abiertos Media': abiertosPorCriticidad.Media, 'Abiertos Alta': abiertosPorCriticidad.Alta, 'Abiertos Muy Alta': abiertosPorCriticidad['Muy Alta'] }
-  ];
-
-  const areaProcesoTop = stats?.areaProcesoTop || stats?.area_mas_reporta || '-';
-  const hallazgoMasReportado = stats?.hallazgoMasReportado || stats?.hallazgo_mas_reportado || '-';
-
-  // KPIs
-  const kpis = [
-    { title: 'Total Incidentes', value: stats?.kpis?.total_incidentes ?? '-', color: '#ef4444', icon: '⚠️' },
-    { title: 'Reportes Procesados', value: stats?.kpis?.total_reportes ?? '-', color: '#22c55e', icon: '📋' },
-    { title: 'Capacitaciones', value: stats?.kpis?.total_conversaciones ?? '-', color: '#3b82f6', icon: '🎓' },
-    { title: 'Días sin Accidentes', value: stats?.diasSinAccidentes ?? '-', color: '#f59e0b', icon: '🏆' }
-  ];
+  ], [totalReportes, totalCerrados, abiertosPorCriticidad]);
 
   return (
     <>
