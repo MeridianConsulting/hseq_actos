@@ -497,7 +497,11 @@ class ReportController {
      */
     public function getReportsByUser($userId) {
         try {
-            $sql = "SELECT * FROM reportes WHERE id_usuario = ? ORDER BY creado_en DESC";
+            $sql = "SELECT r.*, u.nombre as nombre_usuario, u.Proyecto as proyecto_usuario 
+                    FROM reportes r 
+                    JOIN usuarios u ON r.id_usuario = u.id 
+                    WHERE r.id_usuario = ? 
+                    ORDER BY r.creado_en DESC";
             $stmt = $this->conn->prepare($sql);
             $stmt->bind_param("i", $userId);
             $stmt->execute();
@@ -614,7 +618,7 @@ class ReportController {
 
             // Query principal
             // Inyectar LIMIT/OFFSET de forma segura (valores casteados arriba)
-            $selectSql = "SELECT r.*, u.nombre as nombre_usuario " . $baseSql . $whereSql . " ORDER BY r.$sortBy $sortDir LIMIT $perPage OFFSET $offset";
+            $selectSql = "SELECT r.*, u.nombre as nombre_usuario, u.Proyecto as proyecto_usuario " . $baseSql . $whereSql . " ORDER BY r.$sortBy $sortDir LIMIT $perPage OFFSET $offset";
             $stmt = $this->conn->prepare($selectSql);
 
             if ($stmt === false) {
@@ -661,7 +665,7 @@ class ReportController {
      */
     public function getReportById($reportId) {
         try {
-            $sql = "SELECT r.*, u.nombre as nombre_usuario 
+            $sql = "SELECT r.*, u.nombre as nombre_usuario, u.Proyecto as proyecto_usuario 
                     FROM reportes r 
                     JOIN usuarios u ON r.id_usuario = u.id 
                     WHERE r.id = ?";

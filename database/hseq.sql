@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.2.2
 -- https://www.phpmyadmin.net/
 --
--- Servidor: 127.0.0.1
--- Tiempo de generación: 21-08-2025 a las 17:29:27
--- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.0.30
+-- Servidor: localhost:3306
+-- Tiempo de generación: 26-08-2025 a las 07:52:53
+-- Versión del servidor: 10.6.22-MariaDB-cll-lve
+-- Versión de PHP: 8.3.22
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -50,6 +50,15 @@ CREATE TABLE `notificaciones` (
   `enviado_en` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Volcado de datos para la tabla `notificaciones`
+--
+
+INSERT INTO `notificaciones` (`id`, `id_reporte`, `destinatario`, `medio`, `enviado_en`) VALUES
+(25, 52, 'desarrolloit@meridian.com.co', 'correo', '2025-08-22 16:34:39'),
+(26, 52, 'desarrolloit@meridian.com.co', 'correo', '2025-08-22 16:36:10'),
+(27, 52, 'desarrolloit@meridian.com.co', 'correo', '2025-08-22 16:37:33');
+
 -- --------------------------------------------------------
 
 --
@@ -88,6 +97,13 @@ CREATE TABLE `reportes` (
   `actualizado_en` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Volcado de datos para la tabla `reportes`
+--
+
+INSERT INTO `reportes` (`id`, `id_usuario`, `tipo_reporte`, `asunto`, `descripcion_general`, `fecha_evento`, `lugar_hallazgo`, `lugar_hallazgo_otro`, `tipo_hallazgo`, `descripcion_hallazgo`, `recomendaciones`, `estado_condicion`, `grado_criticidad`, `ubicacion_incidente`, `hora_evento`, `tipo_afectacion`, `descripcion_incidente`, `tipo_conversacion`, `sitio_evento_conversacion`, `lugar_hallazgo_conversacion`, `lugar_hallazgo_conversacion_otro`, `descripcion_conversacion`, `asunto_conversacion`, `estado`, `revisado_por`, `comentarios_revision`, `fecha_revision`, `creado_en`, `actualizado_en`) VALUES
+(52, 36, 'hallazgos', 'Modificación de plan de emergencia', NULL, '2025-08-22', 'pozos', '', 'condicion_insegura', 'Al iniciar el Arme de equipos de Slick-Line se observa que no tienen protección para la caída de residuos al contrapozo', 'Se realizo charla de seguridad con el personal aliado en locación Floreña I9 se les hace la recomendación y se procede a colocar una protección plástica', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: se realizaron las acciones correspondientes ', '2025-08-22 09:37:33', '2025-08-22 16:34:39', '2025-08-22 16:37:33');
+
 -- --------------------------------------------------------
 
 --
@@ -111,17 +127,17 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`, `Proyecto`, `activo`, `creado_en`) VALUES
-(26, 'Brayan Alejandro Monroy Pinzon', '1032461712', 'brayan.monroy@ecopetrol.com.co', '1032461712', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
-(27, 'Camilo Andres Ibañez Rozo', '1115914517', 'ingcamilo.ibanez@gmail.com', '1115914517', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
-(28, 'Carlos Saul Celis Acero', '7161987', 'carlos.celis@ecopetrol.com.co', '7161987', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
-(29, 'Cesar Augusto Reyes Ballesteros', '13700520', 'cesar.reyes@meridianecp.com', '13700520', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
+(26, 'Brayan Alejandro Monroy Pinzon', '1032461712', 'brayan.monroy@ecopetrol.com.co', '$2y$10$FcRSX.9YcGBZ.f2wM6CWk.f5XzXCoAHikJ5t6GLYFuOrUpVMnvRgy', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
+(27, 'Camilo Andres Ibañez Rozo', '1115914517', 'ingcamilo.ibanez@gmail.com', '$2y$10$yPi5OfAmrcZjeUHsTpCs7OZAnHB3yutv/TB9IiUAHZo2VbWFXBXm2', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
+(28, 'Carlos Saul Celis Acero', '7161987', 'carlos.celis@ecopetrol.com.co', '$2y$10$rsaSsw17TfaUQrV/4ARuBurk6GJfHcyGu.RyGsm2in76d9fuS9Zxi', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
+(29, 'Cesar Augusto Reyes Ballesteros', '13700520', 'cesar.reyes@meridianecp.com', '$2y$10$RbQVYsdpnR1cYdy9qf1N.evriN2ghTWRYyzwSJOQekQlz6cIZRpf2', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (30, 'Claudia Marina Ortiz Avendaño', '24228529', 'claudia.ortiz@meridianecp.com', '24228529', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
-(31, 'Daniel Segura Espinosa', '74362501', 'daniel.segura@meridianecp.com', '74362501', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
-(32, 'Esteban Garcia Rojas', '1077173073', 'esteban.garcia@meridianecp.com', '1077173073', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
-(33, 'Fernando Jose Aparicio Becerra', '91285174', 'fernando.aparicio@meridianecp.com', '91285174', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
+(31, 'Daniel Segura Espinosa', '74362501', 'daniel.segura@meridianecp.com', '$2y$10$kGF2lRGgbW.80eu7GhLhQuw7I1pKrvIFt4TufVzMONx6Rcv7sTBe.', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
+(32, 'Esteban Garcia Rojas', '1077173073', 'esteban.garcia@meridianecp.com', '$2y$10$M5vY900KpNfg4Q.70fUbdeRYjeZMz6NN6Kjfs1ysbydVHU2rI6o0e', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
+(33, 'Fernando Jose Aparicio Becerra', '91285174', 'fernando.aparicio@meridianecp.com', '$2y$10$Zh6UFCukXs/ehqFoF49zjugWAIrOGqu8gT197VY/ES/7huhMinSeW', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (34, 'Julio Cesar Romero Arevalo', '88281896', 'julio.romero@ecopetrol.com.co', '88281896', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (35, 'Myriam Karina Paredes Forero', '33647141', 'myriam.paredes@meridianecp.com', '33647141', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
-(36, 'Pedro Rafael Cadena Ordoñez', '13871188', 'pedro.cadena@meridianecp.com', '13871188', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
+(36, 'Pedro Rafael Cadena Ordoñez', '13871188', 'pedro.cadena@meridianecp.com', '$2y$10$ZPaMKNnYt7sJ/lPrmOTYCugzKJES9lSBj39oEDO9ehsJnmJbpiote', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (37, 'Viani Yorely Ruiz Galindo', '1115914145', 'viani.ruiz@meridianecp.com', '1115914145', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (38, 'Wilber Castaneda Castaneda', '80150738', 'Wilbercastaeda@gmail.com', '80150738', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (39, 'Jose Mauricio Aponte Abril', '11189101', 'jose.aponte@meridianecp.com', '11189101', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
@@ -132,7 +148,7 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (46, 'Cesar Augusto Urrego Avendaño', '79490148', 'currego@meridian.com.co', '79490148', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (47, 'Ruth Muñoz Castillo', '52147279', 'rmunoz@meridian.com.co', '52147279', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (48, 'Zandra Patricia Mayorga Gomez', '52005033', 'coordinadoracontable@meridian.com.co', '52005033', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
-(49, 'Gustavo Adolfo Giraldo Correa', '1053788938', 'ggiraldo@meridian.com.co', '1053788938', 'colaborador', 'FRONTERA - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(49, 'Gustavo Adolfo Giraldo Correa', '1053788938', 'ggiraldo@meridian.com.co', '1053788938', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (50, 'Aura Alejandra Contreras Torres', '1014251428', 'asistenteadministrativo1@meridian.com.co', '1014251428', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (51, 'Michael Stiven Ruiz Caro', '1007493802', 'soportehseqproyectos@meridian.com.co', '$2y$10$nS0jOp46EB6d9T5qNB9Hr.wVxmsjPFbXAqh6i0hQfhbkXs8DxNQhu', 'soporte', 'COMPANY MAN - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (52, 'Nidia Carolina Grandas Castañeda', '1136887341', 'proyectos3@meridian.com.co', '1136887341', 'colaborador', 'COMPANY MAN - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
@@ -141,8 +157,8 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (55, 'Eloy Gabriel Gomez Reyes', '1020733194', 'coordinaciongestionhumana@meridian.com.co', '1020733194', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (56, 'Diana Marcela Jacobo Mancera', '1031145571', 'soportehseq@meridian.com.co', '$2y$10$GycAgoorOM/FMtnzdG.PPOWGBaXAzKtYFO3QDbo1j6LNeQFWVJ1qS', 'soporte', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (57, 'Laura Daniela Segura Morera', '1121936876', 'profesionalhseq@meridian.com.co', '$2y$10$g3o7koJ5TD5qp6SwRTrHP.a7ILFvKO6kzlaMzoZqtOVupns6hDm7a', 'soporte', 'COMPANY MAN - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
-(58, 'Erika Liliana Mancipe Rodriguez', '52978024', 'aprendizhseq@meridian.com.co', '52978024', 'soporte', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
-(59, 'Andres Camilo Cardenas Reyes', '1007627524', 'soporteit.nivel1@meridian.com.co', '1007627524', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(58, 'Erika Liliana Mancipe Rodriguez', '52978024', 'aprendizhseq@meridian.com.co', '$2y$10$ssRTSNIwDP2qOklbp4NSPecBCojGk0I3wBRD/HRWB1T1foTTuw5cC', 'soporte', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(59, 'Andres Camilo Cardenas Reyes', '1007627524', 'soporteit.nivel1@meridian.com.co', '$2y$10$HBrTd8Dn5fydKYtWpIKZk.YEdbcwtjg.zIv4SwmPl9xa4booG5wyS', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (60, 'Andres Felipe Loaiza Caviedes', '1014663204', 'loaizaf187@gmail.com', '1014663204', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (61, 'Wendy Zamanda Fonseca Hurtado', '1026267917', 'zamandafh1988@gmail.com', '1026267917', 'colaborador', 'FRONTERA', 1, '2025-08-19 15:08:27'),
 (62, 'Sonia Stephania Fonseca Lopez', '1007647736', 'asistentegestionhumana2@meridian.com.co', '1007647736', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
@@ -189,7 +205,7 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (113, 'Juan Carlos Saavedra Bohórquez', '1002691928', 'juancho811.js@gmail.com', '1002691928', 'colaborador', 'COMPANY MAN - CPO09', 1, '2025-08-19 15:08:27'),
 (114, 'Jose Carlos Baquero Peñaloza', '1065810992', 'josecarlosbaquero1994@gmail.com', '1065810992', 'colaborador', 'COMPANY MAN - CPO09', 1, '2025-08-19 15:08:27'),
 (115, 'Javier Eduardo Rojas Prieto', '1013678265', 'javierrojas1214@gmail.com', '1013678265', 'colaborador', 'COMPANY MAN - CPO09', 1, '2025-08-19 15:08:27'),
-(116, 'Agustin Jose Roncallo Cervantes', '1082067533', 'roncalloagustin@gmail.com', '1082067533', 'colaborador', 'COMPANY MAN - CPO09', 1, '2025-08-19 15:08:27'),
+(116, 'Agustin Jose Roncallo Cervantes', '1082067533', 'roncalloagustin@gmail.com', '$2y$10$UEKiQR3kA95NQwsMPsVQ8Oq0hFhaDiO4/jHBoHQjGeu95bPr5cUaS', 'colaborador', 'COMPANY MAN - CPO09', 1, '2025-08-19 15:08:27'),
 (117, 'Jair Enrique Aldana Palma', '80748832', 'jaimark@hotmail.com', '80748832', 'colaborador', 'COMPANY MAN - CPO09', 1, '2025-08-19 15:08:27'),
 (119, 'Jose Luis Velez Cardona', '86075700', 'jose.velezcardona@hotmail.com', '86075700', 'colaborador', 'COMPANY MAN - CPO09', 1, '2025-08-19 15:08:27'),
 (120, 'Berardo Giraldo Gaitan', '86072643', 'lordberar@hotmail.com', '86072643', 'colaborador', 'COMPANY MAN  - APIAY', 1, '2025-08-19 15:08:27'),
@@ -315,7 +331,7 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (243, 'Luis Fernando Parra Gil', '71420827', 'lfparragil@hotmail.com', '71420827', 'colaborador', 'COMPANY MAN - CPO09', 1, '2025-08-19 15:08:27'),
 (244, 'Lady Lorena Vinchery Solano', '1019136436', 'lvinchery@estudiantes.areandina.edu.co', '1019136436', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (245, 'Cristian Andres Murillo', '1033703338', 'andresmurillo163@gmail.com', '1033703338', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
-(246, 'Darwin Yamid Garzon Rodriguez', '1070750164', 'dgarzon162@gmail.com', '1070750164', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(246, 'Darwin Yamid Garzon Rodriguez', '1070750164', 'dgarzon162@gmail.com', '$2y$10$W/AmfzUkvpMKV828grIePO8zN22UlX42uH5psuPiyEcq.WdhARCJO', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (247, 'Candida Patricia Marquez Brun', '1035854640', 'candidapmb@gmail.com', '1035854640', 'colaborador', 'FRONTERA', 1, '2025-08-19 15:08:27'),
 (248, 'Jenny Andrea Cipagauta Cardozo', '37949169', 'andrea.cipagauta@meridianecp.com', '37949169', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (249, 'Jesus David Arenas Navarro', '91520047', 'jesus.arenas@meridianecp.com', '91520047', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
@@ -327,8 +343,8 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (255, 'Jessica Astrid Mayorga Barrera', '1026301759', 'jessicamayorgabarrera@gmail.com', '1026301759', 'colaborador', 'ADMINISTRACION  COMPANY MAN', 1, '2025-08-19 15:08:27'),
 (256, 'Rafael Pinzon Merchan', '93354886', 'rafaelpinzon01@hotmail.com', '$2y$10$8jtdPFIdpiKJwDKAV9umpu8bIml5ugI/r6oLO.UCLZqfC1mgiSN2a', 'colaborador', 'COMPANY MAN - CPO09', 1, '2025-08-19 15:08:27'),
 (257, 'Juan Carlos Duran Zapata', '13481943', 'juducaza@hotmail.com', '$2y$10$3/F5F7EuA2XnEjH5q2lFd.jkgRS4Z13UgNUoUbPUpsYyenV1kFcc.', 'colaborador', 'COMPANY MAN - CPO09', 1, '2025-08-19 15:08:27'),
-(258, 'Jessica Paola Mosquera Lozano', '1075213439', 'jeshika.mosquera@outlook.es', '1075213439', 'colaborador', 'FRONTERA', 1, '2025-08-19 15:08:27'),
-(259, 'Maria Del Pilar Gomez Mora', '1075248439', 'mdpgomezm@gmail.com', '1075248439', 'colaborador', 'FRONTERA', 1, '2025-08-19 15:08:27');
+(258, 'Jessica Paola Mosquera Lozano', '1075213439', 'jeshika.mosquera@outlook.es', '$2y$10$jkXBJo9HaF6hLSxh7Cv0huzNpaFNZG9p87EJSI4VAsZQ0VDb4n5va', 'colaborador', 'FRONTERA', 1, '2025-08-19 15:08:27'),
+(259, 'Maria Del Pilar Gomez Mora', '1075248439', 'mdpgomezm@gmail.com', '$2y$10$pfFZLfHG0p3SVWyWThagP.sHeQ27JYwXWscB/kLX7fIHEb1E35UKK', 'colaborador', 'FRONTERA', 1, '2025-08-19 15:08:27');
 
 --
 -- Índices para tablas volcadas
@@ -377,19 +393,19 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de la tabla `evidencias`
 --
 ALTER TABLE `evidencias`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
 
 --
 -- AUTO_INCREMENT de la tabla `notificaciones`
 --
 ALTER TABLE `notificaciones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT de la tabla `reportes`
 --
 ALTER TABLE `reportes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`

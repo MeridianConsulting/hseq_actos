@@ -37,7 +37,7 @@ class EmployeeController {
             $types .= 'sss';
         }
 
-        $sql = 'SELECT id, nombre, correo, cedula, rol, activo, creado_en FROM usuarios';
+        $sql = 'SELECT id, nombre, correo, cedula, rol, activo, creado_en, Proyecto FROM usuarios';
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
@@ -66,7 +66,7 @@ class EmployeeController {
 
     /** Obtener usuario por ID */
     public function getUserById(int $id) : array {
-        $sql = 'SELECT id, nombre, correo, cedula, rol, activo, creado_en FROM usuarios WHERE id = ?';
+        $sql = 'SELECT id, nombre, correo, cedula, rol, activo, creado_en, Proyecto FROM usuarios WHERE id = ?';
         $stmt = $this->db->prepare($sql);
         if (!$stmt) {
             throw new Exception('Error al preparar la consulta: ' . $this->db->error);
@@ -96,12 +96,13 @@ class EmployeeController {
         $plain = isset($data['contrasena']) && $data['contrasena'] !== '' ? $data['contrasena'] : $data['cedula'];
         $contrasena = password_hash($plain, PASSWORD_BCRYPT);
 
-        $sql = 'INSERT INTO usuarios (nombre, cedula, correo, contrasena, rol, activo, creado_en) VALUES (?, ?, ?, ?, ?, ?, NOW())';
+        $proyecto = isset($data['proyecto']) ? $data['proyecto'] : null;
+        $sql = 'INSERT INTO usuarios (nombre, cedula, correo, contrasena, rol, activo, Proyecto, creado_en) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())';
         $stmt = $this->db->prepare($sql);
         if (!$stmt) {
             throw new Exception('Error al preparar la consulta: ' . $this->db->error);
         }
-        $stmt->bind_param('sssssi', $data['nombre'], $data['cedula'], $data['correo'], $contrasena, $data['rol'], $activo);
+        $stmt->bind_param('sssssis', $data['nombre'], $data['cedula'], $data['correo'], $contrasena, $data['rol'], $activo, $proyecto);
         if (!$stmt->execute()) {
             throw new Exception('Error al crear usuario: ' . $stmt->error);
         }
@@ -121,6 +122,7 @@ class EmployeeController {
         if (isset($data['cedula'])) { $fields[] = 'cedula = ?'; $params[] = $data['cedula']; $types .= 's'; }
         if (isset($data['rol'])) { $fields[] = 'rol = ?'; $params[] = $data['rol']; $types .= 's'; }
         if (isset($data['estado'])) { $fields[] = 'activo = ?'; $params[] = strtolower($data['estado']) === 'inactivo' ? 0 : 1; $types .= 'i'; }
+        if (isset($data['proyecto'])) { $fields[] = 'Proyecto = ?'; $params[] = $data['proyecto']; $types .= 's'; }
 
         if (empty($fields)) {
             return [ 'success' => false, 'message' => 'Sin cambios para actualizar' ];

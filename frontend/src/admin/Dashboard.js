@@ -90,7 +90,7 @@ const Dashboard = () => {
     navigate('/admin/users');
   }, [navigate]);
 
-  const handleDownloadPDF = useCallback(() => {
+  const handleDownloadPDF = useCallback(async () => {
     const title = 'Reporte Ejecutivo HSEQ';
     const generatedAt = new Date().toLocaleString('es-ES');
     const totalTipos = incidentsByType.reduce((a, d) => a + (Number(d.value) || 0), 0);
@@ -161,6 +161,92 @@ const Dashboard = () => {
         </tbody>
       </table>`;
 
+    // Obtener datos de reportes por proyecto
+    let resumenPorProyecto = [];
+    try {
+      const resp = await reportService.fetchReports();
+      if (resp?.success && Array.isArray(resp.data)) {
+        const detalles = resp.data.map((r) => ({
+          ID: r.id,
+          Tipo: r.tipo_reporte,
+          Estado: r.estado,
+          UsuarioID: r.id_usuario,
+          NombreUsuario: r.nombre_usuario || '',
+          ProyectoUsuario: r.proyecto_usuario || '',
+          Asunto: r.asunto || r.asunto_conversacion || '',
+          FechaEvento: r.fecha_evento || '',
+          GradoCriticidad: r.grado_criticidad || '',
+          AreaProceso: r.ubicacion_incidente || r.lugar_hallazgo || r.sitio_evento_conversacion || '',
+          Creado: r.creado_en || ''
+        }));
+
+        if (detalles.length > 0) {
+          // Agrupar por proyecto y contar reportes
+          const proyectos = {};
+          detalles.forEach(r => {
+            const proyecto = r.ProyectoUsuario || 'Sin Proyecto';
+            if (!proyectos[proyecto]) {
+              proyectos[proyecto] = {
+                proyecto: proyecto,
+                total_reportes: 0,
+                incidentes: 0,
+                hallazgos: 0,
+                conversaciones: 0,
+                usuarios_unicos: new Set()
+              };
+            }
+            proyectos[proyecto].total_reportes++;
+            proyectos[proyecto].usuarios_unicos.add(r.UsuarioID);
+            
+            if (r.Tipo === 'incidentes') proyectos[proyecto].incidentes++;
+            else if (r.Tipo === 'hallazgos') proyectos[proyecto].hallazgos++;
+            else if (r.Tipo === 'conversaciones') proyectos[proyecto].conversaciones++;
+          });
+
+          // Convertir a array y agregar cantidad de usuarios únicos
+          resumenPorProyecto = Object.values(proyectos).map(p => ({
+            Proyecto: p.proyecto,
+            TotalReportes: p.total_reportes,
+            Incidentes: p.incidentes,
+            Hallazgos: p.hallazgos,
+            Conversaciones: p.conversaciones,
+            UsuariosUnicos: p.usuarios_unicos.size
+          }));
+        }
+      }
+    } catch (e) {
+      // Si hay error, continuar sin la tabla de proyectos
+    }
+
+    // Obtener todos los proyectos únicos del sistema para mostrar los que tienen 0 reportes
+    let todosLosProyectos = [];
+    try {
+      const resp = await userService.fetchUsers();
+      if (resp?.success && Array.isArray(resp.data)) {
+        const proyectosUnicos = new Set();
+        resp.data.forEach(user => {
+          if (user.Proyecto && user.Proyecto.trim() !== '') {
+            proyectosUnicos.add(user.Proyecto.trim());
+          }
+        });
+        todosLosProyectos = Array.from(proyectosUnicos).sort();
+      }
+    } catch (e) {
+      // Si hay error, continuar sin obtener todos los proyectos
+    }
+
+    // Crear tabla de reportes por proyecto incluyendo proyectos con 0 reportes
+    const tablaPorProyecto = `
+      <table class="table">
+        <thead><tr><th>Proyecto</th><th>Total Reportes</th><th>Incidentes</th><th>Hallazgos</th><th>Conversaciones</th><th>Usuarios Únicos</th></tr></thead>
+        <tbody>
+          ${resumenPorProyecto.map(r => `<tr><td>${r.Proyecto}</td><td>${r.TotalReportes}</td><td>${r.Incidentes}</td><td>${r.Hallazgos}</td><td>${r.Conversaciones}</td><td>${r.UsuariosUnicos}</td></tr>`).join('')}
+          ${todosLosProyectos.filter(proyecto => !resumenPorProyecto.find(r => r.Proyecto === proyecto)).map(proyecto => `<tr><td>${proyecto}</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>`).join('')}
+        </tbody>
+      </table>`;
+    
+
+
     const html = `
       <!doctype html><html><head><meta charset="utf-8"/>${estilos}</head>
       <body>
@@ -193,6 +279,9 @@ const Dashboard = () => {
 
         <h2>📋 Resumen de Totales y Abiertos por Criticidad</h2>
         <div class="box">${abiertosCrit}</div>
+
+        <h2>🏗️ Reportes por Proyecto</h2>
+        <div class="box">${tablaPorProyecto}</div>
         
         <div style="margin-top: 40px; padding: 20px; background: #f7fafc; border-radius: 8px; text-align: center; border-left: 4px solid #3182ce;">
           <p style="margin: 0; color: #4a5568; font-size: 12px;">
@@ -252,6 +341,8 @@ const Dashboard = () => {
           Tipo: r.tipo_reporte,
           Estado: r.estado,
           UsuarioID: r.id_usuario,
+          NombreUsuario: r.nombre_usuario || '',
+          ProyectoUsuario: r.proyecto_usuario || '',
           Asunto: r.asunto || r.asunto_conversacion || '',
           FechaEvento: r.fecha_evento || '',
           GradoCriticidad: r.grado_criticidad || '',
@@ -261,6 +352,46 @@ const Dashboard = () => {
       }
     } catch (e) {
       // Ignore; Excel will be generated without the details sheet
+    }
+
+    // Agregar hoja de resumen por proyecto
+    let resumenPorProyecto = [];
+    try {
+      if (detalles.length > 0) {
+        // Agrupar por proyecto y contar reportes
+        const proyectos = {};
+        detalles.forEach(r => {
+          const proyecto = r.ProyectoUsuario || 'Sin Proyecto';
+          if (!proyectos[proyecto]) {
+            proyectos[proyecto] = {
+              proyecto: proyecto,
+              total_reportes: 0,
+              incidentes: 0,
+              hallazgos: 0,
+              conversaciones: 0,
+              usuarios_unicos: new Set()
+            };
+          }
+          proyectos[proyecto].total_reportes++;
+          proyectos[proyecto].usuarios_unicos.add(r.UsuarioID);
+          
+          if (r.Tipo === 'incidentes') proyectos[proyecto].incidentes++;
+          else if (r.Tipo === 'hallazgos') proyectos[proyecto].hallazgos++;
+          else if (r.Tipo === 'conversaciones') proyectos[proyecto].conversaciones++;
+        });
+
+        // Convertir a array y agregar cantidad de usuarios únicos
+        resumenPorProyecto = Object.values(proyectos).map(p => ({
+          Proyecto: p.proyecto,
+          TotalReportes: p.total_reportes,
+          Incidentes: p.incidentes,
+          Hallazgos: p.hallazgos,
+          Conversaciones: p.conversaciones,
+          UsuariosUnicos: p.usuarios_unicos.size
+        }));
+      }
+    } catch (e) {
+      // Ignore; Excel will be generated without the project summary sheet
     }
 
     const periodLabel = selectedPeriod === 'month' ? 'mensual' : selectedPeriod === 'quarter' ? 'trimestral' : 'anual';
@@ -344,6 +475,7 @@ const Dashboard = () => {
       addTableSheet('PorTipo', ['Tipo','Cantidad'], porTipo);
       addTableSheet('Resumen', ['Metrica','Valor'], resumen);
       if (detalles.length > 0) addTableSheet('Detalles', Object.keys(detalles[0]), detalles);
+      if (resumenPorProyecto.length > 0) addTableSheet('ResumenPorProyecto', Object.keys(resumenPorProyecto[0]), resumenPorProyecto);
 
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -368,6 +500,7 @@ const Dashboard = () => {
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(porTipo), 'PorTipo');
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumen), 'Resumen');
       if (detalles.length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalles), 'Detalles');
+      if (resumenPorProyecto.length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumenPorProyecto), 'ResumenPorProyecto');
       XLSX.writeFile(wb, fileName);
       return;
     } catch (e) {
