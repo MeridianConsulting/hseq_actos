@@ -590,11 +590,7 @@ const ReportsTable = ({
                }`}>
                  Limpiar
                </button>
-               <button type="button" onClick={exportCsv} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm transition-colors duration-200">
-                 <span className="hidden sm:inline">Exportar</span>
-                 <span className="sm:hidden">Exportar</span>
-                 <span className="hidden sm:inline"> CSV</span>
-               </button>
+               
              </div>
              <div className={`flex items-center space-x-2 text-sm ${
                useDarkTheme ? 'text-gray-200' : 'text-white/80'

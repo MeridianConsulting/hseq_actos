@@ -204,9 +204,9 @@ const Dashboard = () => {
     // Obtener datos de reportes por proyecto
     let resumenPorProyecto = [];
     try {
-      const resp = await reportService.fetchReports();
-      if (resp?.success && Array.isArray(resp.data)) {
-        const detalles = resp.data.map((r) => ({
+      const resp = await reportService.getAllReports({ per_page: 1000, page: 1 });
+      if (resp?.success && Array.isArray(resp.reports)) {
+        const detalles = resp.reports.map((r) => ({
           ID: r.id,
           Tipo: r.tipo_reporte,
           Estado: r.estado,
@@ -374,21 +374,30 @@ const Dashboard = () => {
     // Try to fetch detailed reports for an extra sheet
     let detalles = [];
     try {
-      const resp = await reportService.fetchReports();
-      if (resp?.success && Array.isArray(resp.data)) {
-        detalles = resp.data.map((r) => ({
-          ID: r.id,
-          Tipo: r.tipo_reporte,
-          Estado: r.estado,
-          UsuarioID: r.id_usuario,
-          NombreUsuario: r.nombre_usuario || '',
-          ProyectoUsuario: r.proyecto_usuario || '',
-          Asunto: r.asunto || r.asunto_conversacion || '',
-          FechaEvento: r.fecha_evento || '',
-          GradoCriticidad: r.grado_criticidad || '',
-          AreaProceso: r.ubicacion_incidente || r.lugar_hallazgo || r.sitio_evento_conversacion || '',
-          Creado: r.creado_en || ''
-        }));
+      console.log('🔍 Iniciando fetch de reportes para Excel...');
+      const resp = await reportService.getAllReports({ per_page: 1000, page: 1 });
+      console.log('📊 Respuesta completa de getAllReports:', resp);
+      console.log('✅ ¿Success?:', resp?.success);
+      console.log('📋 ¿Tiene reports?:', resp?.reports);
+      console.log('📊 Cantidad de reportes:', resp?.reports?.length);
+      
+      if (resp?.success && Array.isArray(resp.reports)) {
+        detalles = resp.reports.map((r) => {
+          console.log('📝 Procesando reporte:', r);
+          return {
+            ID: r.id,
+            Tipo: r.tipo_reporte,
+            Estado: r.estado,
+            UsuarioID: r.id_usuario,
+            NombreUsuario: r.nombre_usuario || '',
+            ProyectoUsuario: r.proyecto_usuario || '',
+            Asunto: r.asunto || r.asunto_conversacion || '',
+            FechaEvento: r.fecha_evento || '',
+            GradoCriticidad: r.grado_criticidad || '',
+            AreaProceso: r.ubicacion_incidente || r.lugar_hallazgo || r.sitio_evento_conversacion || '',
+            Creado: r.creado_en || ''
+          };
+        });
       }
     } catch (e) {
       // Ignore; Excel will be generated without the details sheet
@@ -397,10 +406,13 @@ const Dashboard = () => {
     // Agregar hoja de resumen por proyecto
     let resumenPorProyecto = [];
     try {
+      console.log('📊 Procesando resumen por proyecto...');
+      console.log('📋 Cantidad de detalles:', detalles.length);
       if (detalles.length > 0) {
         // Agrupar por proyecto y contar reportes
         const proyectos = {};
         detalles.forEach(r => {
+          console.log('🔍 Procesando reporte para proyecto:', r.ProyectoUsuario, 'Tipo:', r.Tipo);
           const proyecto = r.ProyectoUsuario || 'Sin Proyecto';
           if (!proyectos[proyecto]) {
             proyectos[proyecto] = {
@@ -419,6 +431,8 @@ const Dashboard = () => {
           else if (r.Tipo === 'hallazgos') proyectos[proyecto].hallazgos++;
           else if (r.Tipo === 'conversaciones') proyectos[proyecto].conversaciones++;
         });
+        
+        console.log('📊 Proyectos procesados:', proyectos);
 
         // Convertir a array y agregar cantidad de usuarios únicos
         resumenPorProyecto = Object.values(proyectos).map(p => ({
