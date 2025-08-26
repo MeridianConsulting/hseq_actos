@@ -1167,11 +1167,15 @@ const Dashboard = () => {
                   {/* Stats preview */}
                   <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
                     <div className="text-center">
-                      <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>56</div>
+                      <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>
+                        {loading ? '...' : (stats?.kpis?.total_incidentes ?? '0')}
+                      </div>
                       <div className="text-xs opacity-70" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Incidentes</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>303</div>
+                      <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>
+                        {loading ? '...' : (stats?.kpis?.total_reportes ?? '0')}
+                      </div>
                       <div className="text-xs opacity-70" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Reportes</div>
                     </div>
                   </div>
@@ -1217,7 +1221,7 @@ const Dashboard = () => {
                     Reportes Detallados
                   </h3>
                   <p className="text-sm mb-6" style={{ color: 'rgba(252, 247, 255, 0.8)' }}>
-                    Accede a reportes específicos por departamento, tipo de incidente y período
+                    Accede a reportes específicos por proyecto, tipo y fecha
                   </p>
                   
                   {/* Quick actions */}
@@ -1230,17 +1234,7 @@ const Dashboard = () => {
                         borderColor: 'rgba(252, 247, 255, 0.3)'
                       }}
                     >
-                      📊 Reporte por Departamento
-                    </button>
-                    <button 
-                      className="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:scale-105 border text-sm"
-                      style={{
-                        backgroundColor: 'rgba(252, 247, 255, 0.1)',
-                        color: 'var(--color-secondary)',
-                        borderColor: 'rgba(252, 247, 255, 0.3)'
-                      }}
-                    >
-                      📈 Análisis de Tendencias
+                      📊 Reporte por Proyecto
                     </button>
                   </div>
                   
