@@ -10,7 +10,8 @@ const emptyForm = {
   correo: '',
   cedula: '',
   rol: 'colaborador',
-  estado: 'activo'
+  estado: 'activo',
+  proyecto: ''
 };
 
 const roleOptions = [
@@ -79,7 +80,8 @@ const UsersAdmin = () => {
       correo: u.correo || '',
       cedula: u.cedula || '',
       rol: u.rol || 'colaborador',
-      estado: u.estado || 'activo'
+      estado: u.estado || 'activo',
+      proyecto: u.Proyecto || ''
     });
     setModalOpen(true);
   };
@@ -213,6 +215,7 @@ const UsersAdmin = () => {
                     <th className="px-4 py-3">Correo</th>
                     <th className="px-4 py-3">Documento</th>
                     <th className="px-4 py-3">Rol</th>
+                    <th className="px-4 py-3">Proyecto</th>
                     <th className="px-4 py-3">Estado</th>
                     <th className="px-4 py-3 text-right">Acciones</th>
                   </tr>
@@ -220,7 +223,7 @@ const UsersAdmin = () => {
                 <tbody>
                   {loading && (
                     <tr>
-                      <td className="px-4 py-6 text-center" colSpan="6" style={{ color: 'var(--color-secondary)' }}>
+                      <td className="px-4 py-6 text-center" colSpan="7" style={{ color: 'var(--color-secondary)' }}>
                         <div className="flex items-center justify-center gap-2">
                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-400"></div>
                           <span>Cargando...</span>
@@ -230,7 +233,7 @@ const UsersAdmin = () => {
                   )}
                   {error && !loading && (
                     <tr>
-                      <td className="px-4 py-6 text-center text-red-400" colSpan="6">
+                      <td className="px-4 py-6 text-center" colSpan="7">
                         <div className="bg-red-400/10 rounded-lg p-3 border border-red-400/20">
                           {error}
                         </div>
@@ -239,7 +242,7 @@ const UsersAdmin = () => {
                   )}
                   {!loading && !error && filteredUsers.length === 0 && (
                     <tr>
-                      <td className="px-4 py-8 text-center" colSpan="6" style={{ color: 'var(--color-secondary)' }}>
+                      <td className="px-4 py-8 text-center" colSpan="7" style={{ color: 'var(--color-secondary)' }}>
                         <div className="text-center">
                           <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -261,6 +264,9 @@ const UsersAdmin = () => {
                           color: u.rol === 'admin' ? '#fca5a5' : u.rol === 'soporte' ? '#93c5fd' : '#86efac',
                           border: '1px solid rgba(252, 247, 255, 0.2)'
                         }}>{u.rol}</span>
+                      </td>
+                      <td className="px-4 py-4" style={{ color: 'var(--color-secondary)' }}>
+                        {u.Proyecto || '-'}
                       </td>
                       <td className="px-4 py-4">
                         <span className="px-3 py-1 rounded-full text-xs font-bold capitalize" style={{
@@ -289,7 +295,7 @@ const UsersAdmin = () => {
                             onClick={() => onDelete(u.id)} 
                             className="px-2 py-1 rounded-lg text-xs transition-all duration-200 hover:scale-105"
                             style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.3)' }}
-                          >
+                        >
                             Eliminar
                           </button>
                         </div>
@@ -415,6 +421,18 @@ const UsersAdmin = () => {
                         </svg>
                       </div>
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Proyecto</label>
+                    <input 
+                      name="proyecto" 
+                      value={form.proyecto} 
+                      onChange={onChange}
+                      placeholder="Nombre del proyecto"
+                      className="w-full px-4 py-2 rounded-xl bg-white bg-opacity-10 border border-white border-opacity-20 focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all duration-300"
+                      style={{ color: 'var(--color-secondary)' }}
+                    />
                   </div>
 
                   <div className="flex justify-end space-x-3 pt-2">

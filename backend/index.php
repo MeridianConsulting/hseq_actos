@@ -995,7 +995,7 @@ function handleRequest($method, $path){
     }
 
     // Rutas de administración de usuarios
-    if($path === 'users' && $method === 'GET'){
+    if($path === 'api/users' && $method === 'GET'){
         if (!$requireRole(['admin', 'soporte'])) { return; }
         try {
             $controller = new EmployeeController();
@@ -1025,7 +1025,7 @@ function handleRequest($method, $path){
             return;
         }
     }
-    elseif($path === 'users' && $method === 'POST'){
+    elseif($path === 'api/users' && $method === 'POST'){
         if (!$requireRole(['admin'])) { return; }
         try {
             $data = json_decode(file_get_contents('php://input'), true);

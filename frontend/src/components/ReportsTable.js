@@ -61,10 +61,7 @@ const ReportsTable = ({
   // Cargar todos los proyectos desde la base de datos
   const loadProyectos = async () => {
     try {
-      console.log('Cargando proyectos desde la base de datos...');
       const usersResult = await userService.fetchUsers();
-      
-      console.log('Respuesta completa de userService.fetchUsers():', usersResult);
       
       // Intentar diferentes estructuras de respuesta
       let users = [];
@@ -78,18 +75,14 @@ const ReportsTable = ({
         users = usersResult.data;
       }
       
-      console.log('Usuarios extraídos:', users.length);
-      
       // Extraer proyectos únicos de todos los usuarios
       const proyectosUnicos = new Set();
-      users.forEach((user, index) => {
-        console.log(`Usuario ${index + 1}:`, user.nombre, 'Proyecto:', user.Proyecto);
+      users.forEach((user) => {
         if (user.Proyecto && user.Proyecto.trim() !== '') {
           proyectosUnicos.add(user.Proyecto.trim());
         }
       });
       const proyectosArray = Array.from(proyectosUnicos).sort();
-      console.log('Proyectos encontrados:', proyectosArray);
       setProyectos(proyectosArray);
     } catch (error) {
       console.error('Error al cargar proyectos:', error);
