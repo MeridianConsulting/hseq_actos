@@ -6,6 +6,61 @@ import { buildApi, buildUploadsUrl } from '../config/api';
 import { gradosCriticidad, tiposAfectacion, reportTypes } from '../config/formOptions';
 import { reportService, userService } from '../services/api';
 
+// Función para formatear la fecha y hora del reporte correctamente
+const formatReportDateTime = (fechaEvento, creadoEn) => {
+  try {
+    // Siempre usar creado_en para mostrar la fecha y hora exacta de creación del reporte
+    // fecha_evento solo tiene la fecha del evento, no la hora de creación
+    const fecha = creadoEn || fechaEvento;
+    
+    if (!fecha) return 'Fecha no disponible';
+    
+    // Crear objeto Date - manejar diferentes formatos
+    let date;
+    
+    // Si es un string, intentar parsearlo
+    if (typeof fecha === 'string') {
+      // Intentar diferentes formatos de fecha
+      if (fecha.includes('T')) {
+        // Formato ISO: "2024-01-15T14:30:00.000Z"
+        date = new Date(fecha);
+      } else if (fecha.includes('-') && fecha.includes(':')) {
+        // Formato MySQL: "2024-01-15 14:30:00"
+        date = new Date(fecha.replace(' ', 'T'));
+      } else if (fecha.includes('-')) {
+        // Solo fecha: "2024-01-15" - agregar hora por defecto
+        date = new Date(fecha + 'T00:00:00');
+      } else {
+        // Otros formatos
+        date = new Date(fecha);
+      }
+    } else {
+      // Si ya es un objeto Date o timestamp
+      date = new Date(fecha);
+    }
+    
+    // Verificar que la fecha sea válida
+    if (isNaN(date.getTime())) {
+      return 'Fecha inválida';
+    }
+    
+    // Formatear en español colombiano con zona horaria específica
+    return date.toLocaleString('es-CO', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false // Usar formato 24 horas
+    });
+    
+  } catch (error) {
+    return 'Error en fecha';
+  }
+};
+
 const ReportsTable = ({ 
   user, 
   showStatusActions = true, 
@@ -675,7 +730,7 @@ const ReportsTable = ({
                     useDarkTheme ? 'text-gray-300' : 'text-white/70'
                   }`}>
                     <span>Reportado por: {report.nombre_usuario}</span>
-                    <span>Fecha: {new Date(report.fecha_evento || report.creado_en).toLocaleString()}</span>
+                    <span>Fecha: {formatReportDateTime(report.fecha_evento, report.creado_en)}</span>
                   </div>
                   
                   {/* Mostrar primera imagen si existe */}
