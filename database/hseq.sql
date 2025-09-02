@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: localhost:3306
--- Tiempo de generación: 26-08-2025 a las 07:52:53
+-- Tiempo de generación: 02-09-2025 a las 13:05:12
 -- Versión del servidor: 10.6.22-MariaDB-cll-lve
 -- Versión de PHP: 8.3.22
 
@@ -57,7 +57,16 @@ CREATE TABLE `notificaciones` (
 INSERT INTO `notificaciones` (`id`, `id_reporte`, `destinatario`, `medio`, `enviado_en`) VALUES
 (25, 52, 'desarrolloit@meridian.com.co', 'correo', '2025-08-22 16:34:39'),
 (26, 52, 'desarrolloit@meridian.com.co', 'correo', '2025-08-22 16:36:10'),
-(27, 52, 'desarrolloit@meridian.com.co', 'correo', '2025-08-22 16:37:33');
+(27, 52, 'desarrolloit@meridian.com.co', 'correo', '2025-08-22 16:37:33'),
+(28, 53, 'desarrolloit@meridian.com.co', 'correo', '2025-09-02 15:59:00'),
+(29, 54, 'desarrolloit@meridian.com.co', 'correo', '2025-09-02 17:21:34'),
+(30, 55, 'desarrolloit@meridian.com.co', 'correo', '2025-09-02 17:24:57'),
+(31, 56, 'desarrolloit@meridian.com.co', 'correo', '2025-09-02 17:35:16'),
+(32, 57, 'desarrolloit@meridian.com.co', 'correo', '2025-09-02 17:36:59'),
+(33, 58, 'desarrolloit@meridian.com.co', 'correo', '2025-09-02 17:42:50'),
+(34, 59, 'desarrolloit@meridian.com.co', 'correo', '2025-09-02 18:05:33'),
+(35, 60, 'desarrolloit@meridian.com.co', 'correo', '2025-09-02 18:52:51'),
+(36, 61, 'desarrolloit@meridian.com.co', 'correo', '2025-09-02 19:32:52');
 
 -- --------------------------------------------------------
 
@@ -102,7 +111,16 @@ CREATE TABLE `reportes` (
 --
 
 INSERT INTO `reportes` (`id`, `id_usuario`, `tipo_reporte`, `asunto`, `descripcion_general`, `fecha_evento`, `lugar_hallazgo`, `lugar_hallazgo_otro`, `tipo_hallazgo`, `descripcion_hallazgo`, `recomendaciones`, `estado_condicion`, `grado_criticidad`, `ubicacion_incidente`, `hora_evento`, `tipo_afectacion`, `descripcion_incidente`, `tipo_conversacion`, `sitio_evento_conversacion`, `lugar_hallazgo_conversacion`, `lugar_hallazgo_conversacion_otro`, `descripcion_conversacion`, `asunto_conversacion`, `estado`, `revisado_por`, `comentarios_revision`, `fecha_revision`, `creado_en`, `actualizado_en`) VALUES
-(52, 36, 'hallazgos', 'Modificación de plan de emergencia', NULL, '2025-08-22', 'pozos', '', 'condicion_insegura', 'Al iniciar el Arme de equipos de Slick-Line se observa que no tienen protección para la caída de residuos al contrapozo', 'Se realizo charla de seguridad con el personal aliado en locación Floreña I9 se les hace la recomendación y se procede a colocar una protección plástica', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: se realizaron las acciones correspondientes ', '2025-08-22 09:37:33', '2025-08-22 16:34:39', '2025-08-22 16:37:33');
+(52, 36, 'hallazgos', 'Modificación de plan de emergencia', NULL, '2025-08-22', 'pozos', '', 'condicion_insegura', 'Al iniciar el Arme de equipos de Slick-Line se observa que no tienen protección para la caída de residuos al contrapozo', 'Se realizo charla de seguridad con el personal aliado en locación Floreña I9 se les hace la recomendación y se procede a colocar una protección plástica', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: se realizaron las acciones correspondientes ', '2025-08-22 09:37:33', '2025-08-22 16:34:39', '2025-08-22 16:37:33'),
+(53, 156, 'conversaciones', 'Cuidado de la espalda', NULL, '2025-09-01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'reflexion', 'Puesto fisico de trabajo remoto', 'otras', 'Escritorio', 'La capacitación sobre el cuidado de la espalda me hizo notar lo fácil que es ignorar las recomendaciones de descanso, especialmente en días de mucho trabajo. El viernes pasado lo viví en carne propia: al final del día, el dolor en la parte baja de la espalda me recordó la importancia de esas pausas.\n\nPor eso, desde este lunes, me he propuesto ser más disciplinado con los descansos y la postura, integrando las pausas activas recomendadas para cuidar no solo mi espalda, sino también mi vista. Es un compromiso que estoy tomando para mi bienestar.', 'Cuidado de la espalda', 'pendiente', NULL, NULL, NULL, '2025-09-02 15:59:00', '2025-09-02 15:59:00'),
+(54, 262, 'hallazgos', 'Dotación para laborar mis actividades', NULL, '2025-09-02', 'pozos', '', 'accion_mejoramiento', 'En la dotación de trabajo no me entregaron overoles, solo me dieron camisas y jeans. Y requiero overoles ya que visito constantemente a pozos del campo. También superviso operaciones donde debo estar con la dotación adecuada.', 'Entrega de overoles de la empresa y no camisas y Jeans', 'abierta', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-09-02 17:21:34', '2025-09-02 17:21:34'),
+(55, 267, 'hallazgos', 'Solicitud cambio dotacion', NULL, '2025-09-02', 'epp', '', 'accion_mejoramiento', 'Buen dia\nSe reporta talla muy grande de dotacion bragas', 'Se requiere cambiar las 2 bragas entregadas por talla 4', 'abierta', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-09-02 17:24:57', '2025-09-02 17:24:57'),
+(56, 269, 'hallazgos', 'Entrega de materiales faltantes', NULL, '2025-09-02', 'campo_produccion', '', 'accion_mejoramiento', 'Aún no cuento con los accesorios para los actividades diarias como lo son pantalla, mouse, descansa pies', 'Entrega de materiales restantes', 'abierta', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-09-02 17:35:16', '2025-09-02 17:35:16'),
+(57, 269, 'hallazgos', 'No envíe overoles', NULL, '2025-09-02', 'campo_produccion', '', 'accion_mejoramiento', 'No recibí overoles , ya que las actividades son de subsuelo y se requiere trabajos en campo', 'Envío de dotación completa', 'abierta', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-09-02 17:36:59', '2025-09-02 17:36:59'),
+(58, 261, 'hallazgos', 'Dotación Overol', NULL, '2025-09-02', 'otras', 'N/A', 'accion_mejoramiento', 'Solicito amablemente de tu apoyo con la dotación de overol y pantalla', 'Solicito amablemente de tu apoyo con la dotación de overol y pantalla', 'abierta', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-09-02 17:42:50', '2025-09-02 17:42:50'),
+(59, 265, 'hallazgos', 'NOVEDAD DOTACIÓN', NULL, '2025-09-02', 'epp', '', 'accion_mejoramiento', 'Buen día, reporto novedad en la dotación. Ya que recibí 2 camisas talla S para hombre. \npor favor, su apoyo con el cambio de las tallas ( para mujer talla S) y realizar el cambio de una camisa y un jean por un overol. \nMuchas gracias.', 'Tener en cuenta la dotación solicitada.', 'abierta', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-09-02 18:05:32', '2025-09-02 18:05:32'),
+(60, 272, 'hallazgos', 'Entrega de pantalla y soporte de la misma con el soporte del computador.', NULL, '2025-09-02', 'campo_produccion', '', 'accion_mejoramiento', 'Se reporta por favor entregar la pantalla y soporte de la misma ademas del soporte del computador.', 'Entrega de los elementos relacionados', 'abierta', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-09-02 18:52:51', '2025-09-02 18:52:51'),
+(61, 266, 'hallazgos', 'SOLICITUD DE OVEROL', NULL, '2025-09-02', 'epp', '', 'aspecto_positivo', 'SOLICITUD DE OVEROL ADICUONAL TALLA 6 PARA REALIZAR ACTIVIDADES EN CAMPO RELACIONADOS CON EL ROL DE EQUIPOS.', 'ENTREGA DE OVEROL ADICIONAL.', 'abierta', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-09-02 19:32:52', '2025-09-02 19:32:52');
 
 -- --------------------------------------------------------
 
@@ -131,19 +149,19 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (27, 'Camilo Andres Ibañez Rozo', '1115914517', 'ingcamilo.ibanez@gmail.com', '$2y$10$yPi5OfAmrcZjeUHsTpCs7OZAnHB3yutv/TB9IiUAHZo2VbWFXBXm2', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (28, 'Carlos Saul Celis Acero', '7161987', 'carlos.celis@ecopetrol.com.co', '$2y$10$rsaSsw17TfaUQrV/4ARuBurk6GJfHcyGu.RyGsm2in76d9fuS9Zxi', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (29, 'Cesar Augusto Reyes Ballesteros', '13700520', 'cesar.reyes@meridianecp.com', '$2y$10$RbQVYsdpnR1cYdy9qf1N.evriN2ghTWRYyzwSJOQekQlz6cIZRpf2', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
-(30, 'Claudia Marina Ortiz Avendaño', '24228529', 'claudia.ortiz@meridianecp.com', '24228529', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
+(30, 'Claudia Marina Ortiz Avendaño', '24228529', 'claudia.ortiz@meridianecp.com', '$2y$10$81VPu.sCV8XR9iundwZXt.iwkWTXBUybVRjJSc9v0G1USa1w4t.kC', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (31, 'Daniel Segura Espinosa', '74362501', 'daniel.segura@meridianecp.com', '$2y$10$kGF2lRGgbW.80eu7GhLhQuw7I1pKrvIFt4TufVzMONx6Rcv7sTBe.', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (32, 'Esteban Garcia Rojas', '1077173073', 'esteban.garcia@meridianecp.com', '$2y$10$M5vY900KpNfg4Q.70fUbdeRYjeZMz6NN6Kjfs1ysbydVHU2rI6o0e', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (33, 'Fernando Jose Aparicio Becerra', '91285174', 'fernando.aparicio@meridianecp.com', '$2y$10$Zh6UFCukXs/ehqFoF49zjugWAIrOGqu8gT197VY/ES/7huhMinSeW', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
-(34, 'Julio Cesar Romero Arevalo', '88281896', 'julio.romero@ecopetrol.com.co', '88281896', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
+(34, 'Julio Cesar Romero Arevalo', '88281896', 'julio.romero@ecopetrol.com.co', '$2y$10$k3KNCVBeKMB3ehEto6w8ROYK3Imrf.6EH6xMahW5SulRtt4or40pi', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (35, 'Myriam Karina Paredes Forero', '33647141', 'myriam.paredes@meridianecp.com', '33647141', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (36, 'Pedro Rafael Cadena Ordoñez', '13871188', 'pedro.cadena@meridianecp.com', '$2y$10$ZPaMKNnYt7sJ/lPrmOTYCugzKJES9lSBj39oEDO9ehsJnmJbpiote', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
-(37, 'Viani Yorely Ruiz Galindo', '1115914145', 'viani.ruiz@meridianecp.com', '1115914145', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
-(38, 'Wilber Castaneda Castaneda', '80150738', 'Wilbercastaeda@gmail.com', '80150738', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
-(39, 'Jose Mauricio Aponte Abril', '11189101', 'jose.aponte@meridianecp.com', '11189101', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
+(37, 'Viani Yorely Ruiz Galindo', '1115914145', 'viani.ruiz@meridianecp.com', '$2y$10$O2tsmrQPuSXT/SSIyFV2y.K4uwn9Yt8/lN8ERJjVjY0V6iIuBXF6y', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
+(38, 'Wilber Castaneda Castaneda', '80150738', 'Wilbercastaeda@gmail.com', '$2y$10$9Sdtph0OlgGfZfifamYUB.CYfV5.cuQJW/qhohaktlQb2ffDyPiqq', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
+(39, 'Jose Mauricio Aponte Abril', '11189101', 'jose.aponte@meridianecp.com', '$2y$10$kk7YFcaLJt7efX1drY5jfuiTi9y/C644HFlNRkSkAg5.I4.l.2gwO', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (40, 'Angela Maria Hernandez Tapias', '42116896', 'angelama.hernandez@ecopetrol.com.co', '42116896', 'colaborador', '3047761-4', 1, '2025-08-19 14:37:03'),
 (41, 'José Mateo López Cifuentes', '1011202252', 'desarrolloit@meridian.com.co', '$2y$10$CwKGmnRZdgD4t7CeYEk.XeaCflzUNKT8lukfot9QfvNYj5X2dtAx2', 'admin', 'ADMINISTRACION', 1, '2025-08-19 14:38:10'),
-(44, 'Nora Gisell Moreno Moreno', '52030991', 'nmoreno@meridian.com.co', '52030991', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(44, 'Nora Gisell Moreno Moreno', '52030991', 'nmoreno@meridian.com.co', '$2y$10$6iVvGeWc8.4XobGj.UKmI.6/zUunWzsgmXGJRbBMA1wUi9zF2FLVG', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (45, 'William Augusto Franco Castellanos', '79613401', 'wfranco@meridian.com.co', '79613401', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (46, 'Cesar Augusto Urrego Avendaño', '79490148', 'currego@meridian.com.co', '79490148', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (47, 'Ruth Muñoz Castillo', '52147279', 'rmunoz@meridian.com.co', '52147279', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
@@ -153,7 +171,7 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (51, 'Michael Stiven Ruiz Caro', '1007493802', 'soportehseqproyectos@meridian.com.co', '$2y$10$nS0jOp46EB6d9T5qNB9Hr.wVxmsjPFbXAqh6i0hQfhbkXs8DxNQhu', 'soporte', 'COMPANY MAN - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (52, 'Nidia Carolina Grandas Castañeda', '1136887341', 'proyectos3@meridian.com.co', '1136887341', 'colaborador', 'COMPANY MAN - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (53, 'Luis Miguel Guevara Marles', '1119211830', 'hseq@meridian.com.co', '$2y$10$drtpG6TvrCyM1BL6JEvF9ONjz3IcEcIqmahuR.YktSL5BB5V/bwp.', 'admin', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
-(54, 'Sandra Milena Florez Prado', '1014180459', 'asistenteadministrativo2@meridian.com.co', '1014180459', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(54, 'Sandra Milena Florez Prado', '1014180459', 'asistenteadministrativo2@meridian.com.co', '$2y$10$0YmqZO44j55pBJDG7B.i.Ok4IDwVV5Gah9pnt3ZEyWZ/3fbmu/pDO', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (55, 'Eloy Gabriel Gomez Reyes', '1020733194', 'coordinaciongestionhumana@meridian.com.co', '1020733194', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (56, 'Diana Marcela Jacobo Mancera', '1031145571', 'soportehseq@meridian.com.co', '$2y$10$GycAgoorOM/FMtnzdG.PPOWGBaXAzKtYFO3QDbo1j6LNeQFWVJ1qS', 'soporte', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (57, 'Laura Daniela Segura Morera', '1121936876', 'profesionalhseq@meridian.com.co', '$2y$10$g3o7koJ5TD5qp6SwRTrHP.a7ILFvKO6kzlaMzoZqtOVupns6hDm7a', 'soporte', 'COMPANY MAN - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
@@ -184,10 +202,10 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (82, 'Maria Del Pilar Rodriguez Sanchez', '1122135336', 'pilar.rodriguez23@hotmail.com', '1122135336', 'colaborador', 'COMPANY MAN  - CASTILLA', 1, '2025-08-19 15:08:27'),
 (83, 'Camila Fernanda Medina Sandoval', '1100954344', 'camila.medina@meridianecp.com', '1100954344', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (84, 'Anggie Estefania Alonso Ruiz', '1022407009', 'asisdministrativo@meridian.com.co', '1022407009', 'colaborador', 'COMPANY MAN - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
-(88, 'Luis Guillermo Mercado Rico', '80100600', 'luis.guillermo.mercado@gmail.com', '80100600', 'colaborador', 'COMPANY MAN  - APIAY', 1, '2025-08-19 15:08:27'),
+(88, 'Luis Guillermo Mercado Rico', '80100600', 'luis.guillermo.mercado@gmail.com', '$2y$10$bhvPSe6R2Mocdp5athAY9uCR0X4g0mQjtLk6TFJBRXMhabz6Zroqe', 'colaborador', 'COMPANY MAN  - APIAY', 1, '2025-08-19 15:08:27'),
 (95, 'Angy Yolima Salcedo Amado', '1053611893', 'angysalcedo0810@hotmail.com', '1053611893', 'colaborador', 'COMPANY MAN - PIEDEMONTE', 1, '2025-08-19 15:08:27'),
-(97, 'Karen Julieth Carranza Rodriguez', '1000931984', 'analistacontable@meridian.com.co', '1000931984', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
-(98, 'Aura Maria Traslaviña Prada', '1095786398', 'aura.traslavina@meridianecp.com', '1095786398', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
+(97, 'Karen Julieth Carranza Rodriguez', '1000931984', 'analistacontable@meridian.com.co', '$2y$10$fDJA.U9ZFKFyV9S9cpcg1uznh9PP5ULcXYtEM491quaSu20zVKjDa', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(98, 'Aura Maria Traslaviña Prada', '1095786398', 'aura.traslavina@meridianecp.com', '$2y$10$xe2.jKVvJCQhjxKsh5dH..HwnkfaK/Ppz9JdUHmLwKW/VaUgu7gs2', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (99, 'Hector Andres Noguera Bolaños', '87454560', 'andresnoguera111@hotmail.com', '87454560', 'colaborador', 'COMPANY MAN  - APIAY', 1, '2025-08-19 15:08:27'),
 (100, 'Alexander Rondon', '86057747', 'alexander.rondon@meridianecp.com', '86057747', 'colaborador', 'COMPANY MAN  - APIAY', 1, '2025-08-19 15:08:27'),
 (101, 'Viviana Del Pilar Alfonso Avendaño', '1022344726', 'viviana.alfonsoa@gmail.com', '1022344726', 'colaborador', 'ADMINISTRACION - STAFF', 1, '2025-08-19 15:08:27'),
@@ -224,7 +242,7 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (133, 'Maria Alejandra Joya Rincon', '1098697791', 'alejandra.joya@meridianecp.com', '1098697791', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (134, 'Maria Alejandra Cabrera Garcia', '1075286382', 'mariaalejandra.cabrera@meridianecp.com', '1075286382', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (135, 'Lucia Maria Acero Lizcano', '37514608', 'lucia.acero@meridianecp.com', '37514608', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
-(136, 'Lina Maria Rendon Cardona', '31429767', 'lina.rendon@meridianecp.com', '31429767', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
+(136, 'Lina Maria Rendon Cardona', '31429767', 'lina.rendon@meridianecp.com', '$2y$10$vixvINfNvH5JYD9XCTCbgenZKCvoBlJfrh/zmBnaNcTqdWVFDUVvO', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (137, 'Laura Maria Hernandez Riveros', '1032414423', 'laura.hernandez@meridianecp.com', '1032414423', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (138, 'Lady Milena Lopez Rojas', '1100950373', 'lady.lopez@meridian.com.co', '1100950373', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (139, 'Jully Alexandra Vargas Quintero', '1075286613', 'jully.vargas@meridianecp.com', '1075286613', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
@@ -244,7 +262,7 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (153, 'Diana Paola Solano Sua', '52967140', 'diana.solano@meridianecp.com', '52967140', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (154, 'Daniela Molina Landinez', '1075293846', 'daniela.molina@meridianecp.com', '1075293846', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (155, 'Cindy Natalia Isaza Toro', '1128452509', 'cindy.isaza@meridianecp.com', '1128452509', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
-(156, 'Carlos Jose Urzola Ebratt', '1152210959', 'carlos.urzola@meridianecp.com', '1152210959', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
+(156, 'Carlos Jose Urzola Ebratt', '1152210959', 'carlos.urzola@meridianecp.com', '$2y$10$nUkvOAGBMx880sw3OiH8SeKtboSL.EfUY0CX5DfnFnZqV0p17Dz9S', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (157, 'Carlos Alejandro Forero Peña', '1014216060', 'carlos.forero@meridianecp.com', '1014216060', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (158, 'Camilo Andres Santana Otalora', '1026292916', 'camilo.santana@meridianecp.com', '1026292916', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (159, 'Blanca Offir Hurtado Lopera', '30400528', 'blanca.hurtado@meridianecp.com', '30400528', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
@@ -303,7 +321,7 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (215, 'Carlos Rafael Olmos Carval', '1047451443', 'carlos.olmos@meridianecp.com', '1047451443', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (216, 'Briggite Susec Camacho Jerez', '1098692205', 'briggite.camacho@meridianecp.com', '1098692205', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (217, 'Ana Maria Castellanos Barreto', '52455261', 'ana.castellanos@meridianecp.com', '52455261', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
-(218, 'Alejandro Duvan Lopez Rojas', '1121941649', 'alejandro.lopez@meridianecp.com', '1121941649', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
+(218, 'Alejandro Duvan Lopez Rojas', '1121941649', 'alejandro.lopez@meridianecp.com', '$2y$10$hJ4HPeYF3YuVe9p.tusf7uVJG8Ifxy0wpimS/XqpFPFdpUv5lHVfe', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (219, 'Jennyfer Paola Sanchez Pinzon', '1018411794', 'asistentecontable1@meridian.com.co', '1018411794', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (220, 'Vanessa Tangarife Ortiz', '1128270688', 'vanessa.tangarife@gmail.com', '1128270688', 'colaborador', 'COMPANY MAN  - APIAY', 1, '2025-08-19 15:08:27'),
 (221, 'Carlos Andres De Los Rios Restrepo', '71382364', 'ingcarlosdelosrios@hotmail.com', '71382364', 'colaborador', 'COMPANY MAN - CPO09', 1, '2025-08-19 15:08:27'),
@@ -314,13 +332,13 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (226, 'Diana Marcela Cáceres Salinas', '30405867', 'diana.caceres@meridianecp.com', '30405867', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (227, 'Claudia Alejandra Cajicá Trillos', '1098800508', 'claudia.cajica@meridianecp.com', '1098800508', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (228, 'Carolina Leon Vanegas', '52969518', 'carolina.leon@meridianecp.com', '52969518', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
-(229, 'Diego Alejandro Barreto Hernandez', '1140916030', 'dbarretohernandez13@gmail.com', '1140916030', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(229, 'Diego Alejandro Barreto Hernandez', '1140916030', 'dbarretohernandez13@gmail.com', '$2y$10$5Ngb9r.MwQ1DgYnWvrJcAOveT4oKqZ/9F.VunOP5E3/cbnB2Um3BG', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (230, 'Jully Marcela Ortegon Barrera', '63536247', 'jully.ortegon@meridianecp.com', '63536247', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (231, 'Jorge Armando Pacheco Collazos', '1010174163', 'asistentelogistica@meridian.com.co', '1010174163', 'colaborador', 'ZIRCON', 1, '2025-08-19 15:08:27'),
 (232, 'Jessica Alexandra Alava Chavez', '1010222610', 'jessica.a.alava@hotmail.com', '1010222610', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (233, 'Jefferson Julian Sanabria Amaya', '1098631939', 'jeffersanabria@hotmail.com', '1098631939', 'colaborador', 'FRONTERA', 1, '2025-08-19 15:08:27'),
 (234, 'Edwin Fabian Mayorga Lopez', '1013634120', 'edwin.mayorga@meridianecp.com', '1013634120', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
-(235, 'Diego Andrey Lopez Calderon', '1033776515', 'andrey.1995@outlook.es', '1033776515', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(235, 'Diego Andrey Lopez Calderon', '1033776515', 'andrey.1995@outlook.es', '$2y$10$XVtLGzawcttQlLziDrKmNOhGKLH.sWv9fMaZcAZRRXTAzGK3.aewq', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (236, 'Carlos Alberto Ruiz Vanegas', '91283664', 'carruizvan@gmail.com', '91283664', 'colaborador', 'COMPANY MAN - APIAY', 1, '2025-08-19 15:08:27'),
 (237, 'Diego Mauricio Martinez Bravo', '80243783', 'diego.martinez@meridianecp.com', '80243783', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
 (238, 'Mario Augusto Moreno Castellanos', '13720871', 'mario.moreno@meridianecp.com', '13720871', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
@@ -344,7 +362,30 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (256, 'Rafael Pinzon Merchan', '93354886', 'rafaelpinzon01@hotmail.com', '$2y$10$8jtdPFIdpiKJwDKAV9umpu8bIml5ugI/r6oLO.UCLZqfC1mgiSN2a', 'colaborador', 'COMPANY MAN - CPO09', 1, '2025-08-19 15:08:27'),
 (257, 'Juan Carlos Duran Zapata', '13481943', 'juducaza@hotmail.com', '$2y$10$3/F5F7EuA2XnEjH5q2lFd.jkgRS4Z13UgNUoUbPUpsYyenV1kFcc.', 'colaborador', 'COMPANY MAN - CPO09', 1, '2025-08-19 15:08:27'),
 (258, 'Jessica Paola Mosquera Lozano', '1075213439', 'jeshika.mosquera@outlook.es', '$2y$10$jkXBJo9HaF6hLSxh7Cv0huzNpaFNZG9p87EJSI4VAsZQ0VDb4n5va', 'colaborador', 'FRONTERA', 1, '2025-08-19 15:08:27'),
-(259, 'Maria Del Pilar Gomez Mora', '1075248439', 'mdpgomezm@gmail.com', '$2y$10$pfFZLfHG0p3SVWyWThagP.sHeQ27JYwXWscB/kLX7fIHEb1E35UKK', 'colaborador', 'FRONTERA', 1, '2025-08-19 15:08:27');
+(259, 'Maria Del Pilar Gomez Mora', '1075248439', 'mdpgomezm@gmail.com', '$2y$10$pfFZLfHG0p3SVWyWThagP.sHeQ27JYwXWscB/kLX7fIHEb1E35UKK', 'colaborador', 'FRONTERA', 1, '2025-08-19 15:08:27'),
+(260, 'Jhonatan Alexander Torres Rodriguez', '1096202008', 'jhonatantorresrdr@gmail.com', '$2y$10$BNQTpTOWfs4XUqge4Y2hueckdz/GEGs13RGvPsfE6M6YqCbv4iZRW', 'colaborador', NULL, 1, '2025-09-02 14:35:42'),
+(261, 'Laura Marcela Arenas Perez', '1098681142', 'lamarcela1289@gmail.com', '$2y$10$WccJNi1psOT1FB9Az9is.Oq7pCKlHW3ZVacxBL/YABhxWyVZ/QzbW', 'colaborador', NULL, 1, '2025-09-02 14:36:41'),
+(262, 'Miguel Ángel Ayala Pinzon', '1101687575', 'ing.ayala19@gmail.com', '$2y$10$lY24FPgTbOKa.6LSYWuV7ekGOTtWFF87Qz5e2F4t14a02xYJGAT9u', 'colaborador', NULL, 1, '2025-09-02 14:37:06'),
+(263, 'Dianis Chavez Campuzano ', '1002465061', '01dianischavez@gmail.com', '$2y$10$qKZXrAj5CN4uByGEp/Q9guMHmDUWV8tCCDvL23v6ojC1ztSu4uULO', 'colaborador', NULL, 1, '2025-09-02 14:37:34'),
+(264, 'Angela Maria Toro Paternina', '1037580568', 'amtorop90@hotmail.com', '$2y$10$aYiRt6Z6ESPsuqhJ39EmWevlqkFheEcBogYWcumB.ZzZ.ApXlLkA.', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:38:30'),
+(265, 'Laura Vanesa Castro Carmona', '1143388273', 'laucastro212011@gmail.com', '$2y$10$X/lz/ueZG4Tw7ETx.a25aeJnMEp2AgD/sW2Ovtw1hQ7d8n/2ZqZ6W', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:38:48'),
+(266, 'Ingrid Yiset Sanchez Perez', '1075234956', 'ingridyisetsanchez@outlook.es', '$2y$10$/V/i68Tsdgfm8P.VitQ6Vu.pFPoWNDwR3hfcKYuddfOsbBElBNB0y', 'colaborador', NULL, 1, '2025-09-02 14:39:08'),
+(267, 'Maryluz Santamaria Becerra ', '63501053', 'maryluzsantamaria@hotmail.com', '$2y$10$M201tJmurdcY60eN/H26teuQlzw32BTjRNBZOwU2HuXeGtUQEgGpC', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:39:35'),
+(268, 'Edgar Mauricio Alvarez Franco ', '88278069', 'genioalv@gmail.com', '88278069', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:39:59'),
+(269, 'Yojan Gil Gonzales ', '1042212691', 'yojan35@hotmail.com', '$2y$10$q.BFbew66yIKz2j629icuu3ULM9Ap1aOMJ5QKo2gsVPrBrmzBZd9a', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:40:21'),
+(270, 'Juan Sebastian Valencia Ortega', '1020427784', 'juanseb89@hotmail.com', '1020427784', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:40:40'),
+(271, 'Perla Melissa Pinzon Agudelo', '1098727333', 'perlameli_92@hotmail.com', '$2y$10$N0VGHqQSuZtRDF2xl04WCupfi7L6r0ofVMDGP6ARSyjrmlYjOuW8C', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:40:59'),
+(272, 'Andres Mauricio Gonzales Herrera', '1014181943', 'amaogh@gmail.com', '$2y$10$obC.8yeoUgPzESs44Hg3Gef89VfAYCzUcn7escVHQTnZ6zzv1uHpK', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:41:19'),
+(273, 'Edgar Kellyn Ordoñez', '1022348859', 'ekobogota@hotmail.com', '1022348859', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:41:35'),
+(274, 'Maira Alejandra Vásquez Correa', '1096245598', 'Aleja.2017@outlook.es', '$2y$10$BHt4u0Q0XJktaYsOTdaKWO.Y70AhXk4IJmLL5DQbf0.in8hEk./1S', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:41:54'),
+(275, 'Julio Cesar Rodriguez Aparicio', '1101695749', 'cesarjuliocesar1997@gmail.com', '1101695749', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:42:10'),
+(276, 'Jessica Vanessa Alba Beleño', '1096208135', 'yessica.alba19@gmail.com', '$2y$10$9Czr8owqLEvdmRjjPsOsiOwyOWgPghlPWZiGmU2oFJC7eDd2T9SYS', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:42:27'),
+(277, 'Jorge Enrique Niño Santos', '1064838225', 'datolo90@hotmail.com', '1064838225', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:43:02'),
+(288, 'Miguel Angel Riaño Molina', '1015475289', 'miguelmolinave@gmail.com', '1015475289', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:49:49'),
+(289, 'Alex Jhoan González Mora', '80076686', 'ing.alexgonzalez@hotmail.com', '80076686', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:51:22'),
+(294, 'Juan Antonio Cubillos Urrea', '79621922', 'juancubillos@hotmail.com', '79621922', 'colaborador', 'COMPANY MAN', 1, '2025-09-02 14:53:06'),
+(295, 'Yorguin Daniel Peña Lugo ', '7317575', 'yorguinp@hotmail.com', '$2y$10$PgQkbcUqX7Dq/JSxFCZ8Zuc.Mu0qq2GAAthLcjn9JMrUcGl6G8O/i', 'colaborador', NULL, 1, '2025-09-02 14:53:51'),
+(296, 'Ricardo Jose Correa Cerro ', '9659415', 'ricardocorreacerro@gmail.com', '$2y$10$IP8oCIHaU2fHsJWMuQQTkuUihaOPNcO83/LZQuayhoR4Ebw3cdk7G', 'colaborador', NULL, 1, '2025-09-02 14:54:15');
 
 --
 -- Índices para tablas volcadas
@@ -399,19 +440,19 @@ ALTER TABLE `evidencias`
 -- AUTO_INCREMENT de la tabla `notificaciones`
 --
 ALTER TABLE `notificaciones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT de la tabla `reportes`
 --
 ALTER TABLE `reportes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=62;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=260;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=298;
 
 --
 -- Restricciones para tablas volcadas

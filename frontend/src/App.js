@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 // import Home from './admin/Home'; // Ya no se usa
 import Dashboard from './admin/Dashboard';
 import UsersAdmin from './admin/UsersAdmin';
-import Login from './pages/Login';
+import Login from './pages/login';
 import CollaboratorDashboard from './pages/CollaboratorDashboard';
 import SupportDashboard from './pages/SupportDashboard';
 
