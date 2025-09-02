@@ -130,6 +130,10 @@ const Dashboard = () => {
     navigate('/admin/users');
   }, [navigate]);
 
+  const goToCreateReport = useCallback(() => {
+    navigate('/reportar');
+  }, [navigate]);
+
   const handleDownloadPDF = useCallback(async () => {
     const title = 'Reporte Ejecutivo HSEQ';
     const generatedAt = new Date().toLocaleString('es-ES');
@@ -1513,7 +1517,7 @@ const Dashboard = () => {
 
                     <button 
                       onClick={goToUserAdmin}
-                      className="w-full group relative font-bold py-4 px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
+                      className="w-full group relative font-bold py-4 px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent mb-4"
                       style={{
                         background: 'linear-gradient(45deg, #8b5cf6, #6366f1)',
                         color: 'white',
@@ -1532,6 +1536,30 @@ const Dashboard = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20h6M3 20h6M12 14a4 4 0 100-8 4 4 0 000 8z" />
                         </svg>
                         <span>IR A ADMINISTRACIÓN</span>
+                      </span>
+                    </button>
+
+                    <button 
+                      onClick={goToCreateReport}
+                      className="w-full group relative font-bold py-4 px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
+                      style={{
+                        background: 'linear-gradient(45deg, #10b981, #059669)',
+                        color: 'white',
+                        boxShadow: '0 15px 35px -5px rgba(16, 185, 129, 0.45)',
+                        '--focus-ring-color': 'rgba(16, 185, 129, 0.5)'
+                      }}
+                    >
+                      <div 
+                        className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+                        style={{
+                          background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)'
+                        }}
+                      ></div>
+                      <span className="relative flex items-center justify-center space-x-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        <span>CREAR REPORTE</span>
                       </span>
                     </button>
                   </div>

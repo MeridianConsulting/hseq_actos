@@ -126,45 +126,71 @@ class ReportService {
      * Preparar datos del formulario para envío
      */
     static prepareReportData(formData, tipoReporte, userId) {
+        // Validar que los campos requeridos estén presentes
+        if (!formData.fecha_evento) {
+            throw new Error('La fecha del evento es requerida');
+        }
+
         const baseData = {
             id_usuario: userId,
             tipo_reporte: tipoReporte,
-            asunto: formData.asunto || formData.asunto_conversacion,
             fecha_evento: formData.fecha_evento
         };
 
         // Agregar campos específicos según el tipo de reporte
         switch (tipoReporte) {
             case 'hallazgos':
+                // Validar campos requeridos para hallazgos
+                if (!formData.asunto) throw new Error('El asunto es requerido para hallazgos');
+                if (!formData.lugar_hallazgo) throw new Error('El lugar del hallazgo es requerido para hallazgos');
+                if (!formData.tipo_hallazgo) throw new Error('El tipo de hallazgo es requerido para hallazgos');
+                if (!formData.descripcion_hallazgo) throw new Error('La descripción del hallazgo es requerida para hallazgos');
+                if (!formData.estado_condicion) throw new Error('El estado de la condición es requerido para hallazgos');
+
                 return {
                     ...baseData,
+                    asunto: formData.asunto,
                     lugar_hallazgo: formData.lugar_hallazgo,
-                    lugar_hallazgo_otro: formData.lugar_hallazgo_otro,
+                    lugar_hallazgo_otro: formData.lugar_hallazgo_otro || '',
                     tipo_hallazgo: formData.tipo_hallazgo,
                     descripcion_hallazgo: formData.descripcion_hallazgo,
-                    recomendaciones: formData.recomendaciones,
+                    recomendaciones: formData.recomendaciones || '',
                     estado_condicion: formData.estado_condicion
                 };
             
             case 'incidentes':
+                // Validar campos requeridos para incidentes
+                if (!formData.asunto) throw new Error('El asunto es requerido para incidentes');
+                if (!formData.grado_criticidad) throw new Error('El grado de criticidad es requerido para incidentes');
+                if (!formData.ubicacion_incidente) throw new Error('La ubicación del incidente es requerida para incidentes');
+                if (!formData.tipo_afectacion) throw new Error('El tipo de afectación es requerido para incidentes');
+                if (!formData.descripcion_incidente) throw new Error('La descripción del incidente es requerida para incidentes');
+
                 return {
                     ...baseData,
+                    asunto: formData.asunto,
                     grado_criticidad: formData.grado_criticidad,
                     ubicacion_incidente: formData.ubicacion_incidente,
-                    hora_evento: formData.hora_evento,
+                    hora_evento: formData.hora_evento || '',
                     tipo_afectacion: formData.tipo_afectacion,
                     descripcion_incidente: formData.descripcion_incidente
                 };
             
             case 'conversaciones':
+                // Validar campos requeridos para conversaciones
+                if (!formData.asunto_conversacion) throw new Error('El asunto de la conversación es requerido para conversaciones');
+                if (!formData.tipo_conversacion) throw new Error('El tipo de conversación es requerido para conversaciones');
+                if (!formData.sitio_evento_conversacion) throw new Error('El sitio del evento es requerido para conversaciones');
+                if (!formData.descripcion_conversacion) throw new Error('La descripción de la conversación es requerida para conversaciones');
+
                 return {
                     ...baseData,
+                    asunto_conversacion: formData.asunto_conversacion,
                     tipo_conversacion: formData.tipo_conversacion,
                     sitio_evento_conversacion: formData.sitio_evento_conversacion,
-                    lugar_hallazgo_conversacion: formData.lugar_hallazgo_conversacion,
-                    lugar_hallazgo_conversacion_otro: formData.lugar_hallazgo_conversacion_otro,
-                    descripcion_conversacion: formData.descripcion_conversacion,
-                    asunto_conversacion: formData.asunto_conversacion
+                    lugar_hallazgo_conversacion: formData.lugar_hallazgo_conversacion || '',
+                    lugar_hallazgo_conversacion_otro: formData.lugar_hallazgo_conversacion_otro || '',
+                    descripcion_conversacion: formData.descripcion_conversacion
                 };
             
             default:

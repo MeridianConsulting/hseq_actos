@@ -93,6 +93,12 @@ const Header = () => {
               Usuarios
             </Link>
           </li>
+          <li>
+            <Link to="/reportar" onClick={closeMenu} className={location.pathname === '/reportar' ? 'active' : ''}>
+              <i className="fas fa-plus-circle"></i>
+              Reportar
+            </Link>
+          </li>
           <li className="user-menu">
             <span className="user-name">
               <i className="fas fa-user-circle"></i>
@@ -114,6 +120,12 @@ const Header = () => {
             <Link to="/support" onClick={closeMenu} className={location.pathname === '/support' ? 'active' : ''}>
               <i className="fas fa-headset"></i>
               Soporte
+            </Link>
+          </li>
+          <li>
+            <Link to="/reportar" onClick={closeMenu} className={location.pathname === '/reportar' ? 'active' : ''}>
+              <i className="fas fa-plus-circle"></i>
+              Reportar
             </Link>
           </li>
           <li className="user-menu">
