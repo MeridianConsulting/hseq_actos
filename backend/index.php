@@ -995,7 +995,7 @@ function handleRequest($method, $path){
     }
 
     // Rutas de administración de usuarios
-    if($path === 'api/users' && $method === 'GET'){
+    if($path === 'users' && $method === 'GET'){
         if (!$requireRole(['admin', 'soporte'])) { return; }
         try {
             $controller = new EmployeeController();
@@ -1012,7 +1012,7 @@ function handleRequest($method, $path){
             return;
         }
     }
-    elseif(preg_match('/^api\/users\/(\d+)$/', $path, $m) && $method === 'GET'){
+    elseif(preg_match('/^users\/(\d+)$/', $path, $m) && $method === 'GET'){
         if (!$requireRole(['admin'])) { return; }
         try {
             $controller = new EmployeeController();
@@ -1025,7 +1025,7 @@ function handleRequest($method, $path){
             return;
         }
     }
-    elseif($path === 'api/users' && $method === 'POST'){
+    elseif($path === 'users' && $method === 'POST'){
         if (!$requireRole(['admin'])) { return; }
         try {
             $data = json_decode(file_get_contents('php://input'), true);
@@ -1041,7 +1041,7 @@ function handleRequest($method, $path){
             return;
         }
     }
-    elseif(preg_match('/^api\/users\/(\d+)$/', $path, $m) && $method === 'PUT'){
+    elseif(preg_match('/^users\/(\d+)$/', $path, $m) && $method === 'PUT'){
         if (!$requireRole(['admin'])) { return; }
         try {
             $data = json_decode(file_get_contents('php://input'), true);
@@ -1057,7 +1057,7 @@ function handleRequest($method, $path){
             return;
         }
     }
-    elseif(preg_match('/^api\/users\/(\d+)$/', $path, $m) && $method === 'DELETE'){
+    elseif(preg_match('/^users\/(\d+)$/', $path, $m) && $method === 'DELETE'){
         if (!$requireRole(['admin'])) { return; }
         try {
             $controller = new EmployeeController();
@@ -1071,7 +1071,7 @@ function handleRequest($method, $path){
             return;
         }
     }
-    elseif(preg_match('/^api\/users\/(\d+)\/reset-password$/', $path, $m) && $method === 'POST'){
+    elseif(preg_match('/^users\/(\d+)\/reset-password$/', $path, $m) && $method === 'POST'){
         if (!$requireRole(['admin'])) { return; }
         try {
             $controller = new EmployeeController();
