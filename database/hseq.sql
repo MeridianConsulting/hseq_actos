@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: localhost:3306
--- Tiempo de generación: 06-10-2025 a las 07:29:37
+-- Tiempo de generación: 06-10-2025 a las 10:44:11
 -- Versión del servidor: 10.6.22-MariaDB-cll-lve
 -- Versión de PHP: 8.3.22
 
@@ -139,7 +139,8 @@ INSERT INTO `notificaciones` (`id`, `id_reporte`, `destinatario`, `medio`, `envi
 (103, 55, 'desarrolloit@meridian.com.co', 'correo', '2025-10-01 13:55:18'),
 (104, 56, 'desarrolloit@meridian.com.co', 'correo', '2025-10-01 13:55:29'),
 (105, 54, 'desarrolloit@meridian.com.co', 'correo', '2025-10-01 13:55:37'),
-(106, 61, 'desarrolloit@meridian.com.co', 'correo', '2025-10-01 13:56:52');
+(106, 61, 'desarrolloit@meridian.com.co', 'correo', '2025-10-01 13:56:52'),
+(107, 92, 'desarrolloit@meridian.com.co', 'correo', '2025-10-06 16:04:04');
 
 -- --------------------------------------------------------
 
@@ -221,7 +222,7 @@ INSERT INTO `reportes` (`id`, `id_usuario`, `tipo_reporte`, `asunto`, `descripci
 (89, 36, 'hallazgos', 'Áreas Seguras', NULL, '2025-09-19', 'pozos', '', 'accion_mejoramiento', 'Realizó safety tour durante la visita previa a la intervención locación Cupiagua Sur XN6, con las compañías aliadas y el operador de pozo. Se evidencio falta de vigilancia, nivel alto en el contrapozo y falta de brazo adicional en el árbol de producción, a lo que el operador de pozo procedió a diligenciar su cierre.', 'Se movilizo seguridad para la movilización del campamento, se realizo drenaje de contrapozo y se realizo instalación de brazo adicional del árbol de producción antes del ingreso a pozo.', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'pendiente', NULL, NULL, NULL, '2025-09-30 21:15:17', '2025-09-30 21:15:17'),
 (90, 36, 'conversaciones', 'Charlas de seguridad', NULL, '2025-09-23', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'conversacion', 'CPSXN6', 'pozos', '', 'Realizó Charla de seguridad con personal aliado en locación CPSXN6. dirige reunión de seguridad con cada una de las empresas aliadas, revisa y divulga análisis de riesgos y firma permisos de trabajo (Turno día).  Comparte campaña: “inicio de operaciones seguras.”', 'Charlas de seguridad', 'pendiente', NULL, NULL, NULL, '2025-09-30 21:15:58', '2025-09-30 21:15:58'),
 (91, 36, 'conversaciones', 'Simulacros', NULL, '2025-09-25', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'reflexion', 'CPSXN6', 'pozos', '', 'Realizó simulacro con personal aliado (ETO) en locación CPSXN6, “Conato de incendio en unidad de generación de campamento”. Buena participación de personal en locación y personal de la ARL.', 'Simulacros', 'pendiente', NULL, NULL, NULL, '2025-09-30 21:18:14', '2025-09-30 21:18:14'),
-(92, 36, 'conversaciones', 'Charlas de seguridad', NULL, '2025-09-25', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'conversacion', 'CPSXN6', 'pozos', '', 'Realizó Charla de seguridad con personal aliado en locación CPSXN6. dirige reunión de seguridad con cada una de las empresas aliadas, revisa y divulga análisis de riesgos Integral durante operación de bombeo.  Comparte lección aprendida: “Golpe en pómulo con manguera.”', 'Charlas de seguridad', 'pendiente', NULL, NULL, NULL, '2025-09-30 21:18:50', '2025-09-30 21:18:50');
+(92, 36, 'conversaciones', 'Charlas de seguridad', NULL, '2025-09-25', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'conversacion', 'CPSXN6', 'pozos', '', 'Realizó Charla de seguridad con personal aliado en locación CPSXN6. dirige reunión de seguridad con cada una de las empresas aliadas, revisa y divulga análisis de riesgos Integral durante operación de bombeo.  Comparte lección aprendida: “Golpe en pómulo con manguera.”', 'Charlas de seguridad', 'en_revision', 41, 'Estado cambiado a en_revision por José Mateo López Cifuentes', '2025-10-06 09:04:04', '2025-09-30 21:18:50', '2025-10-06 16:04:04');
 
 -- --------------------------------------------------------
 
@@ -541,7 +542,7 @@ ALTER TABLE `evidencias`
 -- AUTO_INCREMENT de la tabla `notificaciones`
 --
 ALTER TABLE `notificaciones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=108;
 
 --
 -- AUTO_INCREMENT de la tabla `reportes`

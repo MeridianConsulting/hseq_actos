@@ -4,6 +4,277 @@ import { evidenceService } from '../services/api';
 import { buildApi, buildUploadsUrl } from '../config/api';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
+import { Document, Page, Text, View, StyleSheet, pdf, Image } from '@react-pdf/renderer';
+
+// ===================== Estilos PDF =====================
+const pdfStyles = StyleSheet.create({
+  page: {
+    flexDirection: 'column',
+    backgroundColor: '#ffffff',
+    padding: 30,
+    fontSize: 12,
+  },
+  header: {
+    textAlign: 'center',
+    marginBottom: 30,
+    borderBottom: '2px solid #2e5bb8',
+    paddingBottom: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2e5bb8',
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 18,
+    color: '#666',
+    marginBottom: 5,
+  },
+  section: {
+    marginBottom: 20,
+    border: '1px solid #ddd',
+    borderRadius: 5,
+  },
+  sectionHeader: {
+    backgroundColor: '#f0f0f0',
+    padding: 10,
+    fontSize: 14,
+    fontWeight: 'bold',
+    borderBottom: '1px solid #ddd',
+  },
+  sectionContent: {
+    padding: 15,
+  },
+  row: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    borderBottom: '1px solid #eee',
+    paddingBottom: 8,
+  },
+  label: {
+    fontWeight: 'bold',
+    width: '40%',
+    color: '#333',
+  },
+  value: {
+    width: '60%',
+    color: '#666',
+  },
+  evidenceSection: {
+    marginTop: 20,
+  },
+  evidenceItem: {
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 5,
+  },
+  evidenceImage: {
+    width: '100%',
+    maxWidth: 400,
+    height: 'auto',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  evidenceName: {
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 5,
+  },
+  noImageText: {
+    fontSize: 10,
+    color: '#999',
+    fontStyle: 'italic',
+  },
+});
+
+// ===================== Componente PDF =====================
+const HseqReportDocument = ({ report, evidencias = [] }) => (
+  <Document>
+    <Page size="A4" style={pdfStyles.page}>
+      <View style={pdfStyles.header}>
+        <Text style={pdfStyles.title}>REPORTE HSEQ DETALLADO</Text>
+        <Text style={pdfStyles.subtitle}>MERIDIAN CONSULTING LTDA</Text>
+      </View>
+
+      <View style={pdfStyles.section}>
+        <View style={pdfStyles.sectionHeader}>
+          <Text>INFORMACIÓN GENERAL</Text>
+        </View>
+        <View style={pdfStyles.sectionContent}>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>ID del Reporte:</Text>
+            <Text style={pdfStyles.value}>{report.id || 'N/A'}</Text>
+          </View>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>Tipo de Reporte:</Text>
+            <Text style={pdfStyles.value}>{report.tipo_reporte || 'N/A'}</Text>
+          </View>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>Usuario:</Text>
+            <Text style={pdfStyles.value}>{report.nombre_usuario || 'N/A'}</Text>
+          </View>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>Proyecto:</Text>
+            <Text style={pdfStyles.value}>{report.proyecto_usuario || 'No asignado'}</Text>
+          </View>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>Estado:</Text>
+            <Text style={pdfStyles.value}>{report.estado || 'N/A'}</Text>
+          </View>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>Fecha del Evento:</Text>
+            <Text style={pdfStyles.value}>{report.fecha_evento || 'N/A'} {report.hora_evento || ''}</Text>
+          </View>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>Fecha de Creación:</Text>
+            <Text style={pdfStyles.value}>{report.creado_en || 'N/A'}</Text>
+          </View>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>Asunto:</Text>
+            <Text style={pdfStyles.value}>{report.asunto || report.asunto_conversacion || 'N/A'}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={pdfStyles.section}>
+        <View style={pdfStyles.sectionHeader}>
+          <Text>DETALLES DEL REPORTE</Text>
+        </View>
+        <View style={pdfStyles.sectionContent}>
+          {report.tipo_reporte === 'hallazgos' && (
+            <>
+              {report.lugar_hallazgo && (
+                <View style={pdfStyles.row}>
+                  <Text style={pdfStyles.label}>Lugar del Hallazgo:</Text>
+                  <Text style={pdfStyles.value}>{report.lugar_hallazgo}</Text>
+                </View>
+              )}
+              {report.tipo_hallazgo && (
+                <View style={pdfStyles.row}>
+                  <Text style={pdfStyles.label}>Tipo de Hallazgo:</Text>
+                  <Text style={pdfStyles.value}>{report.tipo_hallazgo}</Text>
+                </View>
+              )}
+              {report.estado_condicion && (
+                <View style={pdfStyles.row}>
+                  <Text style={pdfStyles.label}>Estado de la Condición:</Text>
+                  <Text style={pdfStyles.value}>{report.estado_condicion}</Text>
+                </View>
+              )}
+              {report.descripcion_hallazgo && (
+                <View style={pdfStyles.row}>
+                  <Text style={pdfStyles.label}>Descripción:</Text>
+                  <Text style={pdfStyles.value}>{report.descripcion_hallazgo}</Text>
+                </View>
+              )}
+              {report.recomendaciones && (
+                <View style={pdfStyles.row}>
+                  <Text style={pdfStyles.label}>Recomendaciones:</Text>
+                  <Text style={pdfStyles.value}>{report.recomendaciones}</Text>
+                </View>
+              )}
+            </>
+          )}
+          {report.tipo_reporte === 'incidentes' && (
+            <>
+              {report.ubicacion_incidente && (
+                <View style={pdfStyles.row}>
+                  <Text style={pdfStyles.label}>Ubicación:</Text>
+                  <Text style={pdfStyles.value}>{report.ubicacion_incidente}</Text>
+                </View>
+              )}
+              {report.grado_criticidad && (
+                <View style={pdfStyles.row}>
+                  <Text style={pdfStyles.label}>Grado de Criticidad:</Text>
+                  <Text style={pdfStyles.value}>{report.grado_criticidad}</Text>
+                </View>
+              )}
+              {report.tipo_afectacion && (
+                <View style={pdfStyles.row}>
+                  <Text style={pdfStyles.label}>Tipo de Afectación:</Text>
+                  <Text style={pdfStyles.value}>{report.tipo_afectacion}</Text>
+                </View>
+              )}
+              {report.descripcion_incidente && (
+                <View style={pdfStyles.row}>
+                  <Text style={pdfStyles.label}>Descripción:</Text>
+                  <Text style={pdfStyles.value}>{report.descripcion_incidente}</Text>
+                </View>
+              )}
+            </>
+          )}
+          {report.tipo_reporte === 'conversaciones' && (
+            <>
+              {report.tipo_conversacion && (
+                <View style={pdfStyles.row}>
+                  <Text style={pdfStyles.label}>Tipo de Conversación:</Text>
+                  <Text style={pdfStyles.value}>{report.tipo_conversacion}</Text>
+                </View>
+              )}
+              {report.sitio_evento_conversacion && (
+                <View style={pdfStyles.row}>
+                  <Text style={pdfStyles.label}>Sitio del Evento:</Text>
+                  <Text style={pdfStyles.value}>{report.sitio_evento_conversacion}</Text>
+                </View>
+              )}
+              {report.descripcion_conversacion && (
+                <View style={pdfStyles.row}>
+                  <Text style={pdfStyles.label}>Descripción:</Text>
+                  <Text style={pdfStyles.value}>{report.descripcion_conversacion}</Text>
+                </View>
+              )}
+            </>
+          )}
+        </View>
+      </View>
+
+      {evidencias && evidencias.length > 0 && (
+        <View style={pdfStyles.section}>
+          <View style={pdfStyles.sectionHeader}>
+            <Text>EVIDENCIAS ({evidencias.length})</Text>
+          </View>
+          <View style={pdfStyles.sectionContent}>
+            {evidencias.map((evidencia, index) => (
+              <View key={index} style={pdfStyles.evidenceItem}>
+                <Text style={pdfStyles.evidenceName}>
+                  Evidencia {index + 1}: {evidencia.nombre_archivo || 'Sin nombre'}
+                </Text>
+                {evidencia.imageDataUrl ? (
+                  <Image 
+                    src={evidencia.imageDataUrl} 
+                    style={pdfStyles.evidenceImage}
+                  />
+                ) : (
+                  <Text style={pdfStyles.noImageText}>
+                    [Imagen no disponible]
+                  </Text>
+                )}
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      <View style={pdfStyles.section}>
+        <View style={pdfStyles.sectionHeader}>
+          <Text>INFORMACIÓN ADICIONAL</Text>
+        </View>
+        <View style={pdfStyles.sectionContent}>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>Sistema Generador:</Text>
+            <Text style={pdfStyles.value}>Sistema HSEQ - Meridian Colombia</Text>
+          </View>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>Fecha de Generación:</Text>
+            <Text style={pdfStyles.value}>{new Date().toLocaleString('es-ES')}</Text>
+          </View>
+        </View>
+      </View>
+    </Page>
+  </Document>
+);
 
 // Valida si un blob es realmente una imagen (evita HTML/401)
 const isProbablyImageBlob = async (blob) => {
@@ -625,6 +896,168 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   };
 
   const handleDownloadFullReportPdf = async () => {
+    try {
+      if (!report) return;
+      
+      setIsDownloadingPdf(true);
+      
+      console.log('Iniciando generación de PDF con evidencias:', report.evidencias);
+      
+      // Generar nombre de archivo
+      const safeName = String(report.asunto || report.asunto_conversacion || 'reporte').replace(/[^a-z0-9_.-]/gi, '_');
+      const fileName = `reporte_hseq_${report.id || ''}_${safeName}.pdf`;
+      
+      // Convertir las evidencias (imágenes) a base64 para incluir en el PDF
+      const evidenciasConImagenes = [];
+      
+      if (report.evidencias && report.evidencias.length > 0) {
+        console.log(`Procesando ${report.evidencias.length} evidencias...`);
+        
+        for (const evidencia of report.evidencias) {
+          console.log('Procesando evidencia:', evidencia);
+          
+          // Verificar si es una imagen por tipo o extensión
+          const esImagen = (evidencia.tipo_archivo && evidencia.tipo_archivo.startsWith('image/')) ||
+                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(evidencia.url_archivo || evidencia.nombre_archivo || '');
+          
+          console.log('¿Es imagen?:', esImagen, 'Tipo:', evidencia.tipo_archivo);
+          
+          if (esImagen) {
+            try {
+              let imageDataUrl = null;
+              
+              // Estrategia 1: Usar el blob cache si está disponible
+              const cached = evidenceUrls[evidencia.id];
+              if (cached && cached.blob) {
+                console.log('Usando blob del cache para evidencia', evidencia.id);
+                
+                if (await isProbablyImageBlob(cached.blob)) {
+                  const reader = new FileReader();
+                  imageDataUrl = await new Promise((resolve, reject) => {
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(cached.blob);
+                  });
+                  console.log('Imagen cargada desde cache:', evidencia.id);
+                }
+              }
+              
+              // Estrategia 2: Intentar cargar desde el servidor
+              if (!imageDataUrl) {
+                console.log('Cargando imagen desde servidor para evidencia', evidencia.id);
+                try {
+                  const blob = await getEvidenceBlob(
+                    evidencia.id, 
+                    evidenceUrls, 
+                    evidenceService, 
+                    evidencia
+                  );
+                  
+                  if (blob && await isProbablyImageBlob(blob)) {
+                    const reader = new FileReader();
+                    imageDataUrl = await new Promise((resolve, reject) => {
+                      reader.onloadend = () => resolve(reader.result);
+                      reader.onerror = reject;
+                      reader.readAsDataURL(blob);
+                    });
+                    console.log('Imagen cargada desde servidor:', evidencia.id);
+                  }
+                } catch (loadError) {
+                  console.warn('Error al cargar imagen desde servidor:', loadError);
+                }
+              }
+              
+              // Estrategia 3: Intentar cargar directamente desde URL pública
+              if (!imageDataUrl && evidencia.url_archivo) {
+                console.log('Intentando cargar desde URL pública:', evidencia.url_archivo);
+                try {
+                  const publicUrl = buildUploadsUrl(evidencia.url_archivo);
+                  const response = await fetch(publicUrl);
+                  if (response.ok) {
+                    const blob = await response.blob();
+                    if (await isProbablyImageBlob(blob)) {
+                      const reader = new FileReader();
+                      imageDataUrl = await new Promise((resolve, reject) => {
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                      });
+                      console.log('Imagen cargada desde URL pública:', evidencia.id);
+                    }
+                  }
+                } catch (urlError) {
+                  console.warn('Error al cargar desde URL pública:', urlError);
+                }
+              }
+              
+              if (imageDataUrl) {
+                evidenciasConImagenes.push({
+                  ...evidencia,
+                  imageDataUrl: imageDataUrl,
+                });
+                console.log('✓ Imagen agregada al PDF:', evidencia.id);
+              } else {
+                evidenciasConImagenes.push({
+                  ...evidencia,
+                  imageDataUrl: null,
+                });
+                console.warn('✗ Imagen no disponible:', evidencia.id);
+              }
+            } catch (error) {
+              console.error(`Error al procesar imagen ${evidencia.id}:`, error);
+              evidenciasConImagenes.push({
+                ...evidencia,
+                imageDataUrl: null,
+              });
+            }
+          }
+        }
+      }
+      
+      console.log(`Generando PDF con ${evidenciasConImagenes.length} imágenes procesadas`);
+      
+      // Generar el PDF usando @react-pdf/renderer
+      const blob = await pdf(
+        <HseqReportDocument 
+          report={report} 
+          evidencias={evidenciasConImagenes}
+        />
+      ).toBlob();
+      
+      console.log('PDF generado, tamaño:', blob.size, 'bytes');
+      
+      // Descargar el PDF
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      
+      // Limpiar
+      setTimeout(() => {
+        try {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } catch (cleanupError) {
+          console.error('Error al limpiar recursos:', cleanupError);
+        }
+      }, 1000);
+      
+      const numImagenesIncluidas = evidenciasConImagenes.filter(e => e.imageDataUrl).length;
+      alert(`PDF generado exitosamente con ${numImagenesIncluidas} de ${evidenciasConImagenes.length} imágenes`);
+      
+    } catch (e) {
+      console.error('Error al generar el PDF:', e);
+      alert('No se pudo generar el PDF del reporte: ' + e.message);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+  
+  // BACKUP: Función original de generación de PDF en el cliente (mantener por si se necesita)
+  const handleDownloadFullReportPdf_OLD_CLIENT_SIDE = async () => {
     try {
       if (!report) return;
       

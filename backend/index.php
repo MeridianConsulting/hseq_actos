@@ -187,11 +187,12 @@ function handleRequest($method, $path){
     if ($requiresAuth && $method === 'GET') {
         if (
             $path === 'reports' ||
-            preg_match('/^reports\\/(\\d+)$/', $path) ||
+            preg_match('/^(?:api\/)?reports\\/(\\d+)$/', $path) ||
+            preg_match('/^(?:api\/)?reports\\/(\\d+)\\/pdf$/', $path) ||
             $path === 'reports/stats' ||
             $path === 'reports/dashboard-stats' ||
             $path === 'images' ||
-            preg_match('/^evidencias\\/(\\d+)$/', $path)
+            preg_match('/^(?:api\/)?evidencias\\/(\\d+)$/', $path)
         ) {
             $requiresAuth = false;
         }
@@ -202,12 +203,22 @@ function handleRequest($method, $path){
         $evidenceId = (int)$m[1];
         $conn = (new Database())->getConnection();
         $stmt = $conn->prepare('SELECT id_reporte, tipo_archivo, url_archivo FROM evidencias WHERE id = ?');
-        if (!$stmt) { http_response_code(500); echo json_encode(['success'=>false,'message'=>'Error interno']); return; }
+        if (!$stmt) { 
+            error_log("Error preparando consulta de evidencia: " . $conn->error);
+            http_response_code(500); 
+            echo json_encode(['success'=>false,'message'=>'Error interno']); 
+            return; 
+        }
         $stmt->bind_param('i', $evidenceId);
         $stmt->execute();
         $res = $stmt->get_result();
         $row = $res->fetch_assoc();
-        if (!$row) { http_response_code(404); echo json_encode(['success'=>false,'message'=>'Evidencia no encontrada']); return; }
+        if (!$row) { 
+            error_log("Evidencia no encontrada en BD: ID=$evidenceId");
+            http_response_code(404); 
+            echo json_encode(['success'=>false,'message'=>'Evidencia no encontrada en base de datos', 'evidence_id' => $evidenceId]); 
+            return; 
+        }
 
         // Si es imagen, no requerir token. Para otros tipos, exigirlo.
         $fileName = trim((string)$row['url_archivo']);
@@ -249,10 +260,15 @@ function handleRequest($method, $path){
             }
         }
         if (!is_file($filePath)) {
+            error_log("Archivo de evidencia no encontrado: $filePath (ID=$evidenceId, fileName=$fileName)");
             http_response_code(404);
             $debug = strtolower(getenv('APP_DEBUG') ?: 'false') === 'true';
-            $resp = ['success'=>false,'message'=>'Archivo no encontrado'];
-            if ($debug) { $resp['expected'] = $fileName; $resp['resolved_path'] = $filePath; }
+            $resp = ['success'=>false,'message'=>'Archivo no encontrado en servidor'];
+            if ($debug) { 
+                $resp['expected'] = $fileName; 
+                $resp['resolved_path'] = $filePath; 
+                $resp['upload_dir_exists'] = is_dir(__DIR__ . '/uploads/');
+            }
             echo json_encode($resp);
             return;
         }
@@ -991,6 +1007,36 @@ function handleRequest($method, $path){
                 "error" => $e->getMessage()
             ]);
             return;
+        }
+    }
+
+    // Endpoint para descargar PDF de un reporte individual con imágenes
+    if(preg_match('/^(?:api\/)?reports\/(\d+)\/pdf$/', $path, $matches) && $method === "GET"){
+        try {
+            $reportId = $matches[1];
+            
+            // Limpiar cualquier output previo para PDF
+            if (ob_get_length()) ob_clean();
+            
+            // Incluir el controlador PDF si no está incluido
+            if (!class_exists('PdfController')) {
+                require_once __DIR__ . '/controllers/pdfController.php';
+            }
+            
+            $pdfController = new PdfController();
+            $pdfController->downloadReportPDF($reportId);
+            exit; // Importante: salir después de enviar el PDF
+            
+        } catch (Exception $e) {
+            if (ob_get_length()) ob_clean();
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode([
+                "success" => false, 
+                "message" => "Error al generar el PDF",
+                "error" => $e->getMessage()
+            ]);
+            exit;
         }
     }
 

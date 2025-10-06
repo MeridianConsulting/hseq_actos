@@ -1,6 +1,11 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 
+// Incluir TCPDF si está disponible
+if (file_exists(__DIR__ . '/../vendor/tcpdf/tcpdf.php')) {
+    require_once __DIR__ . '/../vendor/tcpdf/tcpdf.php';
+}
+
 class PdfController {
     private $conn;
     
@@ -21,10 +26,14 @@ class PdfController {
      */
     public function downloadReportPDF($reportId) {
         try {
+            // Log para debugging
+            error_log("Iniciando generación de PDF para reporte ID: $reportId");
+            
             // Obtener datos completos del reporte
             $reporte = $this->getReporteCompleto($reportId);
             
             if (!$reporte) {
+                error_log("Reporte no encontrado: ID=$reportId");
                 http_response_code(404);
                 echo json_encode([
                     'success' => false,
@@ -33,14 +42,25 @@ class PdfController {
                 return;
             }
             
+            error_log("Reporte encontrado, generando HTML...");
+            
             // Generar HTML para el PDF
             $html = $this->generateReportHTML($reporte);
+            
+            error_log("HTML generado, procesando PDF...");
             
             // Generar PDF usando TCPDF
             $this->generatePDF($html, $reporte);
             
+            error_log("PDF generado exitosamente para reporte ID: $reportId");
+            
         } catch (Exception $e) {
+            error_log("Error al generar PDF para reporte $reportId: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            if (ob_get_level()) ob_clean();
             http_response_code(500);
+            header('Content-Type: application/json');
             echo json_encode([
                 'success' => false,
                 'message' => 'Error al generar el PDF',
@@ -53,34 +73,60 @@ class PdfController {
      * Obtiene todos los datos del reporte incluyendo evidencias
      */
     private function getReporteCompleto($reportId) {
-        // Obtener datos básicos del reporte
-        $stmt = $this->conn->prepare("
-            SELECT r.*, u.nombre as nombre_usuario, u.proyecto as proyecto_usuario
-            FROM reportes r 
-            JOIN usuarios u ON r.id_usuario = u.id 
-            WHERE r.id = ?
-        ");
-        $stmt->bind_param('i', $reportId);
-        $stmt->execute();
-        $reporte = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
-        
-        if (!$reporte) return null;
-        
-        // Obtener evidencias del reporte
-        $stmt = $this->conn->prepare("
-            SELECT * FROM evidencias 
-            WHERE id_reporte = ? 
-            ORDER BY creado_en ASC
-        ");
-        $stmt->bind_param('i', $reportId);
-        $stmt->execute();
-        $evidencias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        $stmt->close();
-        
-        $reporte['evidencias'] = $evidencias;
-        
-        return $reporte;
+        try {
+            // Obtener datos básicos del reporte
+            $stmt = $this->conn->prepare("
+                SELECT r.*, u.nombre as nombre_usuario, u.proyecto as proyecto_usuario
+                FROM reportes r 
+                JOIN usuarios u ON r.id_usuario = u.id 
+                WHERE r.id = ?
+            ");
+            
+            if (!$stmt) {
+                error_log("Error preparando query de reporte: " . $this->conn->error);
+                return null;
+            }
+            
+            $stmt->bind_param('i', $reportId);
+            $stmt->execute();
+            $reporte = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            
+            if (!$reporte) {
+                error_log("Reporte no encontrado en BD: ID=$reportId");
+                return null;
+            }
+            
+            // Obtener evidencias del reporte (con manejo de errores)
+            try {
+                $stmt = $this->conn->prepare("
+                    SELECT * FROM evidencias 
+                    WHERE id_reporte = ? 
+                    ORDER BY creado_en ASC
+                ");
+                
+                if ($stmt) {
+                    $stmt->bind_param('i', $reportId);
+                    $stmt->execute();
+                    $evidencias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                    $stmt->close();
+                    $reporte['evidencias'] = $evidencias;
+                    error_log("Evidencias encontradas: " . count($evidencias));
+                } else {
+                    error_log("Error preparando query de evidencias: " . $this->conn->error);
+                    $reporte['evidencias'] = [];
+                }
+            } catch (Exception $e) {
+                error_log("Error obteniendo evidencias: " . $e->getMessage());
+                $reporte['evidencias'] = [];
+            }
+            
+            return $reporte;
+            
+        } catch (Exception $e) {
+            error_log("Error en getReporteCompleto: " . $e->getMessage());
+            return null;
+        }
     }
     
     /**
@@ -382,39 +428,24 @@ class PdfController {
     }
     
     /**
-     * Genera HTML para una evidencia individual
+     * Genera HTML para una evidencia individual (SIN imágenes para evitar errores)
      */
     private function generateEvidenciaHTML($evidencia) {
-        $fileName = basename($evidencia['url_archivo'] ?? '');
-        $fileType = $evidencia['tipo_archivo'] ?? '';
-        $isImage = strpos($fileType, 'image/') === 0;
+        $fileName = basename($evidencia['url_archivo'] ?? 'archivo');
+        $fileType = $evidencia['tipo_archivo'] ?? 'desconocido';
         
-        $html = '<div class="evidencia-item">';
+        // Simplificado: Solo mostrar información de la evidencia sin intentar incrustar imágenes
+        $html = '<div class="evidencia-item" style="border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-bottom: 10px;">';
         
-        if ($isImage) {
-            // Para imágenes, incluir la imagen en el PDF
-            $imagePath = __DIR__ . '/../uploads/' . $evidencia['url_archivo'];
-            if (file_exists($imagePath)) {
-                $html .= '<img src="' . $imagePath . '" class="evidencia-imagen" alt="Evidencia" />';
-            } else {
-                $html .= '<div class="evidencia-imagen" style="background-color: #f0f0f0; display: flex; align-items: center; justify-content: center;">
-                    <span style="color: #666; font-size: 12px;">Imagen no disponible</span>
-                </div>';
-            }
-        } else {
-            // Para otros tipos de archivo, mostrar icono
-            $html .= '<div class="evidencia-imagen" style="background-color: #f0f0f0; display: flex; align-items: center; justify-content: center;">
-                <span style="color: #666; font-size: 12px;">' . strtoupper(pathinfo($fileName, PATHINFO_EXTENSION)) . '</span>
-            </div>';
-        }
-        
-        $html .= '
-        <div class="evidencia-info">
-            <div><strong>Archivo:</strong> ' . htmlspecialchars($fileName) . '</div>
-            <div><strong>Tipo:</strong> ' . htmlspecialchars($fileType) . '</div>
-            <div><strong>Fecha:</strong> ' . $this->formatDate($evidencia['creado_en']) . '</div>
-        </div>
-        </div>';
+        // Icono placeholder
+        $html .= '<div class="evidencia-info">';
+        $html .= '<div style="margin-bottom: 5px;"><strong>📎 Evidencia Adjunta</strong></div>';
+        $html .= '<div style="margin-bottom: 3px;"><strong>Archivo:</strong> ' . htmlspecialchars($fileName) . '</div>';
+        $html .= '<div style="margin-bottom: 3px;"><strong>Tipo:</strong> ' . htmlspecialchars($fileType) . '</div>';
+        $html .= '<div><strong>Fecha:</strong> ' . $this->formatDate($evidencia['creado_en']) . '</div>';
+        $html .= '<div style="margin-top: 5px; color: #666; font-size: 11px;"><em>Nota: Las imágenes están disponibles en el sistema web</em></div>';
+        $html .= '</div>';
+        $html .= '</div>';
         
         return $html;
     }
@@ -424,54 +455,101 @@ class PdfController {
      */
     private function generatePDF($html, $reporte) {
         try {
+            error_log("Verificando disponibilidad de TCPDF...");
+            
             // Verificar si TCPDF está disponible
-            if (class_exists('TCPDF')) {
-                // Limpiar buffer de salida
-                if (ini_get('zlib.output_compression')) {
-                    @ini_set('zlib.output_compression', 'Off');
+            if (!class_exists('TCPDF')) {
+                error_log("TCPDF no está disponible - intentando cargar...");
+                
+                // Intentar cargar TCPDF manualmente
+                $tcpdfPath = __DIR__ . '/../vendor/tcpdf/tcpdf.php';
+                if (file_exists($tcpdfPath)) {
+                    require_once $tcpdfPath;
+                    error_log("TCPDF cargado manualmente desde: $tcpdfPath");
+                } else {
+                    throw new Exception("TCPDF no está disponible. Ruta esperada: $tcpdfPath");
                 }
-                while (ob_get_level() > 0) {
-                    @ob_end_clean();
-                }
-                
-                // Crear instancia de TCPDF
-                $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-                
-                // Configurar documento
-                $pdf->SetCreator('Sistema HSEQ Meridian');
-                $pdf->SetAuthor('Meridian Consulting LTDA');
-                $pdf->SetTitle('Reporte HSEQ #' . $reporte['id']);
-                $pdf->SetSubject('Reporte de Seguridad, Salud Ocupacional y Medio Ambiente');
-                
-                // Configurar márgenes
-                $pdf->SetMargins(15, 15, 15);
-                $pdf->SetHeaderMargin(5);
-                $pdf->SetFooterMargin(10);
-                
-                // Configurar auto page breaks
-                $pdf->SetAutoPageBreak(TRUE, 25);
-                
-                // Agregar página
-                $pdf->AddPage();
-                
-                // Escribir HTML
-                $pdf->writeHTML($html, true, false, true, false, '');
-                
-                // Generar nombre del archivo
-                $safeName = preg_replace('/[^a-z0-9_.-]/i', '_', $reporte['asunto'] ?? $reporte['asunto_conversacion'] ?? 'reporte');
-                $fileName = 'reporte_hseq_' . $reporte['id'] . '_' . $safeName . '.pdf';
-                
-                // Salida del PDF (descarga)
-                $pdf->Output($fileName, 'D');
             } else {
-                // Si TCPDF no está disponible, devolver HTML
-                header('Content-Type: text/html; charset=UTF-8');
-                echo $html;
+                error_log("TCPDF está disponible");
             }
+            
+            // Limpiar buffer de salida
+            error_log("Limpiando buffer de salida...");
+            if (ini_get('zlib.output_compression')) {
+                @ini_set('zlib.output_compression', 'Off');
+            }
+            while (ob_get_level() > 0) {
+                @ob_end_clean();
+            }
+            
+            error_log("Creando instancia de TCPDF...");
+            // Crear instancia de TCPDF
+            $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+            
+            error_log("Configurando documento PDF...");
+            // Configurar documento
+            $pdf->SetCreator('Sistema HSEQ Meridian');
+            $pdf->SetAuthor('Meridian Consulting LTDA');
+            $pdf->SetTitle('Reporte HSEQ #' . $reporte['id']);
+            $pdf->SetSubject('Reporte de Seguridad, Salud Ocupacional y Medio Ambiente');
+            
+            // Configurar márgenes
+            $pdf->SetMargins(15, 15, 15);
+            $pdf->SetHeaderMargin(5);
+            $pdf->SetFooterMargin(10);
+            
+            // Configurar auto page breaks
+            $pdf->SetAutoPageBreak(TRUE, 25);
+            
+            // Desactivar header y footer por defecto
+            $pdf->setPrintHeader(false);
+            $pdf->setPrintFooter(false);
+            
+            // Agregar página
+            error_log("Agregando página al PDF...");
+            $pdf->AddPage();
+            
+            // Escribir HTML (con manejo de errores)
+            error_log("Escribiendo HTML en PDF...");
+            try {
+                $pdf->writeHTML($html, true, false, true, false, '');
+            } catch (Exception $htmlError) {
+                // Si hay error con HTML complejo, intentar versión simplificada
+                error_log("Error al procesar HTML: " . $htmlError->getMessage());
+                $htmlSimple = '<h1>Reporte HSEQ #' . $reporte['id'] . '</h1>';
+                $htmlSimple .= '<p>ID: ' . $reporte['id'] . '</p>';
+                $htmlSimple .= '<p>Tipo: ' . ($reporte['tipo_reporte'] ?? 'N/A') . '</p>';
+                $htmlSimple .= '<p>Usuario: ' . ($reporte['nombre_usuario'] ?? 'N/A') . '</p>';
+                $pdf->writeHTML($htmlSimple, true, false, true, false, '');
+            }
+            
+            // Generar nombre del archivo
+            $safeName = preg_replace('/[^a-z0-9_.-]/i', '_', $reporte['asunto'] ?? $reporte['asunto_conversacion'] ?? 'reporte');
+            $fileName = 'reporte_hseq_' . $reporte['id'] . '_' . $safeName . '.pdf';
+            
+            error_log("Generando salida del PDF: $fileName");
+            // Salida del PDF (descarga)
+            $pdf->Output($fileName, 'D');
+            
+            error_log("PDF generado y enviado exitosamente");
+            
         } catch (Exception $e) {
-            // En caso de error, devolver HTML
-            header('Content-Type: text/html; charset=UTF-8');
-            echo $html;
+            // Registrar error detallado
+            error_log("ERROR FATAL al generar PDF: " . $e->getMessage());
+            error_log("Archivo: " . $e->getFile() . " Línea: " . $e->getLine());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            // Devolver error al cliente
+            if (ob_get_level()) ob_clean();
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al generar el PDF',
+                'error' => $e->getMessage(),
+                'file' => basename($e->getFile()),
+                'line' => $e->getLine()
+            ]);
         }
     }
     
