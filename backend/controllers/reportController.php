@@ -1043,7 +1043,24 @@ class ReportController {
 
     public function getDashboardStats() {
         try {
-            // 1. Incidentes por mes (últimos 6 meses) con formato mejorado
+            // Obtener el período desde el parámetro GET (por defecto: 'month')
+            $period = $_GET['period'] ?? 'month';
+            
+            // Determinar el intervalo numérico según el período
+            switch ($period) {
+                case 'quarter':
+                    $intervalNum = 12; // 4 trimestres = 12 meses
+                    break;
+                case 'year':
+                    $intervalNum = 24; // 2 años = 24 meses
+                    break;
+                case 'month':
+                default:
+                    $intervalNum = 6; // 6 meses
+                    break;
+            }
+            
+            // 1. Incidentes por mes con formato mejorado (dinámico según período)
             $sqlIncidentesPorMes = "
                 SELECT 
                     DATE_FORMAT(fecha_evento, '%Y-%m') as mes,
@@ -1053,10 +1070,11 @@ class ReportController {
                     COUNT(CASE WHEN tipo_reporte = 'conversaciones' THEN 1 END) as conversaciones,
                     COUNT(*) as total_reportes
                 FROM reportes 
-                WHERE fecha_evento >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                WHERE fecha_evento >= DATE_SUB(CURDATE(), INTERVAL $intervalNum MONTH)
                 GROUP BY DATE_FORMAT(fecha_evento, '%Y-%m'), DATE_FORMAT(fecha_evento, '%b')
                 ORDER BY mes ASC
             ";
+            
             $resultIncidentesPorMes = $this->conn->query($sqlIncidentesPorMes);
             $incidentesPorMes = [];
             while ($row = $resultIncidentesPorMes->fetch_assoc()) {
@@ -1083,7 +1101,7 @@ class ReportController {
                 $i++;
             }
 
-            // 3. Tendencias mensuales para gráfico de líneas
+            // 3. Tendencias mensuales para gráfico de líneas (dinámico según período)
             $sqlTendencias = "
                 SELECT 
                     DATE_FORMAT(fecha_evento, '%Y-%m') as mes,
@@ -1092,7 +1110,7 @@ class ReportController {
                     COUNT(CASE WHEN tipo_reporte = 'hallazgos' THEN 1 END) as hallazgos,
                     COUNT(CASE WHEN tipo_reporte = 'conversaciones' THEN 1 END) as conversaciones
                 FROM reportes 
-                WHERE fecha_evento >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                WHERE fecha_evento >= DATE_SUB(CURDATE(), INTERVAL $intervalNum MONTH)
                 GROUP BY DATE_FORMAT(fecha_evento, '%Y-%m'), DATE_FORMAT(fecha_evento, '%b')
                 ORDER BY mes ASC
             ";

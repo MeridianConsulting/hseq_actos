@@ -29,6 +29,8 @@ const Dashboard = () => {
   const [supports, setSupports] = useState([]);
 
   const { stats, loading, error } = useDashboardStats(selectedPeriod);
+  
+  // Debug: Log cuando cambie el período seleccionado
 
   // Bar chart: Reportes por periodo (dinámico por selectedPeriod)
   const incidentsByMonth = useMemo(() => (stats?.incidentesPorMes || []).map(m => ({
@@ -384,16 +386,10 @@ const Dashboard = () => {
     // Try to fetch detailed reports for an extra sheet
     let detalles = [];
     try {
-      console.log('🔍 Iniciando fetch de reportes para Excel...');
       const resp = await reportService.getAllReports({ per_page: 1000, page: 1 });
-      console.log('📊 Respuesta completa de getAllReports:', resp);
-      console.log('✅ ¿Success?:', resp?.success);
-      console.log('📋 ¿Tiene reports?:', resp?.reports);
-      console.log('📊 Cantidad de reportes:', resp?.reports?.length);
       
       if (resp?.success && Array.isArray(resp.reports)) {
         detalles = resp.reports.map((r) => {
-          console.log('📝 Procesando reporte:', r);
           return {
             ID: r.id,
             Tipo: r.tipo_reporte,
@@ -416,13 +412,10 @@ const Dashboard = () => {
     // Agregar hoja de resumen por proyecto
     let resumenPorProyecto = [];
     try {
-      console.log('📊 Procesando resumen por proyecto...');
-      console.log('📋 Cantidad de detalles:', detalles.length);
       if (detalles.length > 0) {
         // Agrupar por proyecto y contar reportes
         const proyectos = {};
         detalles.forEach(r => {
-          console.log('🔍 Procesando reporte para proyecto:', r.ProyectoUsuario, 'Tipo:', r.Tipo);
           const proyecto = r.ProyectoUsuario || 'Sin Proyecto';
           if (!proyectos[proyecto]) {
             proyectos[proyecto] = {
@@ -441,8 +434,6 @@ const Dashboard = () => {
           else if (r.Tipo === 'hallazgos') proyectos[proyecto].hallazgos++;
           else if (r.Tipo === 'conversaciones') proyectos[proyecto].conversaciones++;
         });
-        
-        console.log('📊 Proyectos procesados:', proyectos);
 
         // Convertir a array y agregar cantidad de usuarios únicos
         resumenPorProyecto = Object.values(proyectos).map(p => ({
@@ -872,9 +863,10 @@ const Dashboard = () => {
                 <button
                   key={period}
                   onClick={() => handlePeriodChange(period)}
+                  disabled={loading}
                   className={`py-2 px-3 md:px-4 rounded-lg font-semibold transition-all duration-300 text-sm md:text-base ${
                     selectedPeriod === period ? 'scale-105' : 'hover:scale-105'
-                  }`}
+                  } ${loading ? 'opacity-70 cursor-wait' : ''}`}
                   style={{
                     backgroundColor: selectedPeriod === period 
                       ? 'var(--color-tertiary)' 
@@ -885,7 +877,17 @@ const Dashboard = () => {
                     border: '1px solid rgba(252, 247, 255, 0.3)'
                   }}
                 >
-                  {period === 'month' ? 'Mensual' : period === 'quarter' ? 'Trimestral' : 'Anual'}
+                  {loading && selectedPeriod === period ? (
+                    <>
+                      <svg className="inline w-4 h-4 mr-2 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Cargando...
+                    </>
+                  ) : (
+                    period === 'month' ? 'Mensual' : period === 'quarter' ? 'Trimestral' : 'Anual'
+                  )}
                 </button>
               ))}
             </div>

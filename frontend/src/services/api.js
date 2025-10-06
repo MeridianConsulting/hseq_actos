@@ -139,7 +139,8 @@ export const reportService = {
             const params = new URLSearchParams();
             if (period) params.append('period', period);
             const query = params.toString();
-            const response = await api.get(`reports/dashboard-stats${query ? `?${query}` : ''}`);
+            const url = `reports/dashboard-stats${query ? `?${query}` : ''}`;
+            const response = await api.get(url);
             return response;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Error al obtener estadísticas del dashboard');
