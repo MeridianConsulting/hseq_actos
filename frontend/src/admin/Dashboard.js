@@ -703,17 +703,17 @@ const Dashboard = () => {
         background: 'linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 35%, var(--color-tertiary-dark) 100%)'
       }}>
         {/* Main Content Container */}
-        <div className="container mx-auto px-4 pb-8 pt-8">
+        <div className="container mx-auto px-4 pb-12 pt-24 md:pt-28 transition-all duration-500">
 
           {/* Welcome Section */}
           {user && (
             <div className={`transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              <div className="text-center mb-6 md:mb-8">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 text-white">
+              <div className="text-center mb-10 md:mb-12 py-6 px-4 rounded-3xl bg-gradient-to-b from-gray-800/40 to-gray-900/60 border border-gray-700 shadow-lg backdrop-blur-sm">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 tracking-tight text-white drop-shadow-md">
                   ¡Bienvenido, {getUserName()}!
                 </h1>
-                <p className="text-base md:text-xl text-gray-200">
-                  Plataforma HSEQ - Sistema de Gestión de Seguridad y Calidad
+                <p className="text-sm md:text-lg text-gray-300 font-medium tracking-wide">
+                  Plataforma HSEQ — Sistema de Gestión de Seguridad y Calidad
                 </p>
               </div>
 
@@ -768,14 +768,14 @@ const Dashboard = () => {
                         <div className="space-y-3">
                           <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card">
                             <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>NOMBRE COMPLETO</p>
-                            <div className="dashboard-card-content">
-                              <p className="text-lg font-semibold text-break-word" style={{ color: 'var(--color-secondary)' }} title={user.nombre}>{user.nombre}</p>
+                            <div className="dashboard-card-content overflow-hidden max-w-full">
+                              <p className="text-lg font-semibold break-words w-full" style={{ color: 'var(--color-secondary)', overflowWrap: 'anywhere' }} title={user.nombre}>{user.nombre}</p>
                             </div>
                           </div>
                           <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card">
                             <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>DOCUMENTO</p>
-                            <div className="dashboard-card-content">
-                              <p className="text-lg font-semibold text-break-word" style={{ color: 'var(--color-secondary)' }} title={user.cedula}>{user.cedula}</p>
+                            <div className="dashboard-card-content overflow-hidden max-w-full">
+                              <p className="text-lg font-semibold break-words w-full" style={{ color: 'var(--color-secondary)', overflowWrap: 'anywhere' }} title={user.cedula}>{user.cedula}</p>
                             </div>
                           </div>
                         </div>
@@ -792,8 +792,8 @@ const Dashboard = () => {
                         <div className="space-y-3">
                           <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card">
                             <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>CORREO ELECTRÓNICO</p>
-                            <div className="dashboard-card-content">
-                              <p className="text-lg font-semibold text-break-word" style={{ color: 'var(--color-secondary)' }} title={user.correo}>{user.correo}</p>
+                            <div className="dashboard-card-content overflow-hidden max-w-full">
+                              <p className="text-lg font-semibold break-words w-full" style={{ color: 'var(--color-secondary)', overflowWrap: 'anywhere' }} title={user.correo}>{user.correo}</p>
                             </div>
                           </div>
                           <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card">
@@ -838,8 +838,8 @@ const Dashboard = () => {
                           </div>
                           <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card">
                             <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>ÚLTIMO ACCESO</p>
-                            <div className="dashboard-card-content">
-                              <p className="text-sm font-medium text-break-word" style={{ color: 'var(--color-secondary)' }} title={new Date().toLocaleDateString('es-ES', { 
+                            <div className="dashboard-card-content overflow-hidden max-w-full">
+                              <p className="text-sm font-medium break-words w-full" style={{ color: 'var(--color-secondary)', overflowWrap: 'anywhere' }} title={new Date().toLocaleDateString('es-ES', { 
                                 year: 'numeric', 
                                 month: 'long', 
                                 day: 'numeric',
