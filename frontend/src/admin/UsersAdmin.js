@@ -163,12 +163,10 @@ const UsersAdmin = () => {
           {/* Header Section */}
           <div className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-3xl md:text-4xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+              <h1 className="page-header-title">
                 Administración de Usuarios
               </h1>
-              <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.75)' }}>
-                Gestiona usuarios, roles y estados
-              </p>
+              <p className="page-header-subtitle">Gestiona cuentas, roles y permisos del sistema</p>
             </div>
             
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -226,28 +224,38 @@ const UsersAdmin = () => {
           </div>
 
           {/* Table Container */}
-          <div className="backdrop-blur-2xl rounded-3xl border overflow-hidden shadow-xl"
-               style={{ backgroundColor: 'rgba(252, 247, 255, 0.12)', borderColor: 'rgba(252, 247, 255, 0.25)' }}>
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="text-left text-sm" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
-                    <th className="px-4 py-3">Nombre</th>
-                    <th className="px-4 py-3">Correo</th>
-                    <th className="px-4 py-3">Documento</th>
-                    <th className="px-4 py-3">Rol</th>
-                    <th className="px-4 py-3">Proyecto</th>
-                    <th className="px-4 py-3">Estado</th>
-                    <th className="px-4 py-3 text-right">Acciones</th>
+          <div className="responsive-card animate-fade-in-up">
+            {/* Wrapper con scroll propio (horizontal y vertical) */}
+            <div
+              className="overflow-auto"
+              style={{
+                maxHeight: 'min(72vh, calc(100vh - 260px))', // visible sin llegar al final de la página
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehavior: 'contain',
+                paddingBottom: '0.5rem', // evita que los FAB tapen la barra
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'rgba(255, 255, 255, 0.2) transparent',
+              }}
+            >
+              <table className="table-modern min-w-[1100px] md:min-w-full">
+                <thead className="sticky">
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Documento</th>
+                    <th>Rol</th>
+                    <th>Proyecto</th>
+                    <th>Estado</th>
+                    <th className="text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading && (
                     <tr>
-                      <td className="px-4 py-6 text-center" colSpan="7" style={{ color: 'var(--color-secondary)' }}>
+                      <td className="text-center" colSpan="7" style={{ color: 'var(--color-secondary)', padding: '3rem' }}>
                         <div className="flex items-center justify-center gap-2">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-400"></div>
-                          <span>Cargando...</span>
+                          <div className="loading-spinner"></div>
+                          <span>Cargando usuarios...</span>
                         </div>
                       </td>
                     </tr>
@@ -263,60 +271,56 @@ const UsersAdmin = () => {
                   )}
                   {!loading && !error && filteredUsers.length === 0 && (
                     <tr>
-                      <td className="px-4 py-8 text-center" colSpan="7" style={{ color: 'var(--color-secondary)' }}>
-                        <div className="text-center">
-                          <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <td className="text-center" colSpan="7">
+                        <div className="empty-state">
+                          <svg className="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
-                          <p className="text-lg font-medium">Sin resultados</p>
+                          <p className="text-lg font-medium" style={{ color: 'var(--color-secondary)' }}>Sin resultados</p>
                           <p className="text-sm mt-1">Intenta ajustar los filtros de búsqueda</p>
                         </div>
                       </td>
                     </tr>
                   )}
                   {!loading && !error && filteredUsers.map(u => (
-                    <tr key={u.id} className="border-t border-white border-opacity-10 hover:bg-white/5 transition-all duration-200">
-                      <td className="px-4 py-4" style={{ color: 'var(--color-secondary)' }}>{u.nombre}</td>
-                      <td className="px-4 py-4" style={{ color: 'var(--color-secondary)' }}>{u.correo}</td>
-                      <td className="px-4 py-4" style={{ color: 'var(--color-secondary)' }}>{u.cedula}</td>
-                      <td className="px-4 py-4">
-                        <span className="px-3 py-1 rounded-full text-xs font-bold capitalize" style={{
-                          backgroundColor: u.rol === 'admin' ? 'rgba(220, 38, 38, 0.2)' : u.rol === 'soporte' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(34, 197, 94, 0.2)',
-                          color: u.rol === 'admin' ? '#fca5a5' : u.rol === 'soporte' ? '#93c5fd' : '#86efac',
-                          border: '1px solid rgba(252, 247, 255, 0.2)'
-                        }}>{u.rol}</span>
+                    <tr key={u.id}>
+                      <td style={{ color: 'var(--color-secondary)' }}>{u.nombre}</td>
+                      <td className="whitespace-nowrap" style={{ color: 'var(--color-secondary)' }}>{u.correo}</td>
+                      <td className="whitespace-nowrap" style={{ color: 'var(--color-secondary)' }}>{u.cedula}</td>
+                      <td>
+                        <span className={`badge badge-${u.rol}`}>
+                          {u.rol}
+                        </span>
                       </td>
-                      <td className="px-4 py-4" style={{ color: 'var(--color-secondary)' }}>
+                      <td style={{ color: 'var(--color-secondary)' }}>
                         {u.Proyecto || '-'}
                       </td>
-                      <td className="px-4 py-4">
-                        <span className="px-3 py-1 rounded-full text-xs font-bold capitalize" style={{
-                          backgroundColor: u.estado === 'activo' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                          color: u.estado === 'activo' ? '#86efac' : '#fca5a5',
-                          border: '1px solid rgba(252, 247, 255, 0.2)'
-                        }}>{u.estado}</span>
+                      <td>
+                        <span className={`badge ${u.estado === 'activo' ? 'badge-success' : 'badge-danger'}`}>
+                          {u.estado}
+                        </span>
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                      <td className="text-right">
+                        <div className="flex items-center justify-end gap-2">
                           <button 
                             onClick={() => openEdit(u)} 
-                            className="px-2 py-1 rounded-lg text-xs transition-all duration-200 hover:scale-105"
-                            style={{ backgroundColor: 'rgba(252, 247, 255, 0.15)', color: 'var(--color-secondary)', border: '1px solid rgba(252, 247, 255, 0.3)' }}
+                            className="action-button action-button-edit"
+                            data-tooltip="Editar usuario"
                           >
                             Editar
                           </button>
                           <button 
                             onClick={() => onResetPassword(u.id)} 
-                            className="px-2 py-1 rounded-lg text-xs transition-all duration-200 hover:scale-105"
-                            style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd', border: '1px solid rgba(59, 130, 246, 0.3)' }}
+                            className="action-button action-button-reset"
+                            data-tooltip="Reiniciar contraseña"
                           >
                             Reset
                           </button>
                           <button 
                             onClick={() => onDelete(u.id)} 
-                            className="px-2 py-1 rounded-lg text-xs transition-all duration-200 hover:scale-105"
-                            style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.3)' }}
-                        >
+                            className="action-button action-button-delete"
+                            data-tooltip="Eliminar usuario"
+                          >
                             Eliminar
                           </button>
                         </div>
