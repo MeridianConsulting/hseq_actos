@@ -1017,11 +1017,10 @@ const Dashboard = () => {
 
                 {/* Resumen de Reportes - Barras por estado y criticidad */}
                 <div 
-                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-3xl p-6 shadow-2xl"
+                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-3xl p-6 shadow-2xl relative overflow-hidden"
                   style={{
                     height: '450px',
-                    position: 'relative',
-                    overflow: 'hidden'
+                    boxShadow: 'inset 0 0 40px rgba(0,0,0,0.3), 0 8px 30px rgba(0,0,0,0.4)'
                   }}
                 >
                   {/* Decorative elements */}
@@ -1045,7 +1044,7 @@ const Dashboard = () => {
                           </svg>
                         </div>
                         <div>
-                          <h3 className="text-xl font-bold text-gray-100">
+                          <h3 className="text-xl font-bold text-gray-100 tracking-wide">
                             Resumen de reportes
                           </h3>
                           <p className="text-sm text-gray-400">
@@ -1070,78 +1069,95 @@ const Dashboard = () => {
                       data={reportesResumenChart}
                       keys={['Pendientes', 'En Revisión', 'Aprobados', 'Rechazados']}
                       indexBy="estado"
-                      margin={{ top: 20, right: 140, bottom: 50, left: 60 }}
-                      padding={0.35}
+                      margin={{ top: 30, right: 150, bottom: 50, left: 60 }}
+                      padding={0.15}
                       groupMode="grouped"
                       valueScale={{ type: 'linear' }}
-                      colors={['#fbbf24', '#3b82f6', '#22c55e', '#ef4444']}
+                      colors={[
+                        '#fbbf24', // Pendientes
+                        '#3b82f6', // En Revisión
+                        '#22c55e', // Aprobados
+                        '#ef4444'  // Rechazados
+                      ]}
+                      borderRadius={6}
+                      borderColor={{ from: 'color', modifiers: [['darker', 0.4]] }}
                       theme={{
                         background: 'transparent',
                         text: { fill: '#f3f4f6', fontSize: 12 },
-                        axis: { ticks: { text: { fill: '#d1d5db', fontSize: 10 } } },
-                        grid: { line: { stroke: 'rgba(255,255,255,0.1)' } }
+                        axis: {
+                          ticks: { text: { fill: '#d1d5db', fontSize: 10 } },
+                          domain: { line: { stroke: 'rgba(255,255,255,0.1)' } },
+                          legend: { text: { fill: '#e5e7eb', fontSize: 11, fontWeight: 600 } }
+                        },
+                        grid: { line: { stroke: 'rgba(255,255,255,0.1)', strokeDasharray: '4 4' } },
+                        tooltip: { container: { background: '#111827', color: '#f9fafb', fontSize: 13, borderRadius: 8, padding: '8px 12px', boxShadow: '0 6px 20px rgba(0,0,0,0.4)' } }
                       }}
                       axisBottom={{
-                        tickSize: 5,
-                        tickPadding: 5,
-                        tickRotation: 0
+                        tickSize: 0,
+                        tickPadding: 10,
+                        legend: 'Reportes',
+                        legendPosition: 'middle',
+                        legendOffset: 35
                       }}
                       axisLeft={{
-                        tickSize: 5,
-                        tickPadding: 5,
-                        tickRotation: 0,
+                        tickSize: 0,
+                        tickPadding: 8,
                         legend: 'Cantidad',
                         legendPosition: 'middle',
                         legendOffset: -50
                       }}
+                      labelTextColor="#ffffff"
+                      labelSkipHeight={16}
                       labelSkipWidth={12}
-                      labelSkipHeight={12}
-                      labelTextColor="#1f2937"
+                      label={d => d.value > 0 ? d.value : ''}
+                      animate={true}
+                      motionConfig="gentle"
+                      enableGridY={true}
                       legends={[
                         {
                           dataFrom: 'keys',
                           anchor: 'bottom-right',
                           direction: 'column',
-                          translateX: 130,
-                          translateY: 0,
-                          itemsSpacing: 3,
+                          translateX: 140,
                           itemWidth: 120,
                           itemHeight: 22,
-                          itemDirection: 'left-to-right',
-                          itemOpacity: 0.85,
-                          symbolSize: 16,
-                          itemTextColor: '#f3f4f6',
+                          itemTextColor: '#e5e7eb',
+                          symbolSize: 14,
+                          symbolShape: 'circle',
                           effects: [
                             {
                               on: 'hover',
                               style: {
-                                itemOpacity: 1,
-                                itemTextColor: '#ffffff'
+                                itemTextColor: '#ffffff',
+                                itemOpacity: 1
                               }
                             }
                           ]
                         }
                       ]}
-                      animate={true}
-                      motionConfig="gentle"
                       tooltip={({ id, value, color }) => (
-                        <div style={{
-                          padding: '8px 12px',
-                          background: '#1f2937',
-                          border: '1px solid #374151',
-                          borderRadius: '6px',
-                          boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{
+                        <div
+                          style={{
+                            padding: '8px 12px',
+                            background: '#1f2937',
+                            border: '1px solid #374151',
+                            borderRadius: '8px',
+                            boxShadow: '0 6px 15px rgba(0,0,0,0.3)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          <div
+                            style={{
                               width: '12px',
                               height: '12px',
                               backgroundColor: color,
-                              borderRadius: '2px'
-                            }}></div>
-                            <strong style={{ color: '#f3f4f6' }}>{id}:</strong>
-                            <span style={{ color: '#d1d5db' }}>{value}</span>
-                          </div>
+                              borderRadius: '3px'
+                            }}
+                          ></div>
+                          <strong style={{ color: '#f3f4f6' }}>{id}:</strong>
+                          <span style={{ color: '#d1d5db' }}>{value}</span>
                         </div>
                       )}
                     />
