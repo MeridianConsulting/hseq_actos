@@ -688,79 +688,33 @@ const Dashboard = () => {
   return (
     <>
       <Header />
-      <div className="dashboard-container" style={{
+      <div className="min-h-screen" style={{
         background: 'linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 35%, var(--color-tertiary-dark) 100%)'
       }}>
-        {/* Animated Background Particles */}
-        <div className="dashboard-background">
-          <div 
-            className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full mix-blend-multiply filter blur-xl animate-blob"
-            style={{ backgroundColor: 'rgba(51, 97, 157, 0.15)' }}
-          ></div>
-          <div 
-            className="absolute top-1/3 right-1/4 w-64 h-64 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-2000"
-            style={{ backgroundColor: 'rgba(99, 201, 219, 0.12)' }}
-          ></div>
-          <div 
-            className="absolute bottom-1/4 left-1/3 w-64 h-64 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000"
-            style={{ backgroundColor: 'rgba(244, 211, 94, 0.08)' }}
-          ></div>
-        </div>
-        
         {/* Main Content Container */}
-        <div className="dashboard-content container mx-auto px-4 pb-8 pt-8">
+        <div className="container mx-auto px-4 pb-8 pt-8">
 
           {/* Welcome Section */}
           {user && (
             <div className={`transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
               <div className="text-center mb-6 md:mb-8">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4" style={{ color: 'var(--color-secondary)' }}>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 text-white">
                   ¡Bienvenido, {getUserName()}!
                 </h1>
-                <p className="text-base md:text-xl" style={{ color: 'rgba(252, 247, 255, 0.8)' }}>
+                <p className="text-base md:text-xl text-gray-200">
                   Plataforma HSEQ - Sistema de Gestión de Seguridad y Calidad
                 </p>
               </div>
 
               {/* User Information Card - Redesigned */}
               <div className="max-w-4xl mx-auto mb-6 md:mb-8 transition-all duration-1000 delay-300">
-                <div 
-                  className="backdrop-blur-2xl rounded-3xl shadow-2xl border overflow-hidden"
-                  style={{
-                    backgroundColor: 'rgba(252, 247, 255, 0.12)',
-                    borderColor: 'rgba(252, 247, 255, 0.25)',
-                    boxShadow: '0 25px 50px -12px rgba(4, 8, 15, 0.4)'
-                  }}
-                >
+                <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-700 overflow-hidden">
                   {/* Header Section with Avatar */}
-                  <div 
-                    className="relative p-4 md:p-8 text-center"
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(51, 97, 157, 0.2) 0%, rgba(99, 201, 219, 0.1) 100%)',
-                      borderBottom: '1px solid rgba(252, 247, 255, 0.1)'
-                    }}
-                  >
-                    {/* Decorative background elements */}
-                    <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
-                      <div 
-                        className="absolute -top-10 -left-10 w-20 h-20 rounded-full opacity-20"
-                        style={{ backgroundColor: 'var(--color-accent)' }}
-                      ></div>
-                      <div 
-                        className="absolute -bottom-10 -right-10 w-16 h-16 rounded-full opacity-15"
-                        style={{ backgroundColor: 'var(--color-tertiary)' }}
-                      ></div>
-                    </div>
+                  <div className="relative p-4 md:p-8 text-center bg-gray-800/50 border-b border-gray-700">
                     
                     {/* Avatar and User Info */}
                     <div className="relative z-10">
-                      <div 
-                        className="w-16 h-16 md:w-24 md:h-24 rounded-full mx-auto mb-3 md:mb-4 flex items-center justify-center relative group"
-                        style={{ 
-                          background: 'linear-gradient(135deg, rgba(51, 97, 157, 0.3) 0%, rgba(99, 201, 219, 0.2) 100%)',
-                          border: '3px solid rgba(252, 247, 255, 0.3)'
-                        }}
-                      >
+                      <div className="w-16 h-16 md:w-24 md:h-24 rounded-full mx-auto mb-3 md:mb-4 flex items-center justify-center relative group bg-gray-700 border-2 border-gray-600">
                         <svg className="w-8 h-8 md:w-12 md:h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-secondary)' }}>
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
@@ -933,17 +887,12 @@ const Dashboard = () => {
             {!loading && !error && kpis.map((kpi, index) => (
               <div 
                 key={index}
-                className="backdrop-blur-2xl rounded-2xl p-4 md:p-6 border hover:transform hover:scale-105 transition-all duration-300"
-                style={{
-                  backgroundColor: 'rgba(252, 247, 255, 0.12)',
-                  borderColor: 'rgba(252, 247, 255, 0.25)',
-                  boxShadow: '0 10px 30px -5px rgba(4, 8, 15, 0.3)'
-                }}
+                className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-4 md:p-6 border border-gray-700 hover:transform hover:scale-105 transition-all duration-300 shadow-2xl"
               >
                 <h3 className="text-2xl md:text-3xl font-bold mb-1" style={{ color: kpi.color }}>
                   {kpi.value}
                 </h3>
-                <p className="text-xs md:text-sm" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
+                <p className="text-xs md:text-sm text-gray-400">
                   {kpi.title}
                 </p>
               </div>
@@ -958,19 +907,11 @@ const Dashboard = () => {
               <>
                 {/* Bar Chart - Incidentes por Mes */}
                 <div 
-                  className="chart-container group"
+                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-3xl p-6 shadow-2xl"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
-                    border: '1px solid rgba(252, 247, 255, 0.2)',
-                    borderRadius: '1.5rem',
-                    padding: '1.5rem',
                     height: '450px',
                     position: 'relative',
-                    overflow: 'hidden',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
-                    transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
+                    overflow: 'hidden'
                   }}
                 >
                   {/* Decorative elements */}
@@ -1032,9 +973,9 @@ const Dashboard = () => {
                       colors={[ '#ef4444', '#eab308', '#3b82f6' ]}
                       theme={{
                         background: 'transparent',
-                        text: { fill: '#fcf7ff', fontSize: 12 },
-                        axis: { ticks: { text: { fill: '#fcf7ff', fontSize: 10 } } },
-                        grid: { line: { stroke: 'rgba(252, 247, 255, 0.1)' } }
+                        text: { fill: '#f3f4f6', fontSize: 12 },
+                        axis: { ticks: { text: { fill: '#d1d5db', fontSize: 10 } } },
+                        grid: { line: { stroke: 'rgba(255,255,255,0.1)' } }
                       }}
                       axisBottom={{
                         tickSize: 5,
@@ -1065,19 +1006,11 @@ const Dashboard = () => {
 
                 {/* Resumen de Reportes - Barras por estado y criticidad */}
                 <div 
-                  className="chart-container group"
+                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-3xl p-6 shadow-2xl"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
-                    border: '1px solid rgba(252, 247, 255, 0.2)',
-                    borderRadius: '1.5rem',
-                    padding: '1.5rem',
                     height: '450px',
                     position: 'relative',
-                    overflow: 'hidden',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
-                    transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
+                    overflow: 'hidden'
                   }}
                 >
                   {/* Decorative elements */}
@@ -1177,19 +1110,11 @@ const Dashboard = () => {
               <>
                 {/* Line Chart - Tendencias Mensuales */}
                 <div 
-                  className="chart-container group"
+                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-3xl p-6 shadow-2xl"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
-                    border: '1px solid rgba(252, 247, 255, 0.2)',
-                    borderRadius: '1.5rem',
-                    padding: '1.5rem',
                     height: '450px',
                     position: 'relative',
-                    overflow: 'hidden',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
-                    transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
+                    overflow: 'hidden'
                   }}
                 >
                   {/* Decorative elements */}
@@ -1277,19 +1202,11 @@ const Dashboard = () => {
 
                 {/* Pie Chart - Incidentes por Tipo */}
                 <div 
-                  className="chart-container group"
+                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-3xl p-6 shadow-2xl"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(252, 247, 255, 0.15) 0%, rgba(252, 247, 255, 0.08) 100%)',
-                    border: '1px solid rgba(252, 247, 255, 0.2)',
-                    borderRadius: '1.5rem',
-                    padding: '1.5rem',
                     height: '450px',
                     position: 'relative',
-                    overflow: 'hidden',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    boxShadow: '0 20px 40px -10px rgba(4, 8, 15, 0.3)',
-                    transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
+                    overflow: 'hidden'
                   }}
                 >
                   {/* Decorative elements */}
@@ -1374,20 +1291,13 @@ const Dashboard = () => {
           <div className="mt-12 mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8">
               {/* Reporte Principal */}
-              <div 
-                className="backdrop-blur-2xl rounded-3xl p-6 md:p-8 border hover:transform hover:scale-105 transition-all duration-500"
-                style={{
-                  backgroundColor: 'rgba(252, 247, 255, 0.15)',
-                  borderColor: 'rgba(252, 247, 255, 0.3)',
-                  boxShadow: '0 20px 50px -15px rgba(4, 8, 15, 0.5)'
-                }}
-              >
+              <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-gray-700 hover:transform hover:scale-105 transition-all duration-500 shadow-2xl">
                 <div className="text-center">
                   <div className="text-4xl md:text-5xl mb-4 md:mb-6">📊</div>
-                  <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4" style={{ color: 'var(--color-secondary)' }}>
+                  <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
                     Reporte Ejecutivo HSEQ
                   </h3>
-                  <p className="text-xs md:text-sm mb-4 md:mb-6" style={{ color: 'rgba(252, 247, 255, 0.8)' }}>
+                  <p className="text-xs md:text-sm mb-4 md:mb-6 text-gray-300">
                     Reporte completo con métricas, estadísticas y análisis de tendencias del sistema HSEQ
                   </p>
                   
@@ -1397,13 +1307,13 @@ const Dashboard = () => {
                       <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>
                         {loading ? '...' : (stats?.kpis?.total_incidentes ?? '0')}
                       </div>
-                      <div className="text-xs opacity-70" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Incidentes</div>
+                      <div className="text-xs opacity-70 text-gray-400">Incidentes</div>
                     </div>
                     <div className="text-center">
                       <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>
                         {loading ? '...' : (stats?.kpis?.total_reportes ?? '0')}
                       </div>
-                      <div className="text-xs opacity-70" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Reportes</div>
+                      <div className="text-xs opacity-70 text-gray-400">Reportes</div>
                     </div>
                   </div>
                   
@@ -1434,33 +1344,19 @@ const Dashboard = () => {
               </div>
 
               {/* Reportes Detallados */}
-              <div 
-                className="backdrop-blur-2xl rounded-3xl p-8 border hover:transform hover:scale-105 transition-all duration-500"
-                style={{
-                  backgroundColor: 'rgba(252, 247, 255, 0.15)',
-                  borderColor: 'rgba(252, 247, 255, 0.3)',
-                  boxShadow: '0 20px 50px -15px rgba(4, 8, 15, 0.5)'
-                }}
-              >
+              <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-8 border border-gray-700 hover:transform hover:scale-105 transition-all duration-500 shadow-2xl">
                 <div className="text-center">
                   <div className="text-5xl mb-6">📋</div>
-                  <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
+                  <h3 className="text-2xl font-bold mb-4 text-white">
                     Reportes Detallados
                   </h3>
-                  <p className="text-sm mb-6" style={{ color: 'rgba(252, 247, 255, 0.8)' }}>
+                  <p className="text-sm mb-6 text-gray-300">
                     Accede a reportes específicos por proyecto, tipo y fecha
                   </p>
                   
                   {/* Quick actions */}
                   <div className="space-y-3 mb-6">
-                    <button 
-                      className="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:scale-105 border text-sm"
-                      style={{
-                        backgroundColor: 'rgba(252, 247, 255, 0.1)',
-                        color: 'var(--color-secondary)',
-                        borderColor: 'rgba(252, 247, 255, 0.3)'
-                      }}
-                    >
+                    <button className="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:scale-105 border text-sm bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
                       📊 Reporte por Proyecto
                     </button>
                   </div>
@@ -1493,31 +1389,24 @@ const Dashboard = () => {
 
               {/* Administración de Usuarios (solo Admin) */}
               {isAdmin() && (
-                <div 
-                  className="backdrop-blur-2xl rounded-3xl p-8 border hover:transform hover:scale-105 transition-all duration-500"
-                  style={{
-                    backgroundColor: 'rgba(252, 247, 255, 0.15)',
-                    borderColor: 'rgba(252, 247, 255, 0.3)',
-                    boxShadow: '0 20px 50px -15px rgba(4, 8, 15, 0.5)'
-                  }}
-                >
+                <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-8 border border-gray-700 hover:transform hover:scale-105 transition-all duration-500 shadow-2xl">
                   <div className="text-center">
                     <div className="text-5xl mb-6">👥</div>
-                    <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-secondary)' }}>
+                    <h3 className="text-2xl font-bold mb-4 text-white">
                       Administración de Usuarios
                     </h3>
-                    <p className="text-sm mb-6" style={{ color: 'rgba(252, 247, 255, 0.8)' }}>
+                    <p className="text-sm mb-6 text-gray-300">
                       Gestiona usuarios, roles y accesos del sistema
                     </p>
 
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div className="text-center">
                         <div className="text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>Roles</div>
-                        <div className="text-xs opacity-70" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Admin, Coord, Colab</div>
+                        <div className="text-xs opacity-70 text-gray-400">Admin, Coord, Colab</div>
                       </div>
                       <div className="text-center">
                         <div className="text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>Accesos</div>
-                        <div className="text-xs opacity-70" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Protegidos por token</div>
+                        <div className="text-xs opacity-70 text-gray-400">Protegidos por token</div>
                       </div>
                     </div>
 
@@ -1575,22 +1464,16 @@ const Dashboard = () => {
             
             {/* Additional Info Bar */}
             <div className="mt-8 text-center">
-              <div 
-                className="inline-flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6 px-4 md:px-6 py-3 rounded-2xl backdrop-blur-lg"
-                style={{
-                  backgroundColor: 'rgba(252, 247, 255, 0.1)',
-                  border: '1px solid rgba(252, 247, 255, 0.2)'
-                }}
-              >
+              <div className="inline-flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6 px-4 md:px-6 py-3 rounded-2xl backdrop-blur-lg bg-gray-800/50 border border-gray-700">
                 <div className="flex items-center space-x-2">
-                  <span className="text-xs md:text-sm" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Última actualización:</span>
-                  <span className="text-xs md:text-sm font-medium" style={{ color: 'var(--color-secondary)' }}>
+                  <span className="text-xs md:text-sm text-gray-400">Última actualización:</span>
+                  <span className="text-xs md:text-sm font-medium text-gray-100">
                     {new Date().toLocaleDateString('es-ES')}
                   </span>
                 </div>
-                <div className="hidden md:block w-px h-4" style={{ backgroundColor: 'rgba(252, 247, 255, 0.3)' }}></div>
+                <div className="hidden md:block w-px h-4 bg-gray-700"></div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-xs md:text-sm" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Formatos disponibles:</span>
+                  <span className="text-xs md:text-sm text-gray-400">Formatos disponibles:</span>
                   <div className="flex space-x-2">
                     <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5' }}>PDF</span>
                     <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.2)', color: '#86efac' }}>Excel</span>
@@ -1604,19 +1487,13 @@ const Dashboard = () => {
           {/* Gestión y asignación de reportes (solo Admin) - Ubicada al final */}
           {isAdmin() && (
             <div className="mt-12 mb-8">
-              <div 
-                className="backdrop-blur-2xl rounded-3xl p-8 border"
-                style={{
-                  backgroundColor: 'rgba(252, 247, 255, 0.12)',
-                  borderColor: 'rgba(252, 247, 255, 0.25)'
-                }}
-              >
+              <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-8 border border-gray-700 shadow-2xl">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="text-2xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                    <h3 className="text-2xl font-bold text-white">
                       Asignación Rápida de Reportes
                     </h3>
-                    <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.75)' }}>
+                    <p className="text-sm text-gray-300">
                       Asigna reportes pendientes al equipo de soporte o administradores
                     </p>
                   </div>
@@ -1710,18 +1587,12 @@ const Dashboard = () => {
           {/* Nueva sección: Gestión completa de reportes (solo Admin) */}
           {isAdmin() && (
             <div className="mt-12 mb-8">
-              <div 
-                className="backdrop-blur-2xl rounded-3xl p-8 border"
-                style={{
-                  backgroundColor: 'rgba(252, 247, 255, 0.12)',
-                  borderColor: 'rgba(252, 247, 255, 0.25)'
-                }}
-              >
+              <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-8 border border-gray-700 shadow-2xl">
                 <div className="mb-6">
-                  <h3 className="text-2xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                  <h3 className="text-2xl font-bold text-white">
                     Gestión Completa de Reportes
                   </h3>
-                  <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.75)' }}>
+                  <p className="text-sm text-gray-300">
                     Visualiza, filtra y gestiona todos los reportes del sistema con herramientas avanzadas
                   </p>
                 </div>
@@ -1732,7 +1603,7 @@ const Dashboard = () => {
                   showStatusActions={true}
                   title="Todos los Reportes"
                   containerClassName=""
-                  useDarkTheme={false}
+                  useDarkTheme={true}
                 />
               </div>
             </div>
