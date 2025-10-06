@@ -977,27 +977,52 @@ const Dashboard = () => {
                       data={incidentsByMonth}
                       keys={['incidentes', 'hallazgos', 'conversaciones']}
                       indexBy="month"
-                      margin={{ top: 20, right: 80, bottom: 50, left: 40 }}
-                      padding={0.35}
-                      groupMode="stacked"
+                      margin={{ top: 30, right: 80, bottom: 50, left: 50 }}
+                      padding={0.3}
+                      groupMode="grouped"
                       valueScale={{ type: 'linear' }}
-                      colors={[ '#ef4444', '#eab308', '#3b82f6' ]}
+                      indexScale={{ type: 'band', round: true }}
+                      colors={['#ef4444', '#eab308', '#3b82f6']}
+                      borderRadius={4}
+                      enableGridY={true}
                       theme={{
                         background: 'transparent',
                         text: { fill: '#f3f4f6', fontSize: 12 },
-                        axis: { ticks: { text: { fill: '#d1d5db', fontSize: 10 } } },
-                        grid: { line: { stroke: 'rgba(255,255,255,0.1)' } }
+                        axis: {
+                          ticks: { text: { fill: '#d1d5db', fontSize: 11 } },
+                          domain: { line: { stroke: 'rgba(255,255,255,0.15)' } },
+                          legend: { text: { fill: '#e5e7eb', fontWeight: 600 } }
+                        },
+                        grid: { line: { stroke: 'rgba(255,255,255,0.1)' } },
+                        tooltip: {
+                          container: {
+                            background: '#1f2937',
+                            color: '#f9fafb',
+                            fontSize: 13,
+                            borderRadius: 8,
+                            padding: '8px 12px',
+                            boxShadow: '0 6px 20px rgba(0,0,0,0.4)'
+                          }
+                        }
                       }}
                       axisBottom={{
                         tickSize: 5,
-                        tickPadding: 5,
-                        tickRotation: 0
+                        tickPadding: 8,
+                        legend: 'Periodo',
+                        legendPosition: 'middle',
+                        legendOffset: 40
                       }}
                       axisLeft={{
                         tickSize: 5,
-                        tickPadding: 5,
-                        tickRotation: 0
+                        tickPadding: 8,
+                        legend: 'Cantidad de reportes',
+                        legendPosition: 'middle',
+                        legendOffset: -45
                       }}
+                      labelSkipHeight={14}
+                      labelSkipWidth={10}
+                      labelTextColor="#ffffff"
+                      label={d => d.value > 0 ? d.value : ''}
                       legends={[
                         {
                           dataFrom: 'keys',
@@ -1005,10 +1030,11 @@ const Dashboard = () => {
                           direction: 'column',
                           translateX: 70,
                           translateY: 0,
-                          itemsSpacing: 2,
                           itemWidth: 100,
                           itemHeight: 18,
-                          itemTextColor: '#fcf7ff'
+                          itemTextColor: '#fcf7ff',
+                          symbolSize: 12,
+                          symbolShape: 'circle'
                         }
                       ]}
                     />
