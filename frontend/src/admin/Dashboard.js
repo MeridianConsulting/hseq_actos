@@ -74,12 +74,16 @@ const Dashboard = () => {
     try {
       setAssignLoading(true);
       setAssignError(null);
-      const [repResp, supResp] = await Promise.all([
+      const [repResp, supResp, adminResp] = await Promise.all([
         reportService.fetchReports({ estado: 'pendiente' }),
-        userService.fetchUsers({ rol: 'soporte', activo: 1 })
+        userService.fetchUsers({ rol: 'soporte', activo: 1 }),
+        userService.fetchUsers({ rol: 'admin', activo: 1 })
       ]);
       if (repResp?.success) setReports(repResp.reports || repResp.data || []);
-      if (supResp?.success) setSupports(supResp.data || []);
+      // Combinar usuarios de soporte y administradores
+      const soporteUsers = supResp?.success ? (supResp.data || []) : [];
+      const adminUsers = adminResp?.success ? (adminResp.data || []) : [];
+      setSupports([...soporteUsers, ...adminUsers]);
     } catch (e) {
       setAssignError(e.message || 'Error cargando datos de asignación');
     } finally {
@@ -103,11 +107,13 @@ const Dashboard = () => {
     if (!supportUserId) return;
     try {
       setAssignLoading(true);
+      const selectedUser = supports.find(s => String(s.id) === String(supportUserId));
+      const assignedRole = selectedUser?.rol === 'admin' ? 'administrador' : 'equipo de soporte';
       await reportService.updateReportStatus({
         report_id: reportId,
         status: 'en_revision',
         revisor_id: Number(supportUserId),
-        comentarios: 'Asignado por administrador'
+        comentarios: `Asignado a ${assignedRole}`
       });
       // Refrescar lista
       await loadAssignmentData();
@@ -116,7 +122,7 @@ const Dashboard = () => {
     } finally {
       setAssignLoading(false);
     }
-  }, [loadAssignmentData, reportService]);
+  }, [loadAssignmentData, reportService, supports]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -1608,10 +1614,10 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-2xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                      Asignación de Reportes a Soporte
+                      Asignación Rápida de Reportes
                     </h3>
                     <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.75)' }}>
-                      Asigna reportes pendientes a usuarios con rol soporte
+                      Asigna reportes pendientes al equipo de soporte o administradores
                     </p>
                   </div>
                   <button
@@ -1675,9 +1681,11 @@ const Dashboard = () => {
                                   className="w-full md:flex-1 px-2 md:px-3 py-1 md:py-2 rounded-xl bg-white bg-opacity-10 border border-white border-opacity-20 focus:outline-none text-xs md:text-sm"
                                   style={{ color: 'var(--color-secondary)' }}
                                 >
-                                  <option value="" style={{ color: '#0b1220' }}>Seleccionar soporte…</option>
+                                  <option value="" style={{ color: '#0b1220' }}>Asignar a…</option>
                                   {supports.map(s => (
-                                    <option key={s.id} value={s.id} style={{ color: '#0b1220' }}>{s.nombre}</option>
+                                    <option key={s.id} value={s.id} style={{ color: '#0b1220' }}>
+                                      {s.nombre} {s.rol === 'admin' ? '(Admin)' : '(Soporte)'}
+                                    </option>
                                   ))}
                                 </select>
                                 <button
@@ -1721,7 +1729,7 @@ const Dashboard = () => {
                 {/* Reports Table Component */}
                 <ReportsTable 
                   user={user}
-                  showStatusActions={false}
+                  showStatusActions={true}
                   title="Todos los Reportes"
                   containerClassName=""
                   useDarkTheme={false}
