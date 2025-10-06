@@ -1278,7 +1278,7 @@ const Dashboard = () => {
                         tickRotation: -30,
                         legend: 'Periodo',
                         legendPosition: 'middle',
-                        legendOffset: 85
+                        legendOffset: 65
                       }}
                       axisLeft={{
                         tickSize: 5,
@@ -1306,9 +1306,9 @@ const Dashboard = () => {
                           anchor: 'bottom',
                           direction: 'row',
                           justify: false,
-                          translateY: 105,
-                          itemWidth: 100,
-                          itemHeight: 18,
+                          translateY: 110,
+                          itemWidth: 120,
+                          itemHeight: 20,
                           itemTextColor: '#f3f4f6',
                           symbolSize: 14,
                           symbolShape: 'circle',
