@@ -679,11 +679,22 @@ const Dashboard = () => {
     }
   ], [stats?.tendencias]);
 
-  const reportesResumenChart = useMemo(() => [
-    { categoria: 'Total', 'Total': totalReportes, 'Cerrados': 0, 'Abiertos Baja': 0, 'Abiertos Media': 0, 'Abiertos Alta': 0, 'Abiertos Muy Alta': 0 },
-    { categoria: 'Cerrados', 'Total': 0, 'Cerrados': totalCerrados, 'Abiertos Baja': 0, 'Abiertos Media': 0, 'Abiertos Alta': 0, 'Abiertos Muy Alta': 0 },
-    { categoria: 'Abiertos', 'Total': 0, 'Cerrados': 0, 'Abiertos Baja': abiertosPorCriticidad.Baja, 'Abiertos Media': abiertosPorCriticidad.Media, 'Abiertos Alta': abiertosPorCriticidad.Alta, 'Abiertos Muy Alta': abiertosPorCriticidad['Muy Alta'] }
-  ], [totalReportes, totalCerrados, abiertosPorCriticidad]);
+  const reportesResumenChart = useMemo(() => {
+    const pendientes = Number(stats?.kpis?.pendientes) || 0;
+    const enRevision = Number(stats?.kpis?.en_revision) || 0;
+    const aprobados = Number(stats?.kpis?.aprobados) || 0;
+    const rechazados = Number(stats?.kpis?.rechazados) || 0;
+
+    return [
+      { 
+        estado: 'Reportes', 
+        Pendientes: pendientes,
+        'En Revisión': enRevision,
+        Aprobados: aprobados,
+        Rechazados: rechazados
+      }
+    ];
+  }, [stats?.kpis]);
 
   return (
     <>
@@ -1034,20 +1045,20 @@ const Dashboard = () => {
                           </svg>
                         </div>
                         <div>
-                          <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                          <h3 className="text-xl font-bold text-gray-100">
                             Resumen de reportes
                           </h3>
-                          <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
-                            Totales y abiertos por criticidad
+                          <p className="text-sm text-gray-400">
+                            Distribución por estado
                           </p>
                         </div>
                       </div>
                       <div className="text-right space-y-1">
-                        <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
-                          Área/Proceso: <span className="font-semibold" style={{ color: 'var(--color-secondary)' }}>{areaProcesoTop}</span>
+                        <div className="text-xs text-gray-400">
+                          Total: <span className="font-semibold text-gray-100">{stats?.kpis?.total_reportes || 0}</span>
                         </div>
-                        <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>
-                          Hallazgo más reportado: <span className="font-semibold" style={{ color: 'var(--color-secondary)' }}>{hallazgoMasReportado}</span>
+                        <div className="text-xs text-gray-400">
+                          Tasa aprobación: <span className="font-semibold text-gray-100">{stats?.kpis?.tasa_aprobacion || 0}%</span>
                         </div>
                       </div>
                     </div>
@@ -1057,18 +1068,18 @@ const Dashboard = () => {
                   <div className="relative" style={{ height: '320px' }}>
                     <ResponsiveBar
                       data={reportesResumenChart}
-                      keys={['Total','Cerrados','Abiertos Baja','Abiertos Media','Abiertos Alta','Abiertos Muy Alta']}
-                      indexBy="categoria"
-                      margin={{ top: 20, right: 120, bottom: 50, left: 60 }}
-                      padding={0.3}
-                      groupMode="stacked"
+                      keys={['Pendientes', 'En Revisión', 'Aprobados', 'Rechazados']}
+                      indexBy="estado"
+                      margin={{ top: 20, right: 140, bottom: 50, left: 60 }}
+                      padding={0.35}
+                      groupMode="grouped"
                       valueScale={{ type: 'linear' }}
-                      colors={[ '#60a5fa', '#34d399', '#86efac', '#fde68a', '#fbbf24', '#f87171' ]}
+                      colors={['#fbbf24', '#3b82f6', '#22c55e', '#ef4444']}
                       theme={{
                         background: 'transparent',
-                        text: { fill: '#fcf7ff' },
-                        axis: { ticks: { text: { fill: '#fcf7ff' } } },
-                        grid: { line: { stroke: 'rgba(252, 247, 255, 0.1)' } }
+                        text: { fill: '#f3f4f6', fontSize: 12 },
+                        axis: { ticks: { text: { fill: '#d1d5db', fontSize: 10 } } },
+                        grid: { line: { stroke: 'rgba(255,255,255,0.1)' } }
                       }}
                       axisBottom={{
                         tickSize: 5,
@@ -1078,21 +1089,61 @@ const Dashboard = () => {
                       axisLeft={{
                         tickSize: 5,
                         tickPadding: 5,
-                        tickRotation: 0
+                        tickRotation: 0,
+                        legend: 'Cantidad',
+                        legendPosition: 'middle',
+                        legendOffset: -50
                       }}
+                      labelSkipWidth={12}
+                      labelSkipHeight={12}
+                      labelTextColor="#1f2937"
                       legends={[
                         {
                           dataFrom: 'keys',
                           anchor: 'bottom-right',
                           direction: 'column',
-                          translateX: 110,
+                          translateX: 130,
                           translateY: 0,
-                          itemsSpacing: 2,
+                          itemsSpacing: 3,
                           itemWidth: 120,
-                          itemHeight: 20,
-                          itemTextColor: '#fcf7ff'
+                          itemHeight: 22,
+                          itemDirection: 'left-to-right',
+                          itemOpacity: 0.85,
+                          symbolSize: 16,
+                          itemTextColor: '#f3f4f6',
+                          effects: [
+                            {
+                              on: 'hover',
+                              style: {
+                                itemOpacity: 1,
+                                itemTextColor: '#ffffff'
+                              }
+                            }
+                          ]
                         }
                       ]}
+                      animate={true}
+                      motionConfig="gentle"
+                      tooltip={({ id, value, color }) => (
+                        <div style={{
+                          padding: '8px 12px',
+                          background: '#1f2937',
+                          border: '1px solid #374151',
+                          borderRadius: '6px',
+                          boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{
+                              width: '12px',
+                              height: '12px',
+                              backgroundColor: color,
+                              borderRadius: '2px'
+                            }}></div>
+                            <strong style={{ color: '#f3f4f6' }}>{id}:</strong>
+                            <span style={{ color: '#d1d5db' }}>{value}</span>
+                          </div>
+                        </div>
+                      )}
                     />
                   </div>
                 </div>
