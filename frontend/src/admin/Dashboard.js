@@ -1260,7 +1260,7 @@ const Dashboard = () => {
                   <div className="relative" style={{ height: '320px' }}>
                     <ResponsiveLine
                       data={monthlyTrends}
-                      margin={{ top: 40, right: 60, bottom: 100, left: 60 }}
+                      margin={{ top: 40, right: 60, bottom: 120, left: 60 }}
                       xScale={{ type: 'point' }}
                       yScale={{ type: 'linear', min: 0, max: 'auto', stacked: false, nice: true }}
                       curve="monotoneX"
@@ -1278,7 +1278,7 @@ const Dashboard = () => {
                         tickRotation: -30,
                         legend: 'Periodo',
                         legendPosition: 'middle',
-                        legendOffset: 70
+                        legendOffset: 85
                       }}
                       axisLeft={{
                         tickSize: 5,
@@ -1306,7 +1306,7 @@ const Dashboard = () => {
                           anchor: 'bottom',
                           direction: 'row',
                           justify: false,
-                          translateY: 85,
+                          translateY: 105,
                           itemWidth: 100,
                           itemHeight: 18,
                           itemTextColor: '#f3f4f6',
