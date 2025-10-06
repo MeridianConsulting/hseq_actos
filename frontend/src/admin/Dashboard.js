@@ -1239,14 +1239,18 @@ const Dashboard = () => {
                           </p>
                         </div>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex flex-wrap gap-2">
                         <div className="flex items-center space-x-1">
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
                           <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Incidentes</span>
                         </div>
                         <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }}></div>
-                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Reportes</span>
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#eab308' }}></div>
+                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Hallazgos</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
+                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Conversaciones</span>
                         </div>
                       </div>
                     </div>
@@ -1256,39 +1260,69 @@ const Dashboard = () => {
                   <div className="relative" style={{ height: '320px' }}>
                     <ResponsiveLine
                       data={monthlyTrends}
-                      margin={{ top: 20, right: 80, bottom: 50, left: 60 }}
+                      margin={{ top: 40, right: 60, bottom: 100, left: 60 }}
                       xScale={{ type: 'point' }}
-                      yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: false }}
-                      curve="cardinal"
-                      axisTop={null}
-                      axisRight={null}
-                      theme={{
-                        background: 'transparent',
-                        text: { fill: '#fcf7ff' },
-                        axis: { ticks: { text: { fill: '#fcf7ff' } } },
-                        grid: { line: { stroke: 'rgba(252, 247, 255, 0.1)' } }
-                      }}
-                      pointSize={10}
-                      pointColor={{ theme: 'background' }}
+                      yScale={{ type: 'linear', min: 0, max: 'auto', stacked: false, nice: true }}
+                      curve="monotoneX"
+                      lineWidth={3}
+                      colors={['#ef4444', '#eab308', '#3b82f6']}
+                      pointSize={8}
                       pointBorderWidth={2}
                       pointBorderColor={{ from: 'serieColor' }}
-                      pointLabelYOffset={-12}
-                      useMesh={true}
+                      pointColor="#0f172a"
+                      enableGridX={false}
+                      enableGridY={true}
+                      axisBottom={{
+                        tickSize: 5,
+                        tickPadding: 10,
+                        tickRotation: -30,
+                        legend: 'Periodo',
+                        legendPosition: 'middle',
+                        legendOffset: 70
+                      }}
+                      axisLeft={{
+                        tickSize: 5,
+                        tickPadding: 8,
+                        legend: 'Cantidad de reportes',
+                        legendPosition: 'middle',
+                        legendOffset: -50
+                      }}
+                      theme={{
+                        background: 'transparent',
+                        text: { fill: '#f3f4f6' },
+                        axis: { ticks: { text: { fill: '#d1d5db' } } },
+                        grid: { line: { stroke: 'rgba(255,255,255,0.1)' } },
+                        tooltip: {
+                          container: {
+                            background: '#1f2937',
+                            color: '#f9fafb',
+                            borderRadius: 8,
+                            padding: '8px 12px'
+                          }
+                        }
+                      }}
                       legends={[
                         {
-                          anchor: 'bottom-right',
-                          direction: 'column',
-                          translateX: 100,
-                          translateY: 0,
-                          itemsSpacing: 0,
-                          itemDirection: 'left-to-right',
-                          itemWidth: 80,
-                          itemHeight: 20,
-                          itemTextColor: '#fcf7ff',
-                          symbolSize: 12,
-                          symbolShape: 'circle'
+                          anchor: 'bottom',
+                          direction: 'row',
+                          justify: false,
+                          translateY: 85,
+                          itemWidth: 100,
+                          itemHeight: 18,
+                          itemTextColor: '#f3f4f6',
+                          symbolSize: 14,
+                          symbolShape: 'circle',
+                          effects: [
+                            {
+                              on: 'hover',
+                              style: { itemTextColor: '#ffffff' }
+                            }
+                          ]
                         }
                       ]}
+                      pointLabel={d => d.y > 0 ? d.y : ''}
+                      pointLabelYOffset={-14}
+                      useMesh={true}
                     />
                   </div>
                 </div>
