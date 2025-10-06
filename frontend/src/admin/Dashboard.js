@@ -709,7 +709,7 @@ const Dashboard = () => {
               </div>
 
               {/* User Information Card - Redesigned */}
-              <div className="max-w-4xl mx-auto mb-6 md:mb-8 transition-all duration-1000 delay-300">
+                <div className="max-w-6xl mx-auto mb-6 md:mb-8 transition-all duration-1000 delay-300">
                 <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-700 overflow-hidden">
                   {/* Header Section with Avatar */}
                   <div className="relative p-4 md:p-8 text-center bg-gray-800/50 border-b border-gray-700">
@@ -749,7 +749,7 @@ const Dashboard = () => {
                   <div className="p-4 md:p-8">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 dashboard-grid">
                       {/* Personal Information */}
-                      <div className="space-y-4 dashboard-section">
+                      <div className="space-y-4 dashboard-section w-full">
                         <h4 className="text-lg font-semibold mb-4 flex items-center" style={{ color: 'var(--color-secondary)' }}>
                           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -757,13 +757,13 @@ const Dashboard = () => {
                           Información Personal
                         </h4>
                         <div className="space-y-3">
-                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card">
+                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card w-full">
                             <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>NOMBRE COMPLETO</p>
                             <div className="dashboard-card-content overflow-hidden max-w-full">
                               <p className="text-lg font-semibold break-words w-full" style={{ color: 'var(--color-secondary)', overflowWrap: 'anywhere' }} title={user.nombre}>{user.nombre}</p>
                             </div>
                           </div>
-                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card">
+                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card w-full">
                             <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>DOCUMENTO</p>
                             <div className="dashboard-card-content overflow-hidden max-w-full">
                               <p className="text-lg font-semibold break-words w-full" style={{ color: 'var(--color-secondary)', overflowWrap: 'anywhere' }} title={user.cedula}>{user.cedula}</p>
@@ -773,7 +773,7 @@ const Dashboard = () => {
                       </div>
 
                       {/* Contact Information */}
-                      <div className="space-y-4 dashboard-section">
+                      <div className="space-y-4 dashboard-section w-full">
                         <h4 className="text-lg font-semibold mb-4 flex items-center" style={{ color: 'var(--color-secondary)' }}>
                           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -781,13 +781,13 @@ const Dashboard = () => {
                           Información de Contacto
                         </h4>
                         <div className="space-y-3">
-                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card">
+                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card w-full">
                             <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>CORREO ELECTRÓNICO</p>
                             <div className="dashboard-card-content overflow-hidden max-w-full">
                               <p className="text-lg font-semibold break-words w-full" style={{ color: 'var(--color-secondary)', overflowWrap: 'anywhere' }} title={user.correo}>{user.correo}</p>
                             </div>
                           </div>
-                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card">
+                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card w-full">
                             <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>ESTADO</p>
                             <div className="dashboard-card-content">
                               <div className="flex items-center">
@@ -800,7 +800,7 @@ const Dashboard = () => {
                       </div>
 
                       {/* System Information */}
-                      <div className="space-y-4 dashboard-section">
+                      <div className="space-y-4 dashboard-section w-full">
                         <h4 className="text-lg font-semibold mb-4 flex items-center" style={{ color: 'var(--color-secondary)' }}>
                           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -808,7 +808,7 @@ const Dashboard = () => {
                           Información del Sistema
                         </h4>
                         <div className="space-y-3">
-                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card">
+                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card w-full">
                             <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>ROL DEL SISTEMA</p>
                             <div className="dashboard-card-content">
                               <div className="flex justify-center">
@@ -827,7 +827,7 @@ const Dashboard = () => {
                               </div>
                             </div>
                           </div>
-                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card">
+                          <div className="bg-white bg-opacity-5 rounded-xl p-4 border border-white border-opacity-10 hover:bg-opacity-10 transition-all duration-300 dashboard-card w-full">
                             <p className="text-xs font-medium mb-1" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>ÚLTIMO ACCESO</p>
                             <div className="dashboard-card-content overflow-hidden max-w-full">
                               <p className="text-sm font-medium break-words w-full" style={{ color: 'var(--color-secondary)', overflowWrap: 'anywhere' }} title={new Date().toLocaleDateString('es-ES', { 

@@ -870,4 +870,36 @@ button:active {
   .table-modern td {
     padding: 0.75rem 0.5rem;
   }
+}
+
+/* ========================================
+   ESTILOS PARA DASHBOARD CARDS UNIFORMES
+   ======================================== */
+
+/* Secciones del dashboard con altura uniforme */
+.dashboard-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Cards del dashboard con altura mínima */
+.dashboard-card {
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Grid del dashboard con alineación perfecta */
+.dashboard-grid {
+  align-items: stretch;
+}
+
+/* Contenido dentro de las cards con overflow controlado */
+.dashboard-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 } 
