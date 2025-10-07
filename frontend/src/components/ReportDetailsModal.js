@@ -673,6 +673,8 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       
       setIsDownloadingExcel(true);
       
+      console.log('Iniciando generación de Excel con evidencias:', report.evidencias);
+      
       // Importar ExcelJS dinámicamente
       const ExcelJSModule = await import('exceljs');
       const ExcelJS = ExcelJSModule.default || ExcelJSModule;
@@ -832,6 +834,188 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         }
       }
       
+      // SECCIÓN DE EVIDENCIAS CON IMÁGENES
+      if (report.evidencias && report.evidencias.length > 0) {
+        currentRow += 2;
+        worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
+        const evidenceHeader = worksheet.getCell(`A${currentRow}`);
+        evidenceHeader.value = `EVIDENCIAS (${report.evidencias.length})`;
+        evidenceHeader.style = sectionHeaderStyle;
+        currentRow++;
+        
+        console.log(`Procesando ${report.evidencias.length} evidencias para Excel...`);
+        
+        for (let index = 0; index < report.evidencias.length; index++) {
+          const evidencia = report.evidencias[index];
+          console.log('Procesando evidencia:', evidencia);
+          
+          // Verificar si es una imagen por tipo o extensión
+          const esImagen = (evidencia.tipo_archivo && evidencia.tipo_archivo.startsWith('image/')) ||
+                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(evidencia.url_archivo || evidencia.nombre_archivo || '');
+          
+          console.log('¿Es imagen?:', esImagen, 'Tipo:', evidencia.tipo_archivo);
+          
+          if (esImagen) {
+            try {
+              let imageDataUrl = null;
+              
+              // Estrategia 1: Usar el blob cache si está disponible
+              const cached = evidenceUrls[evidencia.id];
+              if (cached && cached.blob) {
+                console.log('Usando blob del cache para evidencia', evidencia.id);
+                
+                if (await isProbablyImageBlob(cached.blob)) {
+                  const reader = new FileReader();
+                  imageDataUrl = await new Promise((resolve, reject) => {
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(cached.blob);
+                  });
+                  console.log('Imagen cargada desde cache para Excel:', evidencia.id);
+                }
+              }
+              
+              // Estrategia 2: Intentar cargar desde el servidor
+              if (!imageDataUrl) {
+                console.log('Cargando imagen desde servidor para evidencia', evidencia.id);
+                try {
+                  const { blob } = await getEvidenceBlob(
+                    evidencia.id, 
+                    evidenceUrls, 
+                    evidenceService, 
+                    evidencia
+                  );
+                  
+                  if (blob && await isProbablyImageBlob(blob)) {
+                    const reader = new FileReader();
+                    imageDataUrl = await new Promise((resolve, reject) => {
+                      reader.onloadend = () => resolve(reader.result);
+                      reader.onerror = reject;
+                      reader.readAsDataURL(blob);
+                    });
+                    console.log('Imagen cargada desde servidor para Excel:', evidencia.id);
+                  }
+                } catch (loadError) {
+                  console.warn('Error al cargar imagen desde servidor:', loadError);
+                }
+              }
+              
+              // Estrategia 3: Intentar cargar directamente desde URL pública (con manejo de CORS)
+              if (!imageDataUrl && evidencia.url_archivo) {
+                console.log('Intentando cargar desde URL pública:', evidencia.url_archivo);
+                try {
+                  const publicUrl = buildUploadsUrl(evidencia.url_archivo);
+                  const response = await fetch(publicUrl, {
+                    mode: 'cors',
+                    credentials: 'include',
+                    headers: {
+                      'Accept': 'image/*'
+                    }
+                  });
+                  if (response.ok) {
+                    const blob = await response.blob();
+                    if (await isProbablyImageBlob(blob)) {
+                      const reader = new FileReader();
+                      imageDataUrl = await new Promise((resolve, reject) => {
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                      });
+                      console.log('Imagen cargada desde URL pública para Excel:', evidencia.id);
+                    }
+                  }
+                } catch (urlError) {
+                  console.warn('Error al cargar desde URL pública (CORS bloqueado):', urlError.message);
+                  // Intentar última estrategia: API autenticada
+                  try {
+                    const token = localStorage.getItem('token') || '';
+                    const apiUrl = buildApi(`evidencias/${evidencia.id}`);
+                    const apiResponse = await fetch(apiUrl, {
+                      method: 'GET',
+                      headers: {
+                        'Accept': 'image/*',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      credentials: 'include'
+                    });
+                    if (apiResponse.ok) {
+                      const apiBlob = await apiResponse.blob();
+                      if (await isProbablyImageBlob(apiBlob)) {
+                        const reader = new FileReader();
+                        imageDataUrl = await new Promise((resolve, reject) => {
+                          reader.onloadend = () => resolve(reader.result);
+                          reader.onerror = reject;
+                          reader.readAsDataURL(apiBlob);
+                        });
+                        console.log('Imagen cargada desde API autenticada para Excel:', evidencia.id);
+                      }
+                    }
+                  } catch (apiError) {
+                    console.warn('Error al cargar desde API autenticada:', apiError.message);
+                  }
+                }
+              }
+              
+              if (imageDataUrl) {
+                // Añadir imagen al Excel
+                const imageId = workbook.addImage({
+                  base64: dataUrlToBase64(imageDataUrl),
+                  extension: evidencia.url_archivo?.split('.').pop()?.toLowerCase() || 'jpeg',
+                });
+                
+                // Crear fila con información de la evidencia
+                worksheet.getCell(`A${currentRow}`).value = `Evidencia ${index + 1}`;
+                worksheet.getCell(`A${currentRow}`).style = headerStyle;
+                worksheet.getCell(`B${currentRow}`).value = evidencia.nombre_archivo || evidencia.url_archivo || 'Sin nombre';
+                worksheet.getCell(`B${currentRow}`).style = cellStyle;
+                worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
+                currentRow++;
+                
+                // Ajustar altura de la fila para la imagen (más grande para mejor visualización)
+                const imageRow = currentRow;
+                worksheet.getRow(imageRow).height = 200; // Altura en píxeles
+                
+                // Insertar la imagen
+                worksheet.addImage(imageId, {
+                  tl: { col: 0.5, row: imageRow - 0.8 }, // Top-left position
+                  br: { col: 3.5, row: imageRow + 0.2 }, // Bottom-right position
+                  editAs: 'oneCell'
+                });
+                
+                currentRow++;
+                console.log('✓ Imagen agregada al Excel:', evidencia.id);
+              } else {
+                // Si no se pudo cargar la imagen, solo mostrar información
+                worksheet.getCell(`A${currentRow}`).value = `Evidencia ${index + 1}`;
+                worksheet.getCell(`A${currentRow}`).style = headerStyle;
+                worksheet.getCell(`B${currentRow}`).value = `${evidencia.nombre_archivo || evidencia.url_archivo || 'Sin nombre'} (Imagen no disponible)`;
+                worksheet.getCell(`B${currentRow}`).style = cellStyle;
+                worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
+                currentRow++;
+                console.warn('✗ Imagen no disponible para Excel:', evidencia.id);
+              }
+            } catch (error) {
+              console.error(`Error al procesar imagen ${evidencia.id} para Excel:`, error);
+              // Agregar fila con error
+              worksheet.getCell(`A${currentRow}`).value = `Evidencia ${index + 1}`;
+              worksheet.getCell(`A${currentRow}`).style = headerStyle;
+              worksheet.getCell(`B${currentRow}`).value = `${evidencia.nombre_archivo || 'Sin nombre'} (Error al cargar)`;
+              worksheet.getCell(`B${currentRow}`).style = cellStyle;
+              worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
+              currentRow++;
+            }
+          } else {
+            // No es imagen, solo mostrar información del archivo
+            worksheet.getCell(`A${currentRow}`).value = `Evidencia ${index + 1}`;
+            worksheet.getCell(`A${currentRow}`).style = headerStyle;
+            worksheet.getCell(`B${currentRow}`).value = evidencia.nombre_archivo || evidencia.url_archivo || 'Sin nombre';
+            worksheet.getCell(`B${currentRow}`).style = cellStyle;
+            worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
+            currentRow++;
+          }
+        }
+      }
+      
       // Información adicional del reporte
       currentRow += 2;
       worksheet.mergeCells(`A${currentRow}:D${currentRow}`);
@@ -867,6 +1051,8 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       const safeName = String(report.asunto || report.asunto_conversacion || 'reporte').replace(/[^a-z0-9_.-]/gi, '_');
       const fileName = `reporte_${report.id || ''}_${safeName}.xlsx`;
       
+      console.log('Generando archivo Excel con imágenes...');
+      
       // Generar y descargar el archivo
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -884,8 +1070,13 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         URL.revokeObjectURL(url);
       }, 1000);
       
-             // Mostrar mensaje de éxito
-       alert('Reporte Excel con formato profesional generado exitosamente.');
+      const numImagenesIncluidas = report.evidencias?.filter(e => {
+        const esImagen = (e.tipo_archivo && e.tipo_archivo.startsWith('image/')) ||
+                        /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(e.url_archivo || e.nombre_archivo || '');
+        return esImagen;
+      }).length || 0;
+      
+      alert(`Reporte Excel generado exitosamente con ${numImagenesIncluidas} imagen(es) incluida(s).`);
       
     } catch (error) {
       console.error('Error generando Excel:', error);
