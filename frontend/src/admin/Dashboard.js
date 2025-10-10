@@ -38,6 +38,7 @@ const Dashboard = () => {
     incidentes: Number(m.incidentes),
     hallazgos: Number(m.hallazgos),
     conversaciones: Number(m.conversaciones),
+    pqr: Number(m.pqr || 0),
   })), [stats?.incidentesPorMes]);
 
   // Pie chart: Distribución por tipo
@@ -185,9 +186,9 @@ const Dashboard = () => {
 
     const tablaIncMes = `
       <table class="table">
-        <thead><tr><th>Periodo</th><th>Incidentes</th><th>Hallazgos</th><th>Conversaciones</th></tr></thead>
+        <thead><tr><th>Periodo</th><th>Incidentes</th><th>Hallazgos</th><th>Conversaciones</th><th>PQR</th></tr></thead>
         <tbody>
-          ${(incidentsByMonth || []).map(r => `<tr><td>${r.month}</td><td>${r.incidentes}</td><td>${r.hallazgos}</td><td>${r.conversaciones}</td></tr>`).join('')}
+          ${(incidentsByMonth || []).map(r => `<tr><td>${r.month}</td><td>${r.incidentes}</td><td>${r.hallazgos}</td><td>${r.conversaciones}</td><td>${r.pqr || 0}</td></tr>`).join('')}
         </tbody>
       </table>`;
 
@@ -244,6 +245,7 @@ const Dashboard = () => {
                 incidentes: 0,
                 hallazgos: 0,
                 conversaciones: 0,
+                pqr: 0,
                 usuarios_unicos: new Set()
               };
             }
@@ -253,6 +255,7 @@ const Dashboard = () => {
             if (r.Tipo === 'incidentes') proyectos[proyecto].incidentes++;
             else if (r.Tipo === 'hallazgos') proyectos[proyecto].hallazgos++;
             else if (r.Tipo === 'conversaciones') proyectos[proyecto].conversaciones++;
+            else if (r.Tipo === 'pqr') proyectos[proyecto].pqr++;
           });
 
           // Convertir a array y agregar cantidad de usuarios únicos
@@ -262,6 +265,7 @@ const Dashboard = () => {
             Incidentes: p.incidentes,
             Hallazgos: p.hallazgos,
             Conversaciones: p.conversaciones,
+            PQR: p.pqr,
             UsuariosUnicos: p.usuarios_unicos.size
           }));
         }
@@ -290,10 +294,10 @@ const Dashboard = () => {
     // Crear tabla de reportes por proyecto incluyendo proyectos con 0 reportes
     const tablaPorProyecto = `
       <table class="table">
-        <thead><tr><th>Proyecto</th><th>Total Reportes</th><th>Incidentes</th><th>Hallazgos</th><th>Conversaciones</th><th>Usuarios Únicos</th></tr></thead>
+        <thead><tr><th>Proyecto</th><th>Total Reportes</th><th>Incidentes</th><th>Hallazgos</th><th>Conversaciones</th><th>PQR</th><th>Usuarios Únicos</th></tr></thead>
         <tbody>
-          ${resumenPorProyecto.map(r => `<tr><td>${r.Proyecto}</td><td>${r.TotalReportes}</td><td>${r.Incidentes}</td><td>${r.Hallazgos}</td><td>${r.Conversaciones}</td><td>${r.UsuariosUnicos}</td></tr>`).join('')}
-          ${todosLosProyectos.filter(proyecto => !resumenPorProyecto.find(r => r.Proyecto === proyecto)).map(proyecto => `<tr><td>${proyecto}</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>`).join('')}
+          ${resumenPorProyecto.map(r => `<tr><td>${r.Proyecto}</td><td>${r.TotalReportes}</td><td>${r.Incidentes}</td><td>${r.Hallazgos}</td><td>${r.Conversaciones}</td><td>${r.PQR}</td><td>${r.UsuariosUnicos}</td></tr>`).join('')}
+          ${todosLosProyectos.filter(proyecto => !resumenPorProyecto.find(r => r.Proyecto === proyecto)).map(proyecto => `<tr><td>${proyecto}</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>`).join('')}
         </tbody>
       </table>`;
     
@@ -363,7 +367,8 @@ const Dashboard = () => {
       Periodo: r.month,
       Incidentes: r.incidentes,
       Hallazgos: r.hallazgos,
-      Conversaciones: r.conversaciones
+      Conversaciones: r.conversaciones,
+      PQR: r.pqr || 0
     }));
 
     const porTipo = (incidentsByType || []).map(r => ({
@@ -424,6 +429,7 @@ const Dashboard = () => {
               incidentes: 0,
               hallazgos: 0,
               conversaciones: 0,
+              pqr: 0,
               usuarios_unicos: new Set()
             };
           }
@@ -433,6 +439,7 @@ const Dashboard = () => {
           if (r.Tipo === 'incidentes') proyectos[proyecto].incidentes++;
           else if (r.Tipo === 'hallazgos') proyectos[proyecto].hallazgos++;
           else if (r.Tipo === 'conversaciones') proyectos[proyecto].conversaciones++;
+          else if (r.Tipo === 'pqr') proyectos[proyecto].pqr++;
         });
 
         // Convertir a array y agregar cantidad de usuarios únicos
@@ -442,6 +449,7 @@ const Dashboard = () => {
           Incidentes: p.incidentes,
           Hallazgos: p.hallazgos,
           Conversaciones: p.conversaciones,
+          PQR: p.pqr,
           UsuariosUnicos: p.usuarios_unicos.size
         }));
       }
@@ -475,6 +483,7 @@ const Dashboard = () => {
         Incidentes: 0,
         Hallazgos: 0,
         Conversaciones: 0,
+        PQR: 0,
         UsuariosUnicos: 0
       }));
 
@@ -666,6 +675,14 @@ const Dashboard = () => {
       data: (stats?.tendencias || []).map(m => ({
         x: m.mes_corto || m.mes,
         y: Number(m.conversaciones)
+      }))
+    },
+    {
+      id: 'PQR',
+      color: '#a855f7',
+      data: (stats?.tendencias || []).map(m => ({
+        x: m.mes_corto || m.mes,
+        y: Number(m.pqr || 0)
       }))
     }
   ], [stats?.tendencias]);
@@ -969,6 +986,10 @@ const Dashboard = () => {
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
                           <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Conversaciones</span>
                         </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#a855f7' }}></div>
+                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>PQR</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -977,14 +998,14 @@ const Dashboard = () => {
                   <div className="relative" style={{ height: '280px', minHeight: '280px' }}>
                     <ResponsiveBar
                       data={incidentsByMonth}
-                      keys={['incidentes', 'hallazgos', 'conversaciones']}
+                      keys={['incidentes', 'hallazgos', 'conversaciones', 'pqr']}
                       indexBy="month"
                       margin={{ top: 30, right: 80, bottom: 50, left: 50 }}
                       padding={0.3}
                       groupMode="grouped"
                       valueScale={{ type: 'linear' }}
                       indexScale={{ type: 'band', round: true }}
-                      colors={['#ef4444', '#eab308', '#3b82f6']}
+                      colors={['#ef4444', '#eab308', '#3b82f6', '#a855f7']}
                       borderRadius={4}
                       enableGridY={true}
                       theme={{
@@ -1254,6 +1275,10 @@ const Dashboard = () => {
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
                           <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Conversaciones</span>
                         </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#a855f7' }}></div>
+                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>PQR</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1267,7 +1292,7 @@ const Dashboard = () => {
                       yScale={{ type: 'linear', min: 0, max: 'auto', stacked: false, nice: true }}
                       curve="monotoneX"
                       lineWidth={3}
-                      colors={['#ef4444', '#eab308', '#3b82f6']}
+                      colors={['#ef4444', '#eab308', '#3b82f6', '#a855f7']}
                       pointSize={8}
                       pointBorderWidth={2}
                       pointBorderColor={{ from: 'serieColor' }}
