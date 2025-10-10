@@ -57,14 +57,14 @@ class ReportService {
                 if (!formattedData.telefono_contacto) throw new Error('El teléfono de contacto es requerido');
                 if (!formattedData.correo_contacto) throw new Error('El correo de contacto es requerido');
                 if (!formattedData.tipo_pqr) throw new Error('El tipo de PQR es requerido');
-                if (!formattedData.descripcion_pqr) throw new Error('La descripción es requerida');
+                if (!formattedData.descripcion_hallazgo) throw new Error('La descripción es requerida');
                 // Validar formato de correo
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (!emailRegex.test(formattedData.correo_contacto)) {
                     throw new Error('El formato del correo electrónico no es válido');
                 }
                 // Validar longitud mínima de descripción
-                if (formattedData.descripcion_pqr.trim().length < 20) {
+                if (formattedData.descripcion_hallazgo.trim().length < 20) {
                     throw new Error('La descripción debe tener al menos 20 caracteres');
                 }
                 break;

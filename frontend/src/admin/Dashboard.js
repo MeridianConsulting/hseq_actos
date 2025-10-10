@@ -11,7 +11,9 @@ import { ResponsivePie } from '@nivo/pie';
 import { ResponsiveLine } from '@nivo/line';
 import { ResponsiveRadar } from '@nivo/radar';
 import { useDashboardStats } from '../hooks/useDashboardStats';
-import { reportService, userService } from '../services/api';
+import reportService from '../services/reportService';
+import { userService } from '../services/api';
+import { buildApi, buildUploadsUrl } from '../config/api';
 import ReportsTable from '../components/ReportsTable';
 
 const Dashboard = () => {
@@ -144,162 +146,251 @@ const Dashboard = () => {
   }, [navigate]);
 
   const handleDownloadPDF = useCallback(async () => {
-    const title = 'Reporte Ejecutivo HSEQ';
+    const title = 'Reportes Detallados HSEQ';
     const generatedAt = new Date().toLocaleString('es-ES');
-    const totalTipos = incidentsByType.reduce((a, d) => a + (Number(d.value) || 0), 0);
+    
     const estilos = `
       <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { margin: 30px; color: #1a202c; background: #ffffff; }
-        h1 { margin: 0 0 16px; font-size: 28px; font-weight: 700; color: #2d3748; border-bottom: 3px solid #3182ce; padding-bottom: 8px; }
-        h2 { margin: 24px 0 12px; font-size: 18px; font-weight: 600; color: #4a5568; }
-        p { margin: 0 0 12px; font-size: 14px; line-height: 1.5; }
-        .muted { color: #718096; font-size: 13px; }
-        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 20px 0; }
-        .kpi { padding: 16px; border: 2px solid #e2e8f0; border-radius: 12px; background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .kpi .val { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
-        .kpi .muted { margin: 0; font-size: 12px; font-weight: 500; }
-        .table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 16px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .table th, .table td { border: 1px solid #e2e8f0; padding: 12px 16px; text-align: left; }
-        .table th { background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%); color: white; font-weight: 600; }
-        .table tr:nth-child(even) { background-color: #f7fafc; }
-        .table tr:hover { background-color: #edf2f7; }
-        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 20px 0; }
-        .box { border: 2px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%); color: white; font-weight: 600; font-size: 11px; margin: 0 4px; }
-        .header-info { background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); padding: 16px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3182ce; }
+        body { margin: 20px; color: #1a202c; background: #ffffff; }
+        h1 { margin: 0 0 20px; font-size: 32px; font-weight: 700; color: #2d3748; border-bottom: 4px solid #3182ce; padding-bottom: 12px; text-align: center; }
+        .header-info { background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 6px solid #3182ce; text-align: center; }
+        
+        .report-card { border: 3px solid #e2e8f0; border-radius: 16px; padding: 24px; margin: 30px 0; background: #ffffff; box-shadow: 0 6px 15px rgba(0,0,0,0.1); page-break-inside: avoid; }
+        .report-header { background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%); color: white; padding: 16px; border-radius: 12px; margin: -24px -24px 24px -24px; }
+        .report-title { font-size: 22px; font-weight: 700; margin: 0; }
+        .report-meta { font-size: 12px; margin-top: 8px; opacity: 0.9; }
+        
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+        .info-item { padding: 12px; background: #f7fafc; border-left: 4px solid #3182ce; border-radius: 6px; }
+        .info-label { font-size: 11px; font-weight: 600; color: #718096; text-transform: uppercase; margin-bottom: 4px; }
+        .info-value { font-size: 14px; font-weight: 600; color: #2d3748; }
+        
+        .description-box { background: #f7fafc; padding: 16px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #3182ce; }
+        .description-title { font-size: 13px; font-weight: 700; color: #4a5568; margin-bottom: 8px; }
+        .description-text { font-size: 13px; line-height: 1.6; color: #2d3748; white-space: pre-wrap; }
+        
+        .evidence-section { margin-top: 20px; }
+        .evidence-title { font-size: 16px; font-weight: 700; color: #2d3748; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+        .evidence-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+        .evidence-item { border: 2px solid #e2e8f0; border-radius: 8px; padding: 8px; background: #f7fafc; }
+        .evidence-image { width: 100%; height: auto; border-radius: 6px; display: block; max-height: 200px; object-fit: cover; }
+        
+        .badge { display: inline-block; padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: 11px; margin: 4px; }
+        .badge-success { background: #10b981; color: white; }
+        .badge-warning { background: #f59e0b; color: white; }
+        .badge-danger { background: #ef4444; color: white; }
+        .badge-info { background: #3b82f6; color: white; }
+        .badge-purple { background: #a855f7; color: white; }
+        
+        .status-badge { padding: 8px 16px; border-radius: 24px; font-weight: 700; font-size: 12px; display: inline-block; }
+        .status-pendiente { background: #fef3c7; color: #92400e; border: 2px solid #fbbf24; }
+        .status-revision { background: #dbeafe; color: #1e3a8a; border: 2px solid #3b82f6; }
+        .status-aprobado { background: #d1fae5; color: #065f46; border: 2px solid #10b981; }
+        .status-rechazado { background: #fee2e2; color: #991b1b; border: 2px solid #ef4444; }
+        
         @media print { 
-          .no-print { display: none; } 
-          body { margin: 20px; }
-          .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-          .grid2 { grid-template-columns: 1fr; }
+          .no-print { display: none !important; } 
+          body { margin: 15px; }
+          .report-card { page-break-inside: avoid; margin: 20px 0; }
+          .evidence-grid { grid-template-columns: repeat(2, 1fr); }
         }
       </style>`;
 
-    const kpiRows = `
-      <div class="kpi-grid">
-        <div class="kpi"><div class="val" style="color:#ef4444">${kpis[0]?.value ?? '-'}</div><div class="muted">${kpis[0]?.title}</div></div>
-        <div class="kpi"><div class="val" style="color:#22c55e">${kpis[1]?.value ?? '-'}</div><div class="muted">${kpis[1]?.title}</div></div>
-        <div class="kpi"><div class="val" style="color:#3b82f6">${kpis[2]?.value ?? '-'}</div><div class="muted">${kpis[2]?.title}</div></div>
-        <div class="kpi"><div class="val" style="color:#f59e0b">${kpis[3]?.value ?? '-'}</div><div class="muted">${kpis[3]?.title}</div></div>
-      </div>`;
-
-    const tablaIncMes = `
-      <table class="table">
-        <thead><tr><th>Periodo</th><th>Incidentes</th><th>Hallazgos</th><th>Conversaciones</th><th>PQR</th></tr></thead>
-        <tbody>
-          ${(incidentsByMonth || []).map(r => `<tr><td>${r.month}</td><td>${r.incidentes}</td><td>${r.hallazgos}</td><td>${r.conversaciones}</td><td>${r.pqr || 0}</td></tr>`).join('')}
-        </tbody>
-      </table>`;
-
-    const tablaTipo = `
-      <table class="table">
-        <thead><tr><th>Tipo</th><th>Cantidad</th></tr></thead>
-        <tbody>
-          ${(incidentsByType || []).map(r => `<tr><td>${r.label || r.id}</td><td>${r.value}</td></tr>`).join('')}
-          <tr><th>Total</th><th>${totalTipos}</th></tr>
-        </tbody>
-      </table>`;
-
-    const abiertosCrit = `
-      <table class="table">
-        <thead><tr><th>Criterio</th><th>Valor</th></tr></thead>
-        <tbody>
-          <tr><td>Total reportes</td><td>${Number(totalReportes)}</td></tr>
-          <tr><td>Total cerrados</td><td>${Number(totalCerrados)}</td></tr>
-          <tr><td>Abiertos Baja</td><td>${Number(abiertosPorCriticidad.Baja)}</td></tr>
-          <tr><td>Abiertos Media</td><td>${Number(abiertosPorCriticidad.Media)}</td></tr>
-          <tr><td>Abiertos Alta</td><td>${Number(abiertosPorCriticidad.Alta)}</td></tr>
-          <tr><td>Abiertos Muy Alta</td><td>${Number(abiertosPorCriticidad['Muy Alta'])}</td></tr>
-        </tbody>
-      </table>`;
-
-    // Obtener datos de reportes por proyecto
-    let resumenPorProyecto = [];
+    // Obtener todos los reportes con detalles completos
+    let allReports = [];
     try {
       const resp = await reportService.getAllReports({ per_page: 1000, page: 1 });
       if (resp?.success && Array.isArray(resp.reports)) {
-        const detalles = resp.reports.map((r) => ({
-          ID: r.id,
-          Tipo: r.tipo_reporte,
-          Estado: r.estado,
-          UsuarioID: r.id_usuario,
-          NombreUsuario: r.nombre_usuario || '',
-          ProyectoUsuario: r.proyecto_usuario || '',
-          Asunto: r.asunto || r.asunto_conversacion || '',
-          FechaEvento: r.fecha_evento || '',
-          GradoCriticidad: r.grado_criticidad || '',
-          AreaProceso: r.ubicacion_incidente || r.lugar_hallazgo || r.sitio_evento_conversacion || '',
-          Creado: r.creado_en || ''
-        }));
-
-        if (detalles.length > 0) {
-          // Agrupar por proyecto y contar reportes
-          const proyectos = {};
-          detalles.forEach(r => {
-            const proyecto = r.ProyectoUsuario || 'Sin Proyecto';
-            if (!proyectos[proyecto]) {
-              proyectos[proyecto] = {
-                proyecto: proyecto,
-                total_reportes: 0,
-                incidentes: 0,
-                hallazgos: 0,
-                conversaciones: 0,
-                pqr: 0,
-                usuarios_unicos: new Set()
-              };
-            }
-            proyectos[proyecto].total_reportes++;
-            proyectos[proyecto].usuarios_unicos.add(r.UsuarioID);
-            
-            if (r.Tipo === 'incidentes') proyectos[proyecto].incidentes++;
-            else if (r.Tipo === 'hallazgos') proyectos[proyecto].hallazgos++;
-            else if (r.Tipo === 'conversaciones') proyectos[proyecto].conversaciones++;
-            else if (r.Tipo === 'pqr') proyectos[proyecto].pqr++;
-          });
-
-          // Convertir a array y agregar cantidad de usuarios únicos
-          resumenPorProyecto = Object.values(proyectos).map(p => ({
-            Proyecto: p.proyecto,
-            TotalReportes: p.total_reportes,
-            Incidentes: p.incidentes,
-            Hallazgos: p.hallazgos,
-            Conversaciones: p.conversaciones,
-            PQR: p.pqr,
-            UsuariosUnicos: p.usuarios_unicos.size
-          }));
-        }
+        allReports = resp.reports;
       }
     } catch (e) {
-      // Si hay error, continuar sin la tabla de proyectos
+      console.error('Error obteniendo reportes:', e);
     }
 
-    // Obtener todos los proyectos únicos del sistema para mostrar los que tienen 0 reportes
-    let todosLosProyectos = [];
-    try {
-      const resp = await userService.fetchUsers();
-      if (resp?.success && Array.isArray(resp.data)) {
-        const proyectosUnicos = new Set();
-        resp.data.forEach(user => {
-          if (user.Proyecto && user.Proyecto.trim() !== '') {
-            proyectosUnicos.add(user.Proyecto.trim());
-          }
-        });
-        todosLosProyectos = Array.from(proyectosUnicos).sort();
+    // Función auxiliar para obtener badge de tipo
+    const getTipoBadge = (tipo) => {
+      const tipos = {
+        'incidentes': '<span class="badge badge-danger">🚨 Incidente</span>',
+        'hallazgos': '<span class="badge badge-warning">🔍 Hallazgo</span>',
+        'conversaciones': '<span class="badge badge-info">💬 Conversación</span>',
+        'pqr': '<span class="badge badge-purple">📋 PQR</span>'
+      };
+      return tipos[tipo] || '<span class="badge badge-info">' + tipo + '</span>';
+    };
+
+    // Función auxiliar para obtener badge de estado
+    const getEstadoBadge = (estado) => {
+      const estados = {
+        'pendiente': '<span class="status-badge status-pendiente">⏳ Pendiente</span>',
+        'en_revision': '<span class="status-badge status-revision">👁️ En Revisión</span>',
+        'aprobado': '<span class="status-badge status-aprobado">✅ Aprobado</span>',
+        'rechazado': '<span class="status-badge status-rechazado">❌ Rechazado</span>'
+      };
+      return estados[estado] || '<span class="status-badge status-pendiente">' + estado + '</span>';
+    };
+
+    // Función para generar HTML de un reporte
+    const generateReportHTML = (report) => {
+      const tipoReporte = report.tipo_reporte;
+      const asunto = report.asunto || report.asunto_conversacion || 'Sin asunto';
+      
+      let infoFields = '';
+      
+      // Campos comunes
+      infoFields += `
+        <div class="info-item">
+          <div class="info-label">👤 Usuario</div>
+          <div class="info-value">${report.nombre_usuario || 'N/A'}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">🏢 Proyecto</div>
+          <div class="info-value">${report.proyecto_usuario || 'N/A'}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">📅 Fecha del Evento</div>
+          <div class="info-value">${report.fecha_evento || 'N/A'}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">📝 Creado el</div>
+          <div class="info-value">${new Date(report.creado_en).toLocaleDateString('es-ES')}</div>
+        </div>
+      `;
+
+      // Campos específicos por tipo
+      if (tipoReporte === 'hallazgos') {
+        infoFields += `
+          <div class="info-item">
+            <div class="info-label">📍 Lugar del Hallazgo</div>
+            <div class="info-value">${report.lugar_hallazgo || 'N/A'} ${report.lugar_hallazgo_otro ? '- ' + report.lugar_hallazgo_otro : ''}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">🏷️ Tipo de Hallazgo</div>
+            <div class="info-value">${report.tipo_hallazgo || 'N/A'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">🚦 Estado Condición</div>
+            <div class="info-value">${report.estado_condicion || 'N/A'}</div>
+          </div>
+        `;
+      } else if (tipoReporte === 'incidentes') {
+        infoFields += `
+          <div class="info-item">
+            <div class="info-label">⚠️ Grado de Criticidad</div>
+            <div class="info-value">${report.grado_criticidad || 'N/A'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">📍 Ubicación del Incidente</div>
+            <div class="info-value">${report.ubicacion_incidente || 'N/A'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">🕐 Hora del Evento</div>
+            <div class="info-value">${report.hora_evento || 'N/A'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">🎯 Tipo de Afectación</div>
+            <div class="info-value">${report.tipo_afectacion || 'N/A'}</div>
+          </div>
+        `;
+      } else if (tipoReporte === 'conversaciones') {
+        infoFields += `
+          <div class="info-item">
+            <div class="info-label">💬 Tipo de Conversación</div>
+            <div class="info-value">${report.tipo_conversacion || 'N/A'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">📍 Sitio del Evento</div>
+            <div class="info-value">${report.sitio_evento_conversacion || 'N/A'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">🏢 Lugar</div>
+            <div class="info-value">${report.lugar_hallazgo_conversacion || 'N/A'} ${report.lugar_hallazgo_conversacion_otro ? '- ' + report.lugar_hallazgo_conversacion_otro : ''}</div>
+          </div>
+        `;
+      } else if (tipoReporte === 'pqr') {
+        infoFields += `
+          <div class="info-item">
+            <div class="info-label">📋 Tipo de PQR</div>
+            <div class="info-value">${report.tipo_pqr || 'N/A'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">📞 Teléfono</div>
+            <div class="info-value">${report.telefono_contacto || 'N/A'}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">📧 Correo</div>
+            <div class="info-value">${report.correo_contacto || 'N/A'}</div>
+          </div>
+        `;
       }
-    } catch (e) {
-      // Si hay error, continuar sin obtener todos los proyectos
-    }
 
-    // Crear tabla de reportes por proyecto incluyendo proyectos con 0 reportes
-    const tablaPorProyecto = `
-      <table class="table">
-        <thead><tr><th>Proyecto</th><th>Total Reportes</th><th>Incidentes</th><th>Hallazgos</th><th>Conversaciones</th><th>PQR</th><th>Usuarios Únicos</th></tr></thead>
-        <tbody>
-          ${resumenPorProyecto.map(r => `<tr><td>${r.Proyecto}</td><td>${r.TotalReportes}</td><td>${r.Incidentes}</td><td>${r.Hallazgos}</td><td>${r.Conversaciones}</td><td>${r.PQR}</td><td>${r.UsuariosUnicos}</td></tr>`).join('')}
-          ${todosLosProyectos.filter(proyecto => !resumenPorProyecto.find(r => r.Proyecto === proyecto)).map(proyecto => `<tr><td>${proyecto}</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>`).join('')}
-        </tbody>
-      </table>`;
+      // Descripción
+      const descripcion = report.descripcion_hallazgo || report.descripcion_incidente || report.descripcion_conversacion || 'Sin descripción';
+      const recomendaciones = report.recomendaciones || '';
+      const comentarios = report.comentarios_revision || '';
+
+      // Evidencias
+      let evidenciasHTML = '';
+      if (report.evidencias && report.evidencias.length > 0) {
+        evidenciasHTML = `
+          <div class="evidence-section">
+            <div class="evidence-title">📸 Evidencias Fotográficas</div>
+            <div class="evidence-grid">
+              ${report.evidencias.map(ev => `
+                <div class="evidence-item">
+                  <img src="${ev.cdn_url || ev.url_archivo}" alt="Evidencia" class="evidence-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+                  <p style="display:none; text-align:center; padding:20px; color:#718096;">Imagen no disponible</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="report-card">
+          <div class="report-header">
+            <div class="report-title">${asunto}</div>
+            <div class="report-meta">
+              ${getTipoBadge(tipoReporte)} 
+              ${getEstadoBadge(report.estado)}
+              <span style="margin-left: 10px;">ID: #${report.id}</span>
+            </div>
+          </div>
+          
+          <div class="info-grid">
+            ${infoFields}
+          </div>
+
+          <div class="description-box">
+            <div class="description-title">📝 Descripción</div>
+            <div class="description-text">${descripcion}</div>
+          </div>
+
+          ${recomendaciones ? `
+            <div class="description-box" style="border-left-color: #10b981;">
+              <div class="description-title">💡 Recomendaciones</div>
+              <div class="description-text">${recomendaciones}</div>
+            </div>
+          ` : ''}
+
+          ${comentarios ? `
+            <div class="description-box" style="border-left-color: #3b82f6;">
+              <div class="description-title">💬 Comentarios de Revisión</div>
+              <div class="description-text">${comentarios}</div>
+              ${report.nombre_revisor ? `<p style="margin-top: 8px; font-size: 12px; color: #718096;"><strong>Revisado por:</strong> ${report.nombre_revisor} - ${new Date(report.fecha_revision).toLocaleDateString('es-ES')}</p>` : ''}
+            </div>
+          ` : ''}
+
+          ${evidenciasHTML}
+        </div>
+      `;
+    };
+
+    // Generar HTML para todos los reportes
+    const reportesHTML = allReports.length > 0 
+      ? allReports.map(report => generateReportHTML(report)).join('')
+      : '<p style="text-align: center; padding: 40px; color: #718096; font-size: 16px;">No hay reportes disponibles</p>';
     
 
 
@@ -313,31 +404,12 @@ const Dashboard = () => {
         <h1>${title}</h1>
         
         <div class="header-info">
-          <p class="muted"><strong>📅 Generado:</strong> ${generatedAt}</p>
-          <p class="muted"><strong>📊 Periodo:</strong> ${selectedPeriod === 'month' ? 'Mensual' : selectedPeriod === 'quarter' ? 'Trimestral' : 'Anual'}</p>
-          <p class="muted"><strong>🏢 Área/Proceso destacado:</strong> <span class="badge">${areaProcesoTop}</span></p>
-          <p class="muted"><strong>🔍 Hallazgo más reportado:</strong> <span class="badge">${hallazgoMasReportado}</span></p>
+          <p style="margin: 8px 0; font-size: 14px; color: #4a5568;"><strong>📅 Generado:</strong> ${generatedAt}</p>
+          <p style="margin: 8px 0; font-size: 14px; color: #4a5568;"><strong>📊 Total de Reportes:</strong> ${allReports.length}</p>
+          <p style="margin: 8px 0; font-size: 13px; color: #718096;">Sistema de Gestión de Seguridad, Salud Ocupacional y Medio Ambiente - Meridian Colombia</p>
         </div>
 
-        <h2>📈 Indicadores Clave de Rendimiento</h2>
-        ${kpiRows}
-
-        <div class="grid2">
-          <div class="box">
-            <h2>📊 Cantidad de reportes por periodo</h2>
-            ${tablaIncMes}
-          </div>
-          <div class="box">
-            <h2>📋 Distribución por tipo</h2>
-            ${tablaTipo}
-          </div>
-        </div>
-
-        <h2>📋 Resumen de Totales y Abiertos por Criticidad</h2>
-        <div class="box">${abiertosCrit}</div>
-
-        <h2>🏗️ Reportes por Proyecto</h2>
-        <div class="box">${tablaPorProyecto}</div>
+        ${reportesHTML}
         
         <div style="margin-top: 40px; padding: 20px; background: #f7fafc; border-radius: 8px; text-align: center; border-left: 4px solid #3182ce;">
           <p style="margin: 0; color: #4a5568; font-size: 12px;">
@@ -355,300 +427,499 @@ const Dashboard = () => {
   }, [stats, selectedPeriod, reportService, userService]);
 
   const handleDownloadExcel = useCallback(async () => {
-    // Prepare data sets
-    const kpiRows = [
-      { KPI: kpis[0]?.title || 'Total Incidentes', Valor: kpis[0]?.value ?? '-' },
-      { KPI: kpis[1]?.title || 'Reportes Procesados', Valor: kpis[1]?.value ?? '-' },
-      { KPI: kpis[2]?.title || 'Capacitaciones', Valor: kpis[2]?.value ?? '-' },
-      { KPI: kpis[3]?.title || 'Días sin Accidentes', Valor: kpis[3]?.value ?? '-' }
-    ];
 
-    const porPeriodo = (incidentsByMonth || []).map(r => ({
-      Periodo: r.month,
-      Incidentes: r.incidentes,
-      Hallazgos: r.hallazgos,
-      Conversaciones: r.conversaciones,
-      PQR: r.pqr || 0
-    }));
+     // Obtener todos los reportes con información completa
+     let reportesDetallados = [];
+     try {
+       console.log('Obteniendo reportes...');
+       const resp = await reportService.getAllReports({ per_page: 1000, page: 1 });
+       console.log('Respuesta del servidor:', resp);
+       
+       // Manejar diferentes estructuras de respuesta
+       let reports = [];
+       if (resp?.success && Array.isArray(resp.reports)) {
+         reports = resp.reports;
+       } else if (Array.isArray(resp)) {
+         reports = resp;
+       } else if (resp?.data && Array.isArray(resp.data)) {
+         reports = resp.data;
+       } else if (resp?.reports && Array.isArray(resp.reports)) {
+         reports = resp.reports;
+       }
+       
+       console.log('Reportes procesados:', reports.length);
+       
+       if (reports.length > 0) {
+         reportesDetallados = reports.map((r) => {
+           const baseInfo = {
+             ID: r.id,
+             TipoReporte: r.tipo_reporte,
+             Estado: r.estado,
+             Usuario: r.nombre_usuario || '',
+             Proyecto: r.proyecto_usuario || '',
+             Asunto: r.asunto || r.asunto_conversacion || '',
+             FechaEvento: r.fecha_evento || '',
+             FechaCreacion: r.creado_en ? new Date(r.creado_en).toLocaleDateString('es-ES') : '',
+           };
 
-    const porTipo = (incidentsByType || []).map(r => ({
-      Tipo: r.label || r.id,
-      Cantidad: r.value
-    }));
+           // Campos específicos según tipo de reporte
+           if (r.tipo_reporte === 'hallazgos') {
+             return {
+               ...baseInfo,
+               LugarHallazgo: r.lugar_hallazgo || '',
+               LugarHallazgoOtro: r.lugar_hallazgo_otro || '',
+               TipoHallazgo: r.tipo_hallazgo || '',
+               EstadoCondicion: r.estado_condicion || '',
+               Descripcion: r.descripcion_hallazgo || '',
+               Recomendaciones: r.recomendaciones || '',
+               ComentariosRevision: r.comentarios_revision || '',
+               Revisor: r.nombre_revisor || '',
+               FechaRevision: r.fecha_revision ? new Date(r.fecha_revision).toLocaleDateString('es-ES') : '',
+               Evidencias: r.evidencias && r.evidencias.length > 0 ? r.evidencias.map(ev => ev.cdn_url || ev.url_archivo).join('; ') : 'Sin evidencias',
+               // Mantener referencias a evidencias para procesamiento de imágenes
+               _evidencias: r.evidencias || []
+             };
+           } else if (r.tipo_reporte === 'incidentes') {
+             return {
+               ...baseInfo,
+               GradoCriticidad: r.grado_criticidad || '',
+               UbicacionIncidente: r.ubicacion_incidente || '',
+               HoraEvento: r.hora_evento || '',
+               TipoAfectacion: r.tipo_afectacion || '',
+               Descripcion: r.descripcion_incidente || '',
+               Recomendaciones: r.recomendaciones || '',
+               ComentariosRevision: r.comentarios_revision || '',
+               Revisor: r.nombre_revisor || '',
+               FechaRevision: r.fecha_revision ? new Date(r.fecha_revision).toLocaleDateString('es-ES') : '',
+               Evidencias: r.evidencias && r.evidencias.length > 0 ? r.evidencias.map(ev => ev.cdn_url || ev.url_archivo).join('; ') : 'Sin evidencias',
+               // Mantener referencias a evidencias para procesamiento de imágenes
+               _evidencias: r.evidencias || []
+             };
+           } else if (r.tipo_reporte === 'conversaciones') {
+             return {
+               ...baseInfo,
+               TipoConversacion: r.tipo_conversacion || '',
+               SitioEvento: r.sitio_evento_conversacion || '',
+               LugarConversacion: r.lugar_hallazgo_conversacion || '',
+               LugarConversacionOtro: r.lugar_hallazgo_conversacion_otro || '',
+               Descripcion: r.descripcion_conversacion || '',
+               ComentariosRevision: r.comentarios_revision || '',
+               Revisor: r.nombre_revisor || '',
+               FechaRevision: r.fecha_revision ? new Date(r.fecha_revision).toLocaleDateString('es-ES') : '',
+               Evidencias: r.evidencias && r.evidencias.length > 0 ? r.evidencias.map(ev => ev.cdn_url || ev.url_archivo).join('; ') : 'Sin evidencias',
+               // Mantener referencias a evidencias para procesamiento de imágenes
+               _evidencias: r.evidencias || []
+             };
+           } else if (r.tipo_reporte === 'pqr') {
+             return {
+               ...baseInfo,
+               TipoPQR: r.tipo_pqr || '',
+               TelefonoContacto: r.telefono_contacto || '',
+               CorreoContacto: r.correo_contacto || '',
+               Descripcion: r.descripcion_hallazgo || '',
+               ComentariosRevision: r.comentarios_revision || '',
+               Revisor: r.nombre_revisor || '',
+               FechaRevision: r.fecha_revision ? new Date(r.fecha_revision).toLocaleDateString('es-ES') : '',
+               Evidencias: r.evidencias && r.evidencias.length > 0 ? r.evidencias.map(ev => ev.cdn_url || ev.url_archivo).join('; ') : 'Sin evidencias',
+               // Mantener referencias a evidencias para procesamiento de imágenes
+               _evidencias: r.evidencias || []
+             };
+           } else {
+             return {
+               ...baseInfo,
+               Descripcion: r.descripcion_hallazgo || r.descripcion_incidente || r.descripcion_conversacion || '',
+               ComentariosRevision: r.comentarios_revision || '',
+               Revisor: r.nombre_revisor || '',
+               FechaRevision: r.fecha_revision ? new Date(r.fecha_revision).toLocaleDateString('es-ES') : '',
+               Evidencias: r.evidencias && r.evidencias.length > 0 ? r.evidencias.map(ev => ev.cdn_url || ev.url_archivo).join('; ') : 'Sin evidencias',
+               // Mantener referencias a evidencias para procesamiento de imágenes
+               _evidencias: r.evidencias || []
+             };
+           }
+         });
+       } else {
+         console.log('No se encontraron reportes');
+         alert('No se encontraron reportes para generar el Excel');
+         return;
+       }
+     } catch (e) {
+       console.error('Error obteniendo reportes:', e);
+       alert('Error al obtener los reportes: ' + e.message);
+       return;
+     }
 
-    const resumen = [
-      { Metrica: 'Total reportes', Valor: Number(totalReportes) },
-      { Metrica: 'Total cerrados', Valor: Number(totalCerrados) },
-      { Metrica: 'Abiertos Baja', Valor: Number(abiertosPorCriticidad.Baja) },
-      { Metrica: 'Abiertos Media', Valor: Number(abiertosPorCriticidad.Media) },
-      { Metrica: 'Abiertos Alta', Valor: Number(abiertosPorCriticidad.Alta) },
-      { Metrica: 'Abiertos Muy Alta', Valor: Number(abiertosPorCriticidad['Muy Alta']) },
-      { Metrica: 'Área/Proceso destacado', Valor: areaProcesoTop },
-      { Metrica: 'Hallazgo más reportado', Valor: hallazgoMasReportado },
-      { Metrica: 'Periodo', Valor: selectedPeriod === 'month' ? 'Mensual' : selectedPeriod === 'quarter' ? 'Trimestral' : 'Anual' }
-    ];
+     const fileName = `reportes_detallados_hseq_${new Date().toISOString().substring(0,10)}.xlsx`;
 
-    // Try to fetch detailed reports for an extra sheet
-    let detalles = [];
-    try {
-      const resp = await reportService.getAllReports({ per_page: 1000, page: 1 });
-      
-      if (resp?.success && Array.isArray(resp.reports)) {
-        detalles = resp.reports.map((r) => {
-          return {
-            ID: r.id,
-            Tipo: r.tipo_reporte,
-            Estado: r.estado,
-            UsuarioID: r.id_usuario,
-            NombreUsuario: r.nombre_usuario || '',
-            ProyectoUsuario: r.proyecto_usuario || '',
-            Asunto: r.asunto || r.asunto_conversacion || '',
-            FechaEvento: r.fecha_evento || '',
-            GradoCriticidad: r.grado_criticidad || '',
-            AreaProceso: r.ubicacion_incidente || r.lugar_hallazgo || r.sitio_evento_conversacion || '',
-            Creado: r.creado_en || ''
-          };
-        });
-      }
-    } catch (e) {
-      // Ignore; Excel will be generated without the details sheet
-    }
+     // Funciones auxiliares para procesamiento de imágenes (copiadas de ReportDetailsModal)
+     const isProbablyImageBlob = async (blob) => {
+       try {
+         const buf = await blob.slice(0, 12).arrayBuffer();
+         const b = new Uint8Array(buf);
+         // JPEG
+         if (b[0]===0xFF && b[1]===0xD8 && b[2]===0xFF) return true;
+         // PNG
+         if (b[0]===0x89 && b[1]===0x50 && b[2]===0x4E && b[3]===0x47) return true;
+         // GIF
+         if (b[0]===0x47 && b[1]===0x49 && b[2]===0x46) return true;
+         // WEBP (RIFF....WEBP)
+         if (b[0]===0x52 && b[1]===0x49 && b[2]===0x46 && b[3]===0x46 && b[8]===0x57 && b[9]===0x45 && b[10]===0x42 && b[11]===0x50) return true;
+       } catch {}
+       return false;
+     };
 
-    // Agregar hoja de resumen por proyecto
-    let resumenPorProyecto = [];
-    try {
-      if (detalles.length > 0) {
-        // Agrupar por proyecto y contar reportes
-        const proyectos = {};
-        detalles.forEach(r => {
-          const proyecto = r.ProyectoUsuario || 'Sin Proyecto';
-          if (!proyectos[proyecto]) {
-            proyectos[proyecto] = {
-              proyecto: proyecto,
-              total_reportes: 0,
-              incidentes: 0,
-              hallazgos: 0,
-              conversaciones: 0,
-              pqr: 0,
-              usuarios_unicos: new Set()
-            };
-          }
-          proyectos[proyecto].total_reportes++;
-          proyectos[proyecto].usuarios_unicos.add(r.UsuarioID);
-          
-          if (r.Tipo === 'incidentes') proyectos[proyecto].incidentes++;
-          else if (r.Tipo === 'hallazgos') proyectos[proyecto].hallazgos++;
-          else if (r.Tipo === 'conversaciones') proyectos[proyecto].conversaciones++;
-          else if (r.Tipo === 'pqr') proyectos[proyecto].pqr++;
-        });
+     const extToMime = (name='') => {
+       const ext = String(name).toLowerCase().split('.').pop();
+       const map = { jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', gif:'image/gif', webp:'image/webp', bmp:'image/bmp' };
+       return map[ext] || '';
+     };
 
-        // Convertir a array y agregar cantidad de usuarios únicos
-        resumenPorProyecto = Object.values(proyectos).map(p => ({
-          Proyecto: p.proyecto,
-          TotalReportes: p.total_reportes,
-          Incidentes: p.incidentes,
-          Hallazgos: p.hallazgos,
-          Conversaciones: p.conversaciones,
-          PQR: p.pqr,
-          UsuariosUnicos: p.usuarios_unicos.size
-        }));
-      }
-    } catch (e) {
-      // Ignore; Excel will be generated without the project summary sheet
-    }
+     const coerceImageBlobType = (blob, evObj) => {
+       const mime = (blob?.type || '').toLowerCase();
+       if (mime.startsWith('image/')) return blob;
+       const forced = extToMime(evObj?.url_archivo || '');
+       return forced ? new Blob([blob], { type: forced }) : blob;
+     };
 
-    // Obtener todos los proyectos únicos del sistema para mostrar los que tienen 0 reportes
-    let todosLosProyectos = [];
-    try {
-      const resp = await userService.fetchUsers();
-      if (resp?.success && Array.isArray(resp.data)) {
-        const proyectosUnicos = new Set();
-        resp.data.forEach(user => {
-          if (user.Proyecto && user.Proyecto.trim() !== '') {
-            proyectosUnicos.add(user.Proyecto.trim());
-          }
-        });
-        todosLosProyectos = Array.from(proyectosUnicos).sort();
-      }
-    } catch (e) {
-      // Si hay error, continuar sin obtener todos los proyectos
-    }
+     const fetchApiImageBlob = async (id) => {
+       const token = localStorage.getItem('token') || '';
 
-    // Agregar proyectos con 0 reportes al resumen
-    const proyectosConCero = todosLosProyectos
-      .filter(proyecto => !resumenPorProyecto.find(r => r.Proyecto === proyecto))
-      .map(proyecto => ({
-        Proyecto: proyecto,
-        TotalReportes: 0,
-        Incidentes: 0,
-        Hallazgos: 0,
-        Conversaciones: 0,
-        PQR: 0,
-        UsuariosUnicos: 0
-      }));
+       // 1) Authorization header
+       let resp = await fetch(buildApi(`evidencias/${id}`), {
+         method: 'GET',
+         headers: { 'Accept': 'image/*', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+         credentials: 'include',
+       });
+       if (resp.ok) return await resp.blob();
 
-    // Combinar proyectos con reportes y proyectos con 0 reportes
-    resumenPorProyecto = [...resumenPorProyecto, ...proyectosConCero];
+       // 2) Fallback con ?token=
+       resp = await fetch(buildApi(`evidencias/${id}?token=${encodeURIComponent(token)}`), {
+         method: 'GET',
+         headers: { 'Accept': 'image/*' },
+         credentials: 'include',
+       });
+       if (!resp.ok) throw new Error(`API HTTP ${resp.status}`);
+       return await resp.blob();
+     };
 
-    const periodLabel = selectedPeriod === 'month' ? 'mensual' : selectedPeriod === 'quarter' ? 'trimestral' : 'anual';
-    const fileName = `reporte_hseq_${periodLabel}_${new Date().toISOString().substring(0,10)}.xlsx`;
+     const getEvidenceBlob = async (evidenciaId, evObj) => {
+       // 1) Intento URL pública
+       try {
+         const url = buildUploadsUrl(evObj.url_archivo);
+         const resp = await fetch(url, { method: 'GET', headers: { 'Accept': 'image/*' }, mode: 'cors' });
+         if (resp.ok) {
+           let pubBlob = await resp.blob();
+           pubBlob = coerceImageBlobType(pubBlob, evObj);
+           if (await isProbablyImageBlob(pubBlob)) {
+             return { blob: pubBlob, contentType: pubBlob.type || '' };
+           }
+         }
+       } catch (_) {}
 
-    // Try ExcelJS for styled tables
-    try {
-      const ExcelJSModule = await import('exceljs');
-      const ExcelJS = ExcelJSModule.default || ExcelJSModule;
-      const wb = new ExcelJS.Workbook();
-      wb.creator = 'HSEQ';
-      wb.created = new Date();
+       // 2) Intento API autenticada
+       try {
+         let apiBlob = coerceImageBlobType(await fetchApiImageBlob(evidenciaId), evObj);
+         if (!(await isProbablyImageBlob(apiBlob))) throw new Error('not-image');
+         return { blob: apiBlob, contentType: apiBlob.type || '' };
+       } catch (e2) {
+         // 3) Último recurso: URL público sin validación
+         const url = buildUploadsUrl(evObj.url_archivo);
+         const resp = await fetch(url, { method: 'GET', headers: { 'Accept': 'image/*' } });
+         if (!resp.ok) throw new Error(`Public HTTP ${resp.status}`);
+         const pubBlob = coerceImageBlobType(await resp.blob(), evObj);
+         return { blob: pubBlob, contentType: pubBlob.type || '' };
+       }
+     };
 
-      // Función para limpiar datos antes de agregarlos al Excel
-      const cleanDataForExcel = (data) => {
-        return data.map(row => {
-          const cleanRow = {};
-          Object.keys(row).forEach(key => {
-            const value = row[key];
-            // Convertir valores problemáticos a strings seguros
-            if (value === null || value === undefined) {
-              cleanRow[key] = '';
-            } else if (typeof value === 'object') {
-              cleanRow[key] = JSON.stringify(value);
-            } else {
-              cleanRow[key] = String(value);
-            }
-          });
-          return cleanRow;
-        });
-      };
+     const dataUrlToBase64 = (dataUrl) => dataUrl.split(',')[1] || '';
 
-      const addTableSheet = (name, headerDefs, rows) => {
-        const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 1 }] });
-        
-        // Agregar título de la hoja
-        const titleRow = ws.addRow([name.toUpperCase()]);
-        titleRow.font = { bold: true, size: 16, color: { argb: 'FF2E5BBA' } };
-        titleRow.alignment = { horizontal: 'center' };
-        ws.mergeCells(`A1:${String.fromCharCode(65 + headerDefs.length - 1)}1`);
-        
-        // Agregar línea en blanco
-        ws.addRow([]);
-        
-        // Agregar tabla
-        const tableStartRow = 3;
-        ws.addTable({
-          name: `${name.replace(/\s+/g, '')}Table`,
-          ref: `A${tableStartRow}`,
-          style: { 
-            theme: 'TableStyleMedium2', 
-            showRowStripes: true,
-            showFirstColumn: false,
-            showLastColumn: false
-          },
-          headerRow: true,
-          columns: headerDefs.map(h => ({ name: h })),
-          rows: rows.map(r => headerDefs.map(h => r[h]))
-        });
-        
-        // Estilizar encabezados
-        const headerRow = ws.getRow(tableStartRow);
-        headerRow.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
-        headerRow.fill = { 
-          type: 'pattern', 
-          pattern: 'solid', 
-          fgColor: { argb: 'FF2E5BBA' } 
-        };
-        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-        headerRow.height = 25;
-        
-        // Estilizar datos
-        for (let i = tableStartRow + 1; i <= tableStartRow + rows.length; i++) {
-          const dataRow = ws.getRow(i);
-          dataRow.font = { size: 11 };
-          dataRow.alignment = { vertical: 'middle' };
-          dataRow.height = 20;
-          
-          // Alternar colores de filas
-          if (i % 2 === 0) {
-            dataRow.fill = { 
-              type: 'pattern', 
-              pattern: 'solid', 
-              fgColor: { argb: 'FFF8F9FA' } 
-            };
-          }
-        }
-        
-        // Ajustar ancho de columnas
-        headerDefs.forEach((h, i) => {
-          const maxLen = Math.max(h.length, ...rows.map(r => (r[h] ? String(r[h]).length : 0)));
-          ws.getColumn(i + 1).width = Math.min(Math.max(15, maxLen + 3), 50);
-        });
-        
-        return ws;
-      };
+     // Try ExcelJS for styled tables
+     try {
+       const ExcelJSModule = await import('exceljs');
+       const ExcelJS = ExcelJSModule.default || ExcelJSModule;
+       const wb = new ExcelJS.Workbook();
+       wb.creator = 'HSEQ';
+       wb.created = new Date();
 
-      addTableSheet('KPIs', ['KPI','Valor'], cleanDataForExcel(kpiRows));
-      addTableSheet('PorPeriodo', ['Periodo','Incidentes','Hallazgos','Conversaciones'], cleanDataForExcel(porPeriodo));
-      addTableSheet('PorTipo', ['Tipo','Cantidad'], cleanDataForExcel(porTipo));
-      addTableSheet('Resumen', ['Metrica','Valor'], cleanDataForExcel(resumen));
-      if (detalles.length > 0) addTableSheet('Detalles', Object.keys(detalles[0]), cleanDataForExcel(detalles));
-      if (resumenPorProyecto.length > 0) addTableSheet('ResumenPorProyecto', Object.keys(resumenPorProyecto[0]), cleanDataForExcel(resumenPorProyecto));
+       // Función para limpiar datos antes de agregarlos al Excel
+       const cleanDataForExcel = (data) => {
+         return data.map(row => {
+           const cleanRow = {};
+           Object.keys(row).forEach(key => {
+             const value = row[key];
+             // Convertir valores problemáticos a strings seguros
+             if (value === null || value === undefined) {
+               cleanRow[key] = '';
+             } else if (typeof value === 'object') {
+               cleanRow[key] = JSON.stringify(value);
+             } else {
+               cleanRow[key] = String(value);
+             }
+           });
+           return cleanRow;
+         });
+       };
 
-      const buffer = await wb.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      return;
-    } catch (e) {
-      // continue to xlsx fallback
-    }
+       // Crear una sola hoja con todos los reportes detallados
+       if (reportesDetallados.length > 0) {
+         const ws = wb.addWorksheet('Reportes Detallados', { views: [{ state: 'frozen', ySplit: 1 }] });
+         
+         // Agregar título de la hoja
+         const titleRow = ws.addRow(['REPORTES DETALLADOS HSEQ - MERIDIAN COLOMBIA']);
+         titleRow.font = { bold: true, size: 18, color: { argb: 'FF2E5BBA' } };
+         titleRow.alignment = { horizontal: 'center' };
+         ws.mergeCells(`A1:${String.fromCharCode(65 + Object.keys(reportesDetallados[0]).length - 1)}1`);
+         
+         // Agregar información de generación
+         const infoRow = ws.addRow([`Generado el: ${new Date().toLocaleString('es-ES')} | Total de reportes: ${reportesDetallados.length}`]);
+         infoRow.font = { size: 12, color: { argb: 'FF666666' } };
+         infoRow.alignment = { horizontal: 'center' };
+         ws.mergeCells(`A2:${String.fromCharCode(65 + Object.keys(reportesDetallados[0]).length - 1)}2`);
+         
+         // Agregar línea en blanco
+         ws.addRow([]);
+         
+         // Procesar cada reporte individualmente para incluir imágenes
+         let currentRow = 4;
+         
+         for (let reportIndex = 0; reportIndex < reportesDetallados.length; reportIndex++) {
+           const reporte = reportesDetallados[reportIndex];
+           
+           // Agregar encabezado del reporte
+           const reportHeaderRow = ws.addRow([`REPORTE ${reporte.ID} - ${reporte.TipoReporte.toUpperCase()}`]);
+           reportHeaderRow.font = { bold: true, size: 14, color: { argb: 'FF2E5BBA' } };
+           reportHeaderRow.fill = { 
+             type: 'pattern', 
+             pattern: 'solid', 
+             fgColor: { argb: 'FFF0F8FF' } 
+           };
+           ws.mergeCells(`A${currentRow}:H${currentRow}`);
+           currentRow++;
+           
+           // Agregar información básica del reporte
+           const basicInfo = [
+             ['ID', reporte.ID],
+             ['Tipo', reporte.TipoReporte],
+             ['Estado', reporte.Estado],
+             ['Usuario', reporte.Usuario],
+             ['Proyecto', reporte.Proyecto],
+             ['Asunto', reporte.Asunto],
+             ['Fecha Evento', reporte.FechaEvento],
+             ['Fecha Creación', reporte.FechaCreacion]
+           ];
+           
+           basicInfo.forEach(([label, value]) => {
+             ws.getCell(`A${currentRow}`).value = label;
+             ws.getCell(`A${currentRow}`).font = { bold: true };
+             ws.getCell(`B${currentRow}`).value = value;
+             ws.mergeCells(`B${currentRow}:H${currentRow}`);
+             currentRow++;
+           });
+           
+           // Agregar campos específicos según tipo
+           if (reporte.TipoReporte === 'hallazgos') {
+             const specificInfo = [
+               ['Lugar Hallazgo', reporte.LugarHallazgo],
+               ['Tipo Hallazgo', reporte.TipoHallazgo],
+               ['Estado Condición', reporte.EstadoCondicion],
+               ['Descripción', reporte.Descripcion],
+               ['Recomendaciones', reporte.Recomendaciones]
+             ];
+             specificInfo.forEach(([label, value]) => {
+               if (value) {
+                 ws.getCell(`A${currentRow}`).value = label;
+                 ws.getCell(`A${currentRow}`).font = { bold: true };
+                 ws.getCell(`B${currentRow}`).value = value;
+                 ws.mergeCells(`B${currentRow}:H${currentRow}`);
+                 currentRow++;
+               }
+             });
+           } else if (reporte.TipoReporte === 'incidentes') {
+             const specificInfo = [
+               ['Grado Criticidad', reporte.GradoCriticidad],
+               ['Ubicación', reporte.UbicacionIncidente],
+               ['Hora Evento', reporte.HoraEvento],
+               ['Tipo Afectación', reporte.TipoAfectacion],
+               ['Descripción', reporte.Descripcion]
+             ];
+             specificInfo.forEach(([label, value]) => {
+               if (value) {
+                 ws.getCell(`A${currentRow}`).value = label;
+                 ws.getCell(`A${currentRow}`).font = { bold: true };
+                 ws.getCell(`B${currentRow}`).value = value;
+                 ws.mergeCells(`B${currentRow}:H${currentRow}`);
+                 currentRow++;
+               }
+             });
+           } else if (reporte.TipoReporte === 'conversaciones') {
+             const specificInfo = [
+               ['Tipo Conversación', reporte.TipoConversacion],
+               ['Sitio Evento', reporte.SitioEvento],
+               ['Lugar Conversación', reporte.LugarConversacion],
+               ['Descripción', reporte.Descripcion]
+             ];
+             specificInfo.forEach(([label, value]) => {
+               if (value) {
+                 ws.getCell(`A${currentRow}`).value = label;
+                 ws.getCell(`A${currentRow}`).font = { bold: true };
+                 ws.getCell(`B${currentRow}`).value = value;
+                 ws.mergeCells(`B${currentRow}:H${currentRow}`);
+                 currentRow++;
+               }
+             });
+           } else if (reporte.TipoReporte === 'pqr') {
+             const specificInfo = [
+               ['Tipo PQR', reporte.TipoPQR],
+               ['Teléfono Contacto', reporte.TelefonoContacto],
+               ['Correo Contacto', reporte.CorreoContacto],
+               ['Descripción', reporte.Descripcion]
+             ];
+             specificInfo.forEach(([label, value]) => {
+               if (value) {
+                 ws.getCell(`A${currentRow}`).value = label;
+                 ws.getCell(`A${currentRow}`).font = { bold: true };
+                 ws.getCell(`B${currentRow}`).value = value;
+                 ws.mergeCells(`B${currentRow}:H${currentRow}`);
+                 currentRow++;
+               }
+             });
+           }
+           
+           // Agregar información de revisión si existe
+           if (reporte.ComentariosRevision || reporte.FechaRevision) {
+             currentRow++;
+             ws.getCell(`A${currentRow}`).value = 'INFORMACIÓN DE REVISIÓN';
+             ws.getCell(`A${currentRow}`).font = { bold: true, size: 12, color: { argb: 'FF2E5BBA' } };
+             ws.mergeCells(`A${currentRow}:H${currentRow}`);
+             currentRow++;
+             
+             if (reporte.FechaRevision) {
+               ws.getCell(`A${currentRow}`).value = 'Fecha Revisión';
+               ws.getCell(`A${currentRow}`).font = { bold: true };
+               ws.getCell(`B${currentRow}`).value = reporte.FechaRevision;
+               ws.mergeCells(`B${currentRow}:H${currentRow}`);
+               currentRow++;
+             }
+             
+             if (reporte.ComentariosRevision) {
+               ws.getCell(`A${currentRow}`).value = 'Comentarios';
+               ws.getCell(`A${currentRow}`).font = { bold: true };
+               ws.getCell(`B${currentRow}`).value = reporte.ComentariosRevision;
+               ws.mergeCells(`B${currentRow}:H${currentRow}`);
+               currentRow++;
+             }
+           }
+           
+           // PROCESAR EVIDENCIAS (SIN IMÁGENES TEMPORALMENTE)
+           if (reporte._evidencias && reporte._evidencias.length > 0) {
+             currentRow++;
+             ws.getCell(`A${currentRow}`).value = `EVIDENCIAS (${reporte._evidencias.length})`;
+             ws.getCell(`A${currentRow}`).font = { bold: true, size: 12, color: { argb: 'FF2E5BBA' } };
+             ws.mergeCells(`A${currentRow}:H${currentRow}`);
+             currentRow++;
+             
+             for (let evIndex = 0; evIndex < reporte._evidencias.length; evIndex++) {
+               const evidencia = reporte._evidencias[evIndex];
+               
+               // Solo mostrar información de la evidencia
+               ws.getCell(`A${currentRow}`).value = `Evidencia ${evIndex + 1}`;
+               ws.getCell(`A${currentRow}`).font = { bold: true };
+               ws.getCell(`B${currentRow}`).value = evidencia.nombre_archivo || evidencia.url_archivo || 'Sin nombre';
+               ws.mergeCells(`B${currentRow}:H${currentRow}`);
+               currentRow++;
+             }
+           }
+           
+           // Agregar separador entre reportes
+           currentRow += 2;
+           ws.getCell(`A${currentRow}`).value = '─'.repeat(50);
+           ws.getCell(`A${currentRow}`).font = { color: { argb: 'FFCCCCCC' } };
+           ws.mergeCells(`A${currentRow}:H${currentRow}`);
+           currentRow += 2;
+         }
+         
+         // Ajustar ancho de columnas
+         ws.getColumn('A').width = 20;
+         ws.getColumn('B').width = 50;
+         ws.getColumn('C').width = 15;
+         ws.getColumn('D').width = 15;
+         ws.getColumn('E').width = 15;
+         ws.getColumn('F').width = 15;
+         ws.getColumn('G').width = 15;
+         ws.getColumn('H').width = 15;
+       }
 
-    // Fallback: xlsx simple
-    try {
-      const XLSXModule = await import('xlsx');
-      const XLSX = XLSXModule.default || XLSXModule;
-      const wb = XLSX.utils.book_new();
-      
-      // Función para limpiar datos para XLSX
-      const cleanDataForXLSX = (data) => {
-        return data.map(row => {
-          const cleanRow = {};
-          Object.keys(row).forEach(key => {
-            const value = row[key];
-            if (value === null || value === undefined) {
-              cleanRow[key] = '';
-            } else if (typeof value === 'object') {
-              cleanRow[key] = JSON.stringify(value);
-            } else {
-              cleanRow[key] = String(value);
-            }
-          });
-          return cleanRow;
-        });
-      };
-      
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanDataForXLSX(kpiRows)), 'KPIs');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanDataForXLSX(porPeriodo)), 'PorPeriodo');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanDataForXLSX(porTipo)), 'PorTipo');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanDataForXLSX(resumen)), 'Resumen');
-      if (detalles.length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanDataForXLSX(detalles)), 'Detalles');
-      if (resumenPorProyecto.length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanDataForXLSX(resumenPorProyecto)), 'ResumenPorProyecto');
-      XLSX.writeFile(wb, fileName);
-      return;
-    } catch (e) {
-      // Last-resort CSV
-      const header = Object.keys(porPeriodo[0] || { Periodo:'', Incidentes:'', Hallazgos:'', Conversaciones:'' });
-      const rows = [header.join(','), ...porPeriodo.map(r => header.map(h => `${(r[h] ?? '').toString().replaceAll('"','""')}`).join(','))];
-      const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = fileName.replace('.xlsx','.csv');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+       const buffer = await wb.xlsx.writeBuffer();
+       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+       const link = document.createElement('a');
+       link.href = URL.createObjectURL(blob);
+       link.download = fileName;
+       document.body.appendChild(link);
+       link.click();
+       document.body.removeChild(link);
+       
+       // Mostrar mensaje de éxito con estadísticas
+       const totalEvidencias = reportesDetallados.reduce((acc, r) => acc + (r._evidencias?.length || 0), 0);
+       const evidenciasImagenes = reportesDetallados.reduce((acc, r) => {
+         if (r._evidencias) {
+           return acc + r._evidencias.filter(ev => 
+             (ev.tipo_archivo && ev.tipo_archivo.startsWith('image/')) ||
+             /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(ev.url_archivo || ev.nombre_archivo || '')
+           ).length;
+         }
+         return acc;
+       }, 0);
+       
+       alert(`Excel generado exitosamente con ${reportesDetallados.length} reportes y ${totalEvidencias} evidencias (sin imágenes embebidas temporalmente).`);
+       return;
+     } catch (e) {
+       // continue to xlsx fallback
+     }
+
+     // Fallback: xlsx simple
+     try {
+       const XLSXModule = await import('xlsx');
+       const XLSX = XLSXModule.default || XLSXModule;
+       const wb = XLSX.utils.book_new();
+       
+       // Función para limpiar datos para XLSX
+       const cleanDataForXLSX = (data) => {
+         return data.map(row => {
+           const cleanRow = {};
+           Object.keys(row).forEach(key => {
+             const value = row[key];
+             if (value === null || value === undefined) {
+               cleanRow[key] = '';
+             } else if (typeof value === 'object') {
+               cleanRow[key] = JSON.stringify(value);
+             } else {
+               cleanRow[key] = String(value);
+             }
+           });
+           return cleanRow;
+         });
+       };
+       
+       // Solo agregar la hoja de reportes detallados
+       if (reportesDetallados.length > 0) {
+         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanDataForXLSX(reportesDetallados)), 'Reportes Detallados');
+       }
+       
+       XLSX.writeFile(wb, fileName);
+       return;
+     } catch (e) {
+       // Last-resort CSV
+       if (reportesDetallados.length > 0) {
+         const header = Object.keys(reportesDetallados[0]);
+         const rows = [header.join(','), ...reportesDetallados.map(r => header.map(h => `${(r[h] ?? '').toString().replaceAll('"','""')}`).join(','))];
+         const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+         const link = document.createElement('a');
+         link.href = URL.createObjectURL(blob);
+         link.download = fileName.replace('.xlsx','.csv');
+         document.body.appendChild(link);
+         link.click();
+         document.body.removeChild(link);
+       }
+     }
   }, [stats, selectedPeriod, reportService, userService]);
 
   // Line chart: Tendencias mensuales
@@ -1444,16 +1715,16 @@ const Dashboard = () => {
           {/* Download Reports Section */}
           <div className="mt-12 mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8">
-              {/* Reporte Principal */}
-              <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-gray-700 hover:transform hover:scale-105 transition-all duration-500 shadow-2xl">
-                <div className="text-center">
-                  <div className="text-4xl md:text-5xl mb-4 md:mb-6">📊</div>
-                  <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
-                    Reporte Ejecutivo HSEQ
-                  </h3>
-                  <p className="text-xs md:text-sm mb-4 md:mb-6 text-gray-300">
-                    Reporte completo con métricas, estadísticas y análisis de tendencias del sistema HSEQ
-                  </p>
+               {/* Reporte Principal */}
+               <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-gray-700 hover:transform hover:scale-105 transition-all duration-500 shadow-2xl">
+                 <div className="text-center">
+                   <div className="text-4xl md:text-5xl mb-4 md:mb-6">📊</div>
+                   <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
+                     Reportes Detallados PDF
+                   </h3>
+                   <p className="text-xs md:text-sm mb-4 md:mb-6 text-gray-300">
+                     PDF completo con cada reporte detallado: información, descripciones, evidencias fotográficas, comentarios de revisión y más
+                   </p>
                   
                   {/* Stats preview */}
                   <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
@@ -1497,23 +1768,30 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Reportes Detallados */}
-              <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-8 border border-gray-700 hover:transform hover:scale-105 transition-all duration-500 shadow-2xl">
-                <div className="text-center">
-                  <div className="text-5xl mb-6">📋</div>
-                  <h3 className="text-2xl font-bold mb-4 text-white">
-                    Reportes Detallados
-                  </h3>
-                  <p className="text-sm mb-6 text-gray-300">
-                    Accede a reportes específicos por proyecto, tipo y fecha
-                  </p>
-                  
-                  {/* Quick actions */}
-                  <div className="space-y-3 mb-6">
-                    <button className="w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 hover:scale-105 border text-sm bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
-                      📊 Reporte por Proyecto
-                    </button>
-                  </div>
+               {/* Reportes Detallados */}
+               <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-8 border border-gray-700 hover:transform hover:scale-105 transition-all duration-500 shadow-2xl">
+                 <div className="text-center">
+                   <div className="text-5xl mb-6">📋</div>
+                   <h3 className="text-2xl font-bold mb-4 text-white">
+                     Reportes Detallados Excel
+                   </h3>
+                   <p className="text-sm mb-6 text-gray-300">
+                     Excel con todos los reportes detallados: información completa, descripciones, imágenes embebidas, comentarios de revisión y más
+                   </p>
+                   
+                   {/* Quick stats */}
+                   <div className="grid grid-cols-2 gap-3 mb-6">
+                     <div className="text-center">
+                       <div className="text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>
+                         {loading ? '...' : (stats?.kpis?.total_reportes ?? '0')}
+                       </div>
+                       <div className="text-xs opacity-70 text-gray-400">Reportes</div>
+                     </div>
+                     <div className="text-center">
+                       <div className="text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>1</div>
+                       <div className="text-xs opacity-70 text-gray-400">Hoja</div>
+                     </div>
+                   </div>
                   
                   <button 
                     className="w-full group relative font-bold py-4 px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
