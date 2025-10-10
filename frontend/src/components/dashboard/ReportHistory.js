@@ -83,7 +83,8 @@ const ReportHistory = () => {
     const labels = {
       'hallazgos': 'Hallazgos y Condiciones',
       'incidentes': 'Incidentes HSE',
-      'conversaciones': 'Conversaciones y Reflexiones'
+      'conversaciones': 'Conversaciones y Reflexiones',
+      'pqr': 'PQR'
     };
     return labels[type] || type;
   };
@@ -108,6 +109,12 @@ const ReportHistory = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
           </svg>
         );
+      case 'pqr':
+        return (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        );
       default:
         return null;
     }
@@ -121,6 +128,8 @@ const ReportHistory = () => {
         return report.ubicacion_incidente || 'No especificada';
       case 'conversaciones':
         return report.sitio_evento_conversacion || 'No especificada';
+      case 'pqr':
+        return 'Contacto: ' + (report.telefono_contacto || 'No especificado');
       default:
         return 'No especificada';
     }
@@ -134,6 +143,8 @@ const ReportHistory = () => {
         return report.descripcion_incidente || report.asunto || 'Sin descripción';
       case 'conversaciones':
         return report.descripcion_conversacion || report.asunto_conversacion || 'Sin descripción';
+      case 'pqr':
+        return report.descripcion_hallazgo || report.asunto || 'Sin descripción';
       default:
         return report.asunto || 'Sin descripción';
     }

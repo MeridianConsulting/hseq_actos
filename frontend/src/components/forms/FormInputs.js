@@ -182,6 +182,97 @@ export const FileInput = ({
   </div>
 );
 
+// Componente para inputs de radio
+export const RadioInput = ({ 
+  name, 
+  value, 
+  onChange, 
+  label, 
+  options, 
+  required = false,
+  helper
+}) => (
+  <div>
+    <label className="block text-white text-opacity-90 font-semibold mb-2">
+      {label} {required && '*'}
+    </label>
+    {helper && <p className="text-white text-opacity-70 text-xs mb-2">{helper}</p>}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {options.map(option => (
+        <label 
+          key={option.value} 
+          className="flex items-center gap-3 bg-gray-900/60 border border-white/10 rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all duration-200"
+        >
+          <input
+            type="radio"
+            name={name}
+            value={option.value}
+            checked={value === option.value}
+            onChange={onChange}
+            className="w-4 h-4 text-yellow-400 border-white/30 focus:ring-yellow-400 focus:ring-offset-gray-900"
+            required={required}
+          />
+          <span className="text-white text-opacity-90">{option.label}</span>
+        </label>
+      ))}
+    </div>
+  </div>
+);
+
+// Componente para inputs de email
+export const EmailInput = ({ 
+  name, 
+  value, 
+  onChange, 
+  label, 
+  placeholder, 
+  required = false,
+  helper
+}) => (
+  <div>
+    <label className="block text-white text-opacity-90 font-semibold mb-2">
+      {label} {required && '*'}
+    </label>
+    {helper && <p className="text-white text-opacity-70 text-xs mb-2">{helper}</p>}
+    <input
+      type="email"
+      name={name}
+      value={value}
+      onChange={onChange}
+      className="w-full px-4 py-3 bg-gray-900/60 border border-white/10 rounded-xl text-white placeholder-gray-300 shadow-inner focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all duration-200 hover:border-white/20"
+      placeholder={placeholder}
+      required={required}
+    />
+  </div>
+);
+
+// Componente para inputs de teléfono
+export const TelInput = ({ 
+  name, 
+  value, 
+  onChange, 
+  label, 
+  placeholder, 
+  required = false,
+  helper
+}) => (
+  <div>
+    <label className="block text-white text-opacity-90 font-semibold mb-2">
+      {label} {required && '*'}
+    </label>
+    {helper && <p className="text-white text-opacity-70 text-xs mb-2">{helper}</p>}
+    <input
+      type="tel"
+      name={name}
+      value={value}
+      onChange={onChange}
+      className="w-full px-4 py-3 bg-gray-900/60 border border-white/10 rounded-xl text-white placeholder-gray-300 shadow-inner focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all duration-200 hover:border-white/20"
+      placeholder={placeholder}
+      required={required}
+    />
+  </div>
+);
+
 // Componente para botones de envío
 export const SubmitButton = ({ 
   isLoading, 

@@ -367,7 +367,8 @@ const ReportsTable = ({
     const labels = {
       'hallazgos': 'Hallazgos',
       'incidentes': 'Incidentes',
-      'conversaciones': 'Conversaciones'
+      'conversaciones': 'Conversaciones',
+      'pqr': 'PQR'
     };
     return labels[type] || type;
   };
@@ -381,6 +382,8 @@ const ReportsTable = ({
         return report.ubicacion_incidente || 'No especificada';
       case 'conversaciones':
         return report.sitio_evento_conversacion || 'No especificada';
+      case 'pqr':
+        return 'Contacto: ' + (report.telefono_contacto || 'No especificado');
       default:
         return 'No especificada';
     }
@@ -395,6 +398,8 @@ const ReportsTable = ({
         return report.descripcion_incidente || report.asunto || 'Sin descripción';
       case 'conversaciones':
         return report.descripcion_conversacion || report.asunto_conversacion || 'Sin descripción';
+      case 'pqr':
+        return report.descripcion_hallazgo || report.asunto || 'Sin descripción';
       default:
         return report.asunto || 'Sin descripción';
     }

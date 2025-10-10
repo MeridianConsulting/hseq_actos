@@ -8,6 +8,7 @@ import ReportTypeSelector from '../components/forms/ReportTypeSelector';
 import HallazgosForm from '../components/forms/HallazgosForm';
 import IncidentesForm from '../components/forms/IncidentesForm';
 import ConversacionesForm from '../components/forms/ConversacionesForm';
+import PQRForm from '../components/forms/PQRForm';
 import '../assets/css/styles.css';
 
 const CreateReport = () => {
@@ -42,6 +43,12 @@ const CreateReport = () => {
     lugar_hallazgo_conversacion_otro: '',
     descripcion_conversacion: '',
     asunto_conversacion: '',
+    
+    // Campos específicos para PQR
+    telefono_contacto: '',
+    correo_contacto: '',
+    tipo_pqr: '',
+    descripcion_pqr: '',
     
     // Campo para evidencia
     evidencia: null
@@ -131,6 +138,12 @@ const CreateReport = () => {
           descripcion_conversacion: '',
           asunto_conversacion: '',
           
+          // Campos específicos para PQR
+          telefono_contacto: '',
+          correo_contacto: '',
+          tipo_pqr: '',
+          descripcion_pqr: '',
+          
           // Campo para evidencia
           evidencia: null
         });
@@ -139,9 +152,11 @@ const CreateReport = () => {
         const fileInput = document.getElementById('evidencia');
         const fileInputIncidente = document.getElementById('evidencia_incidente');
         const fileInputConversacion = document.getElementById('evidencia_conversacion');
+        const fileInputPqr = document.getElementById('evidencia_pqr');
         if (fileInput) fileInput.value = '';
         if (fileInputIncidente) fileInputIncidente.value = '';
         if (fileInputConversacion) fileInputConversacion.value = '';
+        if (fileInputPqr) fileInputPqr.value = '';
         
         setSelectedReportType(null);
       } else {
@@ -201,6 +216,17 @@ const CreateReport = () => {
       case 'conversaciones':
         return (
           <ConversacionesForm
+            reportData={reportData}
+            onInputChange={handleInputChange}
+            onFileChange={handleFileChange}
+            onSubmit={handleSubmit}
+            isLoading={isLoading}
+            onBack={handleBackToSelection}
+          />
+        );
+      case 'pqr':
+        return (
+          <PQRForm
             reportData={reportData}
             onInputChange={handleInputChange}
             onFileChange={handleFileChange}

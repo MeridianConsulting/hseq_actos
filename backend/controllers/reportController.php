@@ -6,13 +6,14 @@ class ReportController {
     private $conn;
     
     // Constantes para validación de ENUMs
-    private const TIPOS_REPORTE_VALIDOS = ['hallazgos', 'incidentes', 'conversaciones'];
+    private const TIPOS_REPORTE_VALIDOS = ['hallazgos', 'incidentes', 'conversaciones', 'pqr'];
     private const ESTADOS_VALIDOS = ['pendiente', 'en_revision', 'aprobado', 'rechazado'];
     private const TIPOS_HALLAZGO_VALIDOS = ['accion_mejoramiento', 'aspecto_positivo', 'condicion_insegura', 'acto_inseguro'];
     private const ESTADOS_CONDICION_VALIDOS = ['abierta', 'cerrada'];
     private const GRADOS_CRITICIDAD_VALIDOS = ['bajo', 'medio', 'alto', 'critico'];
     private const TIPOS_AFECTACION_VALIDOS = ['personas', 'medio_ambiente', 'instalaciones', 'vehiculos', 'seguridad_procesos', 'operaciones'];
     private const TIPOS_CONVERSACION_VALIDOS = ['reflexion', 'conversacion'];
+    private const TIPOS_PQR_VALIDOS = ['peticion', 'queja', 'reclamo', 'inquietud'];
     
     public function __construct() {
         global $db;
@@ -61,6 +62,12 @@ class ReportController {
             case 'conversaciones':
                 if (isset($data['tipo_conversacion']) && !in_array($data['tipo_conversacion'], self::TIPOS_CONVERSACION_VALIDOS)) {
                     $errors[] = "Tipo de conversación inválido. Valores permitidos: " . implode(', ', self::TIPOS_CONVERSACION_VALIDOS);
+                }
+                break;
+                
+            case 'pqr':
+                if (isset($data['tipo_pqr']) && !in_array($data['tipo_pqr'], self::TIPOS_PQR_VALIDOS)) {
+                    $errors[] = "Tipo de PQR inválido. Valores permitidos: " . implode(', ', self::TIPOS_PQR_VALIDOS);
                 }
                 break;
         }
@@ -127,7 +134,10 @@ class ReportController {
             // Preparar la consulta SQL base
             $sql = "INSERT INTO reportes (
                 id_usuario, 
-                tipo_reporte, 
+                tipo_reporte,
+                telefono_contacto,
+                correo_contacto,
+                tipo_pqr,
                 asunto, 
                 descripcion_general,
                 fecha_evento,
@@ -148,7 +158,7 @@ class ReportController {
                 lugar_hallazgo_conversacion_otro,
                 descripcion_conversacion,
                 asunto_conversacion
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = $this->conn->prepare($sql);
             
@@ -159,6 +169,9 @@ class ReportController {
             // Extraer valores a variables para bind_param (SOLUCIÓN AL PROBLEMA)
             $id_usuario = $data['id_usuario'];
             $tipo_reporte = $data['tipo_reporte'];
+            $telefono_contacto = $data['telefono_contacto'] ?? null;
+            $correo_contacto = $data['correo_contacto'] ?? null;
+            $tipo_pqr = $data['tipo_pqr'] ?? null;
             $asunto = $data['asunto'] ?? $data['asunto_conversacion'] ?? null;
             $descripcion_general = $data['descripcion_general'] ?? null;
             $fecha_evento = $data['fecha_evento'] ?? null;
@@ -181,9 +194,12 @@ class ReportController {
             $asunto_conversacion = $data['asunto_conversacion'] ?? null;
             
             // Bind de parámetros usando variables (no expresiones de array)
-            $stmt->bind_param("isssssssssssssssssssss",
+            $stmt->bind_param("issssssssssssssssssssssss",
                 $id_usuario,
                 $tipo_reporte,
+                $telefono_contacto,
+                $correo_contacto,
+                $tipo_pqr,
                 $asunto,
                 $descripcion_general,
                 $fecha_evento,
@@ -302,6 +318,24 @@ class ReportController {
                 }
                 if (empty($data['descripcion_conversacion'])) {
                     $errors[] = "El campo 'descripcion_conversacion' es requerido para conversaciones";
+                }
+                break;
+                
+            case 'pqr':
+                if (empty($data['asunto'])) {
+                    $errors[] = "El campo 'asunto' es requerido para PQR";
+                }
+                if (empty($data['tipo_pqr'])) {
+                    $errors[] = "El campo 'tipo_pqr' es requerido para PQR";
+                }
+                if (empty($data['telefono_contacto'])) {
+                    $errors[] = "El campo 'telefono_contacto' es requerido para PQR";
+                }
+                if (empty($data['correo_contacto'])) {
+                    $errors[] = "El campo 'correo_contacto' es requerido para PQR";
+                }
+                if (empty($data['descripcion_hallazgo'])) {
+                    $errors[] = "El campo 'descripcion_hallazgo' es requerido para PQR";
                 }
                 break;
         }
@@ -871,6 +905,9 @@ class ReportController {
             
             // Preparar la consulta SQL de actualización
             $sql = "UPDATE reportes SET 
+                    telefono_contacto = ?,
+                    correo_contacto = ?,
+                    tipo_pqr = ?,
                     asunto = ?, 
                     descripcion_general = ?,
                     fecha_evento = ?,
@@ -901,6 +938,9 @@ class ReportController {
             }
             
             // Extraer valores a variables para bind_param
+            $telefono_contacto = $data['telefono_contacto'] ?? null;
+            $correo_contacto = $data['correo_contacto'] ?? null;
+            $tipo_pqr = $data['tipo_pqr'] ?? null;
             $asunto = $data['asunto'] ?? $data['asunto_conversacion'] ?? null;
             $descripcion_general = $data['descripcion_general'] ?? null;
             $fecha_evento = $data['fecha_evento'] ?? null;
@@ -923,7 +963,10 @@ class ReportController {
             $asunto_conversacion = $data['asunto_conversacion'] ?? null;
             
             // Bind de parámetros
-            $stmt->bind_param("ssssssssssssssssssssi",
+            $stmt->bind_param("sssssssssssssssssssssssi",
+                $telefono_contacto,
+                $correo_contacto,
+                $tipo_pqr,
                 $asunto,
                 $descripcion_general,
                 $fecha_evento,
@@ -1068,6 +1111,7 @@ class ReportController {
                     COUNT(CASE WHEN tipo_reporte = 'incidentes' THEN 1 END) as incidentes,
                     COUNT(CASE WHEN tipo_reporte = 'hallazgos' THEN 1 END) as hallazgos,
                     COUNT(CASE WHEN tipo_reporte = 'conversaciones' THEN 1 END) as conversaciones,
+                    COUNT(CASE WHEN tipo_reporte = 'pqr' THEN 1 END) as pqr,
                     COUNT(*) as total_reportes
                 FROM reportes 
                 WHERE fecha_evento >= DATE_SUB(CURDATE(), INTERVAL $intervalNum MONTH)
@@ -1108,7 +1152,8 @@ class ReportController {
                     DATE_FORMAT(fecha_evento, '%b') as mes_corto,
                     COUNT(CASE WHEN tipo_reporte = 'incidentes' THEN 1 END) as incidentes,
                     COUNT(CASE WHEN tipo_reporte = 'hallazgos' THEN 1 END) as hallazgos,
-                    COUNT(CASE WHEN tipo_reporte = 'conversaciones' THEN 1 END) as conversaciones
+                    COUNT(CASE WHEN tipo_reporte = 'conversaciones' THEN 1 END) as conversaciones,
+                    COUNT(CASE WHEN tipo_reporte = 'pqr' THEN 1 END) as pqr
                 FROM reportes 
                 WHERE fecha_evento >= DATE_SUB(CURDATE(), INTERVAL $intervalNum MONTH)
                 GROUP BY DATE_FORMAT(fecha_evento, '%Y-%m'), DATE_FORMAT(fecha_evento, '%b')
@@ -1127,6 +1172,7 @@ class ReportController {
                     COUNT(CASE WHEN tipo_reporte = 'incidentes' THEN 1 END) as total_incidentes,
                     COUNT(CASE WHEN tipo_reporte = 'hallazgos' THEN 1 END) as total_hallazgos,
                     COUNT(CASE WHEN tipo_reporte = 'conversaciones' THEN 1 END) as total_conversaciones,
+                    COUNT(CASE WHEN tipo_reporte = 'pqr' THEN 1 END) as total_pqr,
                     COUNT(CASE WHEN estado = 'pendiente' THEN 1 END) as pendientes,
                     COUNT(CASE WHEN estado = 'aprobado' THEN 1 END) as aprobados,
                     COUNT(CASE WHEN estado = 'rechazado' THEN 1 END) as rechazados,

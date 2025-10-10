@@ -52,6 +52,22 @@ class ReportService {
                 if (!formattedData.sitio_evento_conversacion) throw new Error('El sitio del evento es requerido');
                 if (!formattedData.descripcion_conversacion) throw new Error('La descripción de la conversación es requerida');
                 break;
+            case 'pqr':
+                if (!formattedData.asunto) throw new Error('El asunto es requerido');
+                if (!formattedData.telefono_contacto) throw new Error('El teléfono de contacto es requerido');
+                if (!formattedData.correo_contacto) throw new Error('El correo de contacto es requerido');
+                if (!formattedData.tipo_pqr) throw new Error('El tipo de PQR es requerido');
+                if (!formattedData.descripcion_pqr) throw new Error('La descripción es requerida');
+                // Validar formato de correo
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(formattedData.correo_contacto)) {
+                    throw new Error('El formato del correo electrónico no es válido');
+                }
+                // Validar longitud mínima de descripción
+                if (formattedData.descripcion_pqr.trim().length < 20) {
+                    throw new Error('La descripción debe tener al menos 20 caracteres');
+                }
+                break;
         }
         
         return formattedData;
@@ -126,21 +142,16 @@ class ReportService {
      * Preparar datos del formulario para envío
      */
     static prepareReportData(formData, tipoReporte, userId) {
-        // Validar que los campos requeridos estén presentes
-        if (!formData.fecha_evento) {
-            throw new Error('La fecha del evento es requerida');
-        }
-
         const baseData = {
             id_usuario: userId,
-            tipo_reporte: tipoReporte,
-            fecha_evento: formData.fecha_evento
+            tipo_reporte: tipoReporte
         };
 
         // Agregar campos específicos según el tipo de reporte
         switch (tipoReporte) {
             case 'hallazgos':
                 // Validar campos requeridos para hallazgos
+                if (!formData.fecha_evento) throw new Error('La fecha del evento es requerida');
                 if (!formData.asunto) throw new Error('El asunto es requerido para hallazgos');
                 if (!formData.lugar_hallazgo) throw new Error('El lugar del hallazgo es requerido para hallazgos');
                 if (!formData.tipo_hallazgo) throw new Error('El tipo de hallazgo es requerido para hallazgos');
@@ -149,6 +160,7 @@ class ReportService {
 
                 return {
                     ...baseData,
+                    fecha_evento: formData.fecha_evento,
                     asunto: formData.asunto,
                     lugar_hallazgo: formData.lugar_hallazgo,
                     lugar_hallazgo_otro: formData.lugar_hallazgo_otro || '',
@@ -160,6 +172,7 @@ class ReportService {
             
             case 'incidentes':
                 // Validar campos requeridos para incidentes
+                if (!formData.fecha_evento) throw new Error('La fecha del evento es requerida');
                 if (!formData.asunto) throw new Error('El asunto es requerido para incidentes');
                 if (!formData.grado_criticidad) throw new Error('El grado de criticidad es requerido para incidentes');
                 if (!formData.ubicacion_incidente) throw new Error('La ubicación del incidente es requerida para incidentes');
@@ -168,6 +181,7 @@ class ReportService {
 
                 return {
                     ...baseData,
+                    fecha_evento: formData.fecha_evento,
                     asunto: formData.asunto,
                     grado_criticidad: formData.grado_criticidad,
                     ubicacion_incidente: formData.ubicacion_incidente,
@@ -178,6 +192,7 @@ class ReportService {
             
             case 'conversaciones':
                 // Validar campos requeridos para conversaciones
+                if (!formData.fecha_evento) throw new Error('La fecha del evento es requerida');
                 if (!formData.asunto_conversacion) throw new Error('El asunto de la conversación es requerido para conversaciones');
                 if (!formData.tipo_conversacion) throw new Error('El tipo de conversación es requerido para conversaciones');
                 if (!formData.sitio_evento_conversacion) throw new Error('El sitio del evento es requerido para conversaciones');
@@ -185,12 +200,42 @@ class ReportService {
 
                 return {
                     ...baseData,
+                    fecha_evento: formData.fecha_evento,
                     asunto_conversacion: formData.asunto_conversacion,
                     tipo_conversacion: formData.tipo_conversacion,
                     sitio_evento_conversacion: formData.sitio_evento_conversacion,
                     lugar_hallazgo_conversacion: formData.lugar_hallazgo_conversacion || '',
                     lugar_hallazgo_conversacion_otro: formData.lugar_hallazgo_conversacion_otro || '',
                     descripcion_conversacion: formData.descripcion_conversacion
+                };
+            
+            case 'pqr':
+                // Validar campos requeridos para PQR
+                if (!formData.asunto) throw new Error('El asunto es requerido para PQR');
+                if (!formData.telefono_contacto) throw new Error('El teléfono de contacto es requerido para PQR');
+                if (!formData.correo_contacto) throw new Error('El correo de contacto es requerido para PQR');
+                if (!formData.tipo_pqr) throw new Error('El tipo de PQR es requerido');
+                if (!formData.descripcion_pqr) throw new Error('La descripción es requerida para PQR');
+
+                // Validar formato de correo
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(formData.correo_contacto)) {
+                    throw new Error('El formato del correo electrónico no es válido');
+                }
+
+                // Validar longitud mínima de descripción
+                if (formData.descripcion_pqr.trim().length < 20) {
+                    throw new Error('La descripción debe tener al menos 20 caracteres');
+                }
+
+                return {
+                    ...baseData,
+                    asunto: formData.asunto,
+                    telefono_contacto: formData.telefono_contacto,
+                    correo_contacto: formData.correo_contacto,
+                    tipo_pqr: formData.tipo_pqr,
+                    descripcion_hallazgo: formData.descripcion_pqr, // Mapear a descripcion_hallazgo para reutilizar el campo
+                    fecha_evento: formData.fecha_evento || null
                 };
             
             default:
