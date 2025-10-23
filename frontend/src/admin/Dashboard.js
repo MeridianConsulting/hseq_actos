@@ -1834,7 +1834,17 @@ const Dashboard = () => {
 
           {/* Download Reports Section */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-6">Reportes y Exportación</h2>
+            <div className="mb-6 pb-4 border-b border-gray-700/50">
+              <div className="flex flex-col items-center justify-center text-center space-y-3">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--color-tertiary), var(--color-accent))' }}>
+                  <span className="text-3xl">📊</span>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Reportes y Exportación</h2>
+                  <p className="text-xs text-gray-400 mt-1">Descarga reportes en diferentes formatos</p>
+                </div>
+              </div>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                {/* Reporte Principal */}
                <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
@@ -1998,7 +2008,17 @@ const Dashboard = () => {
           {/* Administración de Usuarios (solo Admin) */}
           {isAdmin() && (
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-white mb-6">Administración del Sistema</h2>
+              <div className="mb-6 pb-4 border-b border-gray-700/50">
+                <div className="flex flex-col items-center justify-center text-center space-y-3">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)' }}>
+                    <span className="text-3xl">⚙️</span>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Administración del Sistema</h2>
+                    <p className="text-xs text-gray-400 mt-1">Gestiona usuarios y crea nuevos reportes</p>
+                  </div>
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
                   <div className="text-center">
@@ -2100,13 +2120,18 @@ const Dashboard = () => {
           {/* Gestión completa de reportes (solo Admin) */}
           {isAdmin() && (
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-white mb-6">Gestión Completa de Reportes</h2>
-              <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
-                <div className="mb-6">
-                  <p className="text-sm text-gray-300">
-                    Visualiza, filtra y gestiona todos los reportes del sistema con herramientas avanzadas
-                  </p>
+              <div className="mb-6 pb-4 border-b border-gray-700/50">
+                <div className="flex flex-col items-center justify-center text-center space-y-3">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+                    <span className="text-3xl">📋</span>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Gestión Completa de Reportes</h2>
+                    <p className="text-xs text-gray-400 mt-1">Visualiza, filtra y gestiona todos los reportes del sistema</p>
+                  </div>
                 </div>
+              </div>
+              <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
 
                 {/* Reports Table Component */}
                 <ReportsTable 
