@@ -15,6 +15,7 @@ import reportService from '../services/reportService';
 import { userService } from '../services/api';
 import { buildApi, buildUploadsUrl } from '../config/api';
 import ReportsTable from '../components/ReportsTable';
+import { reportTypes, gradosCriticidad } from '../config/formOptions';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -29,6 +30,20 @@ const Dashboard = () => {
   const [assignError, setAssignError] = useState(null);
   const [reports, setReports] = useState([]);
   const [supports, setSupports] = useState([]);
+  
+  // Filtros para Excel
+  const [excelFilters, setExcelFilters] = useState({
+    tipo_reporte: '',
+    estado: '',
+    grado_criticidad: '',
+    proyecto: '',
+    revisado_por: '',
+    date_from: '',
+    date_to: ''
+  });
+  const [proyectos, setProyectos] = useState([]);
+  const [responsables, setResponsables] = useState([]);
+  const [showExcelFiltersModal, setShowExcelFiltersModal] = useState(false);
 
   const { stats, loading, error } = useDashboardStats(selectedPeriod);
   
@@ -75,6 +90,62 @@ const Dashboard = () => {
     { title: 'Días sin Accidentes', value: stats?.diasSinAccidentes ?? '-', color: '#f59e0b', icon: '🏆' }
   ], [stats?.kpis, stats?.diasSinAccidentes]);
 
+  // Cargar proyectos únicos
+  const loadProyectos = useCallback(async () => {
+    try {
+      const usersResult = await userService.fetchUsers();
+      let users = [];
+      if (usersResult.success && usersResult.data) {
+        users = usersResult.data;
+      } else if (Array.isArray(usersResult)) {
+        users = usersResult;
+      }
+      
+      const proyectosUnicos = new Set();
+      users.forEach((user) => {
+        if (user.Proyecto && user.Proyecto.trim() !== '') {
+          proyectosUnicos.add(user.Proyecto.trim());
+        }
+      });
+      setProyectos(Array.from(proyectosUnicos).sort());
+    } catch (e) {
+      console.error('Error cargando proyectos:', e);
+    }
+  }, []);
+
+  // Cargar responsables (soporte + admin)
+  const loadResponsables = useCallback(async () => {
+    try {
+      const [soporteResult, adminResult] = await Promise.all([
+        userService.fetchUsers({ rol: 'soporte', activo: 1 }),
+        userService.fetchUsers({ rol: 'admin', activo: 1 })
+      ]);
+      
+      let soporteUsers = [];
+      let adminUsers = [];
+      
+      if (soporteResult.success && soporteResult.data) {
+        soporteUsers = soporteResult.data;
+      } else if (Array.isArray(soporteResult)) {
+        soporteUsers = soporteResult;
+      }
+      
+      if (adminResult.success && adminResult.data) {
+        adminUsers = adminResult.data;
+      } else if (Array.isArray(adminResult)) {
+        adminUsers = adminResult;
+      }
+      
+      const todosResponsables = [...soporteUsers, ...adminUsers].sort((a, b) => 
+        (a.nombre || '').localeCompare(b.nombre || '')
+      );
+      
+      setResponsables(todosResponsables);
+    } catch (e) {
+      console.error('Error cargando responsables:', e);
+    }
+  }, []);
+
   const loadAssignmentData = useCallback(async () => {
     try {
       setAssignLoading(true);
@@ -105,8 +176,10 @@ const Dashboard = () => {
     // Cargar datos para asignación si es admin
     if (isAdmin()) {
       loadAssignmentData();
+      loadProyectos();
+      loadResponsables();
     }
-  }, [loadAssignmentData]);
+  }, [loadAssignmentData, loadProyectos, loadResponsables]);
 
   const handleAssignToSupport = useCallback(async (reportId, supportUserId) => {
     if (!supportUserId) return;
@@ -144,6 +217,24 @@ const Dashboard = () => {
   const goToCreateReport = useCallback(() => {
     navigate('/reportar');
   }, [navigate]);
+
+  // Handlers para filtros de Excel
+  const handleExcelFilterChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setExcelFilters(prev => ({ ...prev, [name]: value }));
+  }, []);
+
+  const handleResetExcelFilters = useCallback(() => {
+    setExcelFilters({
+      tipo_reporte: '',
+      estado: '',
+      grado_criticidad: '',
+      proyecto: '',
+      revisado_por: '',
+      date_from: '',
+      date_to: ''
+    });
+  }, []);
 
   const handleDownloadPDF = useCallback(async () => {
     const title = 'Reportes Detallados HSEQ';
@@ -426,13 +517,21 @@ const Dashboard = () => {
     w.document.close();
   }, [stats, selectedPeriod, reportService, userService]);
 
-  const handleDownloadExcel = useCallback(async () => {
+  const handleDownloadExcel = useCallback(async (customFilters = {}) => {
 
-     // Obtener todos los reportes con información completa
+     // Obtener todos los reportes con información completa y filtros aplicados
      let reportesDetallados = [];
      try {
-       console.log('Obteniendo reportes...');
-       const resp = await reportService.getAllReports({ per_page: 1000, page: 1 });
+       console.log('Obteniendo reportes con filtros:', customFilters);
+       
+       // Combinar filtros personalizados con configuración de paginación
+       const queryParams = {
+         per_page: 10000,
+         page: 1,
+         ...customFilters
+       };
+       
+       const resp = await reportService.getAllReports(queryParams);
        console.log('Respuesta del servidor:', resp);
        
        // Manejar diferentes estructuras de respuesta
@@ -922,6 +1021,23 @@ const Dashboard = () => {
      }
   }, [stats, selectedPeriod, reportService, userService]);
 
+  const handleDownloadExcelWithFilters = useCallback(async () => {
+    // Limpiar filtros vacíos
+    const cleanFilters = {};
+    Object.keys(excelFilters).forEach(key => {
+      if (excelFilters[key] !== '') {
+        cleanFilters[key] = excelFilters[key];
+      }
+    });
+    
+    setShowExcelFiltersModal(false);
+    await handleDownloadExcel(cleanFilters);
+  }, [excelFilters, handleDownloadExcel]);
+
+  const handleOpenExcelFiltersModal = useCallback(() => {
+    setShowExcelFiltersModal(true);
+  }, []);
+
   // Line chart: Tendencias mensuales
   const monthlyTrends = useMemo(() => [
     {
@@ -982,23 +1098,23 @@ const Dashboard = () => {
         background: 'linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 35%, var(--color-tertiary-dark) 100%)'
       }}>
         {/* Main Content Container */}
-        <div className="container mx-auto px-4 pb-12 pt-24 md:pt-28 transition-all duration-500">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-24 md:pt-28 transition-all duration-500" style={{ maxWidth: '1280px' }}>
 
           {/* Welcome Section */}
           {user && (
-            <div className={`transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              <div className="text-center mb-10 md:mb-12 py-6 px-4 rounded-3xl bg-gradient-to-b from-gray-800/40 to-gray-900/60 border border-gray-700 shadow-lg backdrop-blur-sm">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 tracking-tight text-white drop-shadow-md">
+            <div className={`mb-8 transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <div className="text-center py-8 px-6 rounded-2xl bg-gradient-to-b from-gray-800/40 to-gray-900/60 border border-gray-700 backdrop-blur-sm" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 tracking-tight text-white drop-shadow-md">
                   ¡Bienvenido, {getUserName()}!
                 </h1>
-                <p className="text-sm md:text-lg text-gray-300 font-medium tracking-wide">
+                <p className="text-sm md:text-base text-gray-300 font-medium tracking-wide">
                   Plataforma HSEQ — Sistema de Gestión de Seguridad y Calidad
                 </p>
               </div>
 
               {/* User Information Card - Redesigned */}
-                <div className="max-w-6xl mx-auto mb-6 md:mb-8 transition-all duration-1000 delay-300">
-                <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-700 overflow-hidden">
+                <div className="mt-8 transition-all duration-1000 delay-300">
+                <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl border border-gray-700 overflow-hidden" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
                   {/* Header Section with Avatar */}
                   <div className="relative p-4 md:p-8 text-center bg-gray-800/50 border-b border-gray-700">
                     
@@ -1145,8 +1261,8 @@ const Dashboard = () => {
           )}
 
           {/* Period Filter */}
-          <div className="flex justify-center mb-6 md:mb-8">
-            <div className="flex flex-wrap justify-center gap-2">
+          <div className="flex justify-center mb-8">
+            <div className="flex flex-wrap justify-center gap-3">
               {['month', 'quarter', 'year'].map((period) => (
                 <button
                   key={period}
@@ -1182,13 +1298,14 @@ const Dashboard = () => {
           </div>
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-            {loading && <div className="text-center text-lg text-gray-300 col-span-full">Cargando KPIs...</div>}
-            {error && <div className="text-center text-lg text-red-500 col-span-full">{error}</div>}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {loading && <div className="text-center text-base text-gray-300 col-span-full">Cargando KPIs...</div>}
+            {error && <div className="text-center text-base text-red-500 col-span-full">{error}</div>}
             {!loading && !error && kpis.map((kpi, index) => (
               <div 
                 key={index}
-                className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-4 md:p-6 border border-gray-700 hover:transform hover:scale-105 transition-all duration-300 shadow-2xl"
+                className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300"
+                style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}
               >
                 <h3 className="text-2xl md:text-3xl font-bold mb-1" style={{ color: kpi.color }}>
                   {kpi.value}
@@ -1201,18 +1318,19 @@ const Dashboard = () => {
           </div>
 
           {/* Charts Grid - Enhanced */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-8 mb-8">
-            {loading && <div className="text-center text-lg text-gray-300 col-span-full">Cargando gráficos...</div>}
-            {error && <div className="text-center text-lg text-red-500 col-span-full">{error}</div>}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+            {loading && <div className="text-center text-base text-gray-300 col-span-full">Cargando gráficos...</div>}
+            {error && <div className="text-center text-base text-red-500 col-span-full">{error}</div>}
             {!loading && !error && (
               <>
                 {/* Bar Chart - Incidentes por Mes */}
                 <div 
-                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-3xl p-6 shadow-2xl"
+                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-6"
                   style={{
                     height: '450px',
                     position: 'relative',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
                   }}
                 >
                   {/* Decorative elements */}
@@ -1337,10 +1455,10 @@ const Dashboard = () => {
 
                 {/* Resumen de Reportes - Barras por estado y criticidad */}
                 <div 
-                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-3xl p-6 shadow-2xl relative overflow-hidden"
+                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-6 relative overflow-hidden"
                   style={{
                     height: '450px',
-                    boxShadow: 'inset 0 0 40px rgba(0,0,0,0.3), 0 8px 30px rgba(0,0,0,0.4)'
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
                   }}
                 >
                   {/* Decorative elements */}
@@ -1490,18 +1608,19 @@ const Dashboard = () => {
           {/* (Se movió la sección de asignación más abajo) */}
 
           {/* Second Row Charts - Enhanced */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-8">
-            {loading && <div className="text-center text-lg text-gray-300 col-span-full">Cargando gráficos...</div>}
-            {error && <div className="text-center text-lg text-red-500 col-span-full">{error}</div>}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+            {loading && <div className="text-center text-base text-gray-300 col-span-full">Cargando gráficos...</div>}
+            {error && <div className="text-center text-base text-red-500 col-span-full">{error}</div>}
             {!loading && !error && (
               <>
                 {/* Line Chart - Tendencias Mensuales */}
                 <div 
-                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-3xl p-6 shadow-2xl"
+                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-6"
                   style={{
                     height: '450px',
                     position: 'relative',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
                   }}
                 >
                   {/* Decorative elements */}
@@ -1627,11 +1746,12 @@ const Dashboard = () => {
 
                 {/* Pie Chart - Incidentes por Tipo */}
                 <div 
-                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-3xl p-6 shadow-2xl"
+                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-6"
                   style={{
                     height: '450px',
                     position: 'relative',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
                   }}
                 >
                   {/* Decorative elements */}
@@ -1713,10 +1833,11 @@ const Dashboard = () => {
           </div>
 
           {/* Download Reports Section */}
-          <div className="mt-12 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8">
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-white mb-6">Reportes y Exportación</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                {/* Reporte Principal */}
-               <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-gray-700 hover:transform hover:scale-105 transition-all duration-500 shadow-2xl">
+               <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
                  <div className="text-center">
                    <div className="text-4xl md:text-5xl mb-4 md:mb-6">📊</div>
                    <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
@@ -1768,40 +1889,40 @@ const Dashboard = () => {
                 </div>
               </div>
 
-               {/* Reportes Detallados */}
-               <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-8 border border-gray-700 hover:transform hover:scale-105 transition-all duration-500 shadow-2xl">
+               {/* Excel Todos los Reportes */}
+               <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
                  <div className="text-center">
-                   <div className="text-5xl mb-6">📋</div>
-                   <h3 className="text-2xl font-bold mb-4 text-white">
-                     Reportes Detallados Excel
+                   <div className="text-4xl md:text-5xl mb-4 md:mb-6">📋</div>
+                   <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
+                     Excel Todos los Reportes
                    </h3>
-                   <p className="text-sm mb-6 text-gray-300">
-                     Excel con todos los reportes detallados: información completa, descripciones, imágenes embebidas, comentarios de revisión y más
+                   <p className="text-xs md:text-sm mb-4 md:mb-6 text-gray-300">
+                     Excel con TODOS los reportes sin filtros: información completa, descripciones y comentarios
                    </p>
                    
                    {/* Quick stats */}
-                   <div className="grid grid-cols-2 gap-3 mb-6">
+                   <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
                      <div className="text-center">
-                       <div className="text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>
+                       <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>
                          {loading ? '...' : (stats?.kpis?.total_reportes ?? '0')}
                        </div>
                        <div className="text-xs opacity-70 text-gray-400">Reportes</div>
                      </div>
                      <div className="text-center">
-                       <div className="text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>1</div>
+                       <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>1</div>
                        <div className="text-xs opacity-70 text-gray-400">Hoja</div>
                      </div>
                    </div>
                   
                   <button 
-                    className="w-full group relative font-bold py-4 px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
+                    className="w-full group relative font-bold py-3 md:py-4 px-4 md:px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
                     style={{
                       background: 'linear-gradient(45deg, #22c55e, #16a34a)',
                       color: 'white',
                       boxShadow: '0 15px 35px -5px rgba(34, 197, 94, 0.5)',
                       '--focus-ring-color': 'rgba(34, 197, 94, 0.5)'
                     }}
-                    onClick={handleDownloadExcel}
+                    onClick={() => handleDownloadExcel({})}
                   >
                     <div 
                       className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
@@ -1810,41 +1931,99 @@ const Dashboard = () => {
                       }}
                     ></div>
                     <span className="relative flex items-center justify-center space-x-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      <span>GENERAR EXCEL</span>
+                      <span className="text-sm md:text-base">GENERAR EXCEL</span>
                     </span>
                   </button>
                 </div>
               </div>
 
-              {/* Administración de Usuarios (solo Admin) */}
-              {isAdmin() && (
-                <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-8 border border-gray-700 hover:transform hover:scale-105 transition-all duration-500 shadow-2xl">
+               {/* Excel con Filtros */}
+               <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
+                 <div className="text-center">
+                   <div className="text-4xl md:text-5xl mb-4 md:mb-6">🔍</div>
+                   <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
+                     Excel CON Filtros
+                   </h3>
+                   <p className="text-xs md:text-sm mb-4 md:mb-6 text-gray-300">
+                     Excel personalizado con filtros aplicados: tipo, estado, proyecto, responsable, fechas y más
+                   </p>
+                   
+                   {/* Quick stats */}
+                   <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
+                     <div className="text-center">
+                       <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>
+                         7
+                       </div>
+                       <div className="text-xs opacity-70 text-gray-400">Filtros</div>
+                     </div>
+                     <div className="text-center">
+                       <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>
+                         {loading ? '...' : (stats?.kpis?.total_reportes ?? '0')}
+                       </div>
+                       <div className="text-xs opacity-70 text-gray-400">Reportes</div>
+                     </div>
+                   </div>
+                  
+                  <button 
+                    className="w-full group relative font-bold py-3 md:py-4 px-4 md:px-6 rounded-2xl transition-all duration-300 transform hover:scale-[1.02] overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
+                    style={{
+                      background: 'linear-gradient(45deg, #22c55e, #16a34a)',
+                      color: 'white',
+                      boxShadow: '0 15px 35px -5px rgba(34, 197, 94, 0.5)',
+                      '--focus-ring-color': 'rgba(34, 197, 94, 0.5)'
+                    }}
+                    onClick={handleOpenExcelFiltersModal}
+                  >
+                    <div 
+                      className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+                      style={{
+                        background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)'
+                      }}
+                    ></div>
+                    <span className="relative flex items-center justify-center space-x-2">
+                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="text-sm md:text-base">CONFIGURAR Y GENERAR</span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Administración de Usuarios (solo Admin) */}
+          {isAdmin() && (
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-white mb-6">Administración del Sistema</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
                   <div className="text-center">
-                    <div className="text-5xl mb-6">👥</div>
-                    <h3 className="text-2xl font-bold mb-4 text-white">
+                    <div className="text-4xl md:text-5xl mb-4 md:mb-6">👥</div>
+                    <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
                       Administración de Usuarios
                     </h3>
-                    <p className="text-sm mb-6 text-gray-300">
+                    <p className="text-xs md:text-sm mb-4 md:mb-6 text-gray-300">
                       Gestiona usuarios, roles y accesos del sistema
                     </p>
 
-                    <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
                       <div className="text-center">
-                        <div className="text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>Roles</div>
+                        <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>Roles</div>
                         <div className="text-xs opacity-70 text-gray-400">Admin, Coord, Colab</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>Accesos</div>
+                        <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>Accesos</div>
                         <div className="text-xs opacity-70 text-gray-400">Protegidos por token</div>
                       </div>
                     </div>
 
                     <button 
                       onClick={goToUserAdmin}
-                      className="w-full group relative font-bold py-4 px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent mb-4"
+                      className="w-full group relative font-bold py-3 md:py-4 px-4 md:px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
                       style={{
                         background: 'linear-gradient(45deg, #8b5cf6, #6366f1)',
                         color: 'white',
@@ -1859,16 +2038,39 @@ const Dashboard = () => {
                         }}
                       ></div>
                       <span className="relative flex items-center justify-center space-x-2">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20h6M3 20h6M12 14a4 4 0 100-8 4 4 0 000 8z" />
                         </svg>
-                        <span>IR A ADMINISTRACIÓN</span>
+                        <span className="text-sm md:text-base">IR A ADMINISTRACIÓN</span>
                       </span>
                     </button>
+                  </div>
+                </div>
+
+                <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
+                  <div className="text-center">
+                    <div className="text-4xl md:text-5xl mb-4 md:mb-6">➕</div>
+                    <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
+                      Crear Nuevo Reporte
+                    </h3>
+                    <p className="text-xs md:text-sm mb-4 md:mb-6 text-gray-300">
+                      Registra un nuevo hallazgo, incidente, conversación o PQR
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
+                      <div className="text-center">
+                        <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>4 Tipos</div>
+                        <div className="text-xs opacity-70 text-gray-400">Hallazgos, Incidentes...</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>Evidencias</div>
+                        <div className="text-xs opacity-70 text-gray-400">Fotos y documentos</div>
+                      </div>
+                    </div>
 
                     <button 
                       onClick={goToCreateReport}
-                      className="w-full group relative font-bold py-4 px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
+                      className="w-full group relative font-bold py-3 md:py-4 px-4 md:px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
                       style={{
                         background: 'linear-gradient(45deg, #10b981, #059669)',
                         color: 'white',
@@ -1883,48 +2085,24 @@ const Dashboard = () => {
                         }}
                       ></div>
                       <span className="relative flex items-center justify-center space-x-2">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
-                        <span>CREAR REPORTE</span>
+                        <span className="text-sm md:text-base">CREAR REPORTE</span>
                       </span>
                     </button>
                   </div>
                 </div>
-              )}
-            </div>
-            
-            {/* Additional Info Bar */}
-            <div className="mt-8 text-center">
-              <div className="inline-flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6 px-4 md:px-6 py-3 rounded-2xl backdrop-blur-lg bg-gray-800/50 border border-gray-700">
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs md:text-sm text-gray-400">Última actualización:</span>
-                  <span className="text-xs md:text-sm font-medium text-gray-100">
-                    {new Date().toLocaleDateString('es-ES')}
-                  </span>
-                </div>
-                <div className="hidden md:block w-px h-4 bg-gray-700"></div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs md:text-sm text-gray-400">Formatos disponibles:</span>
-                  <div className="flex space-x-2">
-                    <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5' }}>PDF</span>
-                    <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.2)', color: '#86efac' }}>Excel</span>
-                    <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd' }}>CSV</span>
-                  </div>
-                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          
-          {/* Nueva sección: Gestión completa de reportes (solo Admin) */}
+          {/* Gestión completa de reportes (solo Admin) */}
           {isAdmin() && (
-            <div className="mt-12 mb-8">
-              <div className="bg-gray-900/80 backdrop-blur-md rounded-3xl p-8 border border-gray-700 shadow-2xl">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-white mb-6">Gestión Completa de Reportes</h2>
+              <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
                 <div className="mb-6">
-                  <h3 className="text-2xl font-bold text-white">
-                    Gestión Completa de Reportes
-                  </h3>
                   <p className="text-sm text-gray-300">
                     Visualiza, filtra y gestiona todos los reportes del sistema con herramientas avanzadas
                   </p>
@@ -1942,7 +2120,192 @@ const Dashboard = () => {
             </div>
           )}
         </div>
+      </div>
         
+      {/* Modal de Filtros Excel */}
+      {showExcelFiltersModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}>
+            <div className="bg-gray-900 rounded-2xl border border-gray-700 max-w-4xl w-full max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-gray-800 border-b border-gray-700 p-6 flex justify-between items-center z-10">
+                <div>
+                  <h3 className="text-2xl font-bold text-white flex items-center">
+                    <span className="mr-3">🔍</span>
+                    Configurar Filtros de Excel
+                  </h3>
+                  <p className="text-sm text-gray-400 mt-1">Personaliza tu reporte según tus necesidades</p>
+                </div>
+                <button 
+                  onClick={() => setShowExcelFiltersModal(false)}
+                  className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700 rounded-lg"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm mb-2 font-medium text-gray-300">Tipo de Reporte</label>
+                    <select 
+                      name="tipo_reporte" 
+                      value={excelFilters.tipo_reporte} 
+                      onChange={handleExcelFilterChange}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    >
+                      <option value="">Todos los tipos</option>
+                      {reportTypes.map(rt => (
+                        <option key={rt.id} value={rt.id}>{rt.title.replace(/^\d+\.\s*/,'')}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm mb-2 font-medium text-gray-300">Estado</label>
+                    <select 
+                      name="estado" 
+                      value={excelFilters.estado} 
+                      onChange={handleExcelFilterChange}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    >
+                      <option value="">Todos los estados</option>
+                      <option value="pendiente">Pendiente</option>
+                      <option value="en_revision">En Revisión</option>
+                      <option value="aprobado">Aprobado</option>
+                      <option value="rechazado">Rechazado</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm mb-2 font-medium text-gray-300">Grado de Criticidad</label>
+                    <select 
+                      name="grado_criticidad" 
+                      value={excelFilters.grado_criticidad} 
+                      onChange={handleExcelFilterChange}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    >
+                      <option value="">Todas las criticidades</option>
+                      {gradosCriticidad.map(o => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm mb-2 font-medium text-gray-300">Proyecto</label>
+                    <select 
+                      name="proyecto" 
+                      value={excelFilters.proyecto} 
+                      onChange={handleExcelFilterChange}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    >
+                      <option value="">Todos los proyectos</option>
+                      {proyectos.map(proyecto => (
+                        <option key={proyecto} value={proyecto}>{proyecto}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm mb-2 font-medium text-gray-300">Responsable</label>
+                    <select 
+                      name="revisado_por" 
+                      value={excelFilters.revisado_por} 
+                      onChange={handleExcelFilterChange}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    >
+                      <option value="">Todos los responsables</option>
+                      {responsables.map(resp => (
+                        <option key={resp.id} value={resp.id}>{resp.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm mb-2 font-medium text-gray-300">Fecha Desde</label>
+                    <input 
+                      type="date" 
+                      name="date_from" 
+                      value={excelFilters.date_from} 
+                      onChange={handleExcelFilterChange}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm mb-2 font-medium text-gray-300">Fecha Hasta</label>
+                    <input 
+                      type="date" 
+                      name="date_to" 
+                      value={excelFilters.date_to} 
+                      onChange={handleExcelFilterChange}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
+                </div>
+                
+                {/* Filtros activos preview */}
+                <div className="mt-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-gray-300">Filtros Activos:</span>
+                    <span className="text-xs text-gray-400">
+                      {Object.values(excelFilters).filter(v => v !== '').length} de 7 filtros aplicados
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(excelFilters).map(([key, value]) => {
+                      if (value === '') return null;
+                      return (
+                        <span key={key} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                          {key.replace(/_/g, ' ')}: {value}
+                        </span>
+                      );
+                    })}
+                    {Object.values(excelFilters).filter(v => v !== '').length === 0 && (
+                      <span className="text-xs text-gray-500 italic">No hay filtros aplicados - se generará con todos los reportes</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="sticky bottom-0 bg-gray-800 border-t border-gray-700 p-6 flex justify-between items-center">
+                <button 
+                  onClick={handleResetExcelFilters}
+                  className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Limpiar Filtros</span>
+                </button>
+                
+                <div className="flex space-x-3">
+                  <button 
+                    onClick={() => setShowExcelFiltersModal(false)}
+                    className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors duration-200"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={handleDownloadExcelWithFilters}
+                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white rounded-lg text-sm font-bold transition-all duration-200 flex items-center space-x-2"
+                    style={{ boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)' }}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Generar Excel</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Floating Action Buttons */}
         <div className="floating-action-buttons">
           <button 
@@ -1984,11 +2347,8 @@ const Dashboard = () => {
             </button>
           )}
         </div>
-        
-        <div style={{ backgroundColor: 'transparent', backgroundImage: 'none' }}>
-          <Footer />
-        </div>
-      </div>
+      
+      <Footer />
     </>
   );
 };

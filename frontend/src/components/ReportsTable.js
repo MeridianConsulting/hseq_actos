@@ -85,6 +85,7 @@ const ReportsTable = ({
     grado_criticidad: '',
     tipo_afectacion: '',
     proyecto: '',
+    revisado_por: '', // Nuevo filtro de responsable
     date_from: '',
     date_to: '',
     q: '',
@@ -96,6 +97,7 @@ const ReportsTable = ({
   const [meta, setMeta] = useState(null);
   const [allReports, setAllReports] = useState([]); // Para estadísticas
   const [proyectos, setProyectos] = useState([]); // Lista de proyectos únicos
+  const [responsables, setResponsables] = useState([]); // Lista de usuarios responsables (soporte/admin)
 
   // Cargar estadísticas (todos los reportes)
   const loadStats = async () => {
@@ -144,6 +146,42 @@ const ReportsTable = ({
     }
   };
 
+  // Cargar responsables (usuarios con rol soporte o admin)
+  const loadResponsables = async () => {
+    try {
+      const [soporteResult, adminResult] = await Promise.all([
+        userService.fetchUsers({ rol: 'soporte', activo: 1 }),
+        userService.fetchUsers({ rol: 'admin', activo: 1 })
+      ]);
+      
+      let soporteUsers = [];
+      let adminUsers = [];
+      
+      // Procesar usuarios de soporte
+      if (soporteResult.success && soporteResult.data) {
+        soporteUsers = soporteResult.data;
+      } else if (Array.isArray(soporteResult)) {
+        soporteUsers = soporteResult;
+      }
+      
+      // Procesar usuarios admin
+      if (adminResult.success && adminResult.data) {
+        adminUsers = adminResult.data;
+      } else if (Array.isArray(adminResult)) {
+        adminUsers = adminResult;
+      }
+      
+      // Combinar y ordenar por nombre
+      const todosResponsables = [...soporteUsers, ...adminUsers].sort((a, b) => 
+        (a.nombre || '').localeCompare(b.nombre || '')
+      );
+      
+      setResponsables(todosResponsables);
+    } catch (error) {
+      console.error('Error al cargar responsables:', error);
+    }
+  };
+
   const loadReports = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -173,9 +211,10 @@ const ReportsTable = ({
   }, [filters, activeTab]);
 
   useEffect(() => {
-    // Cargar estadísticas, proyectos y reportes al inicializar
+    // Cargar estadísticas, proyectos, responsables y reportes al inicializar
     loadStats();
     loadProyectos();
+    loadResponsables();
     loadReports();
   }, [loadReports]);
 
@@ -234,8 +273,8 @@ const ReportsTable = ({
   
   const handleReset = () => {
     setFilters({
-      tipo_reporte: '', estado: '', grado_criticidad: '', tipo_afectacion: '',
-      date_from: '', date_to: '', q: '', page: 1, per_page: 10, sort_by: 'creado_en', sort_dir: 'desc'
+      tipo_reporte: '', estado: '', grado_criticidad: '', tipo_afectacion: '', proyecto: '',
+      revisado_por: '', date_from: '', date_to: '', q: '', page: 1, per_page: 10, sort_by: 'creado_en', sort_dir: 'desc'
     });
     // Vuelve a cargar con filtros limpios
     setTimeout(loadReports, 0);
@@ -535,17 +574,17 @@ const ReportsTable = ({
          >
            Cerrados
          </button>
-                 <button
-           onClick={() => { loadStats(); loadProyectos(); loadReports(); }}
-           className={`py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold text-sm sm:text-base transition-colors duration-200 ${
-             useDarkTheme 
-               ? 'bg-gray-800 text-white hover:bg-gray-700'
-               : 'bg-white/15 text-white hover:bg-white/25'
-           }`}
-           title="Refrescar lista y estadísticas"
-         >
-           Refrescar
-         </button>
+                <button
+          onClick={() => { loadStats(); loadProyectos(); loadResponsables(); loadReports(); }}
+          className={`py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold text-sm sm:text-base transition-colors duration-200 ${
+            useDarkTheme 
+              ? 'bg-gray-800 text-white hover:bg-gray-700'
+              : 'bg-white/15 text-white hover:bg-white/25'
+          }`}
+          title="Refrescar lista y estadísticas"
+        >
+          Refrescar
+        </button>
       </div>
 
              {/* Filter Bar */}
@@ -554,81 +593,94 @@ const ReportsTable = ({
            ? 'bg-gray-900/80 border-gray-700' 
            : 'bg-white/10 border-white/20'
        }`}>
-         {/* Filter Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3 mb-4">
-         <div>
-           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Tipo de reporte</label>
-           <select name="tipo_reporte" value={filters.tipo_reporte} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
-             useDarkTheme 
-               ? 'bg-gray-800 border-gray-600 text-gray-100' 
-               : 'bg-white border-gray-300 text-gray-900'
-           }`}>
-            <option value="">Todos</option>
-            {reportTypes.map(rt => (
-              <option key={rt.id} value={rt.id}>{rt.title.replace(/^\d+\.\s*/,'')}</option>
-            ))}
-          </select>
+        {/* Filter Grid */}
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-4">
+        <div>
+          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Tipo de reporte</label>
+          <select name="tipo_reporte" value={filters.tipo_reporte} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+            useDarkTheme 
+              ? 'bg-gray-800 border-gray-600 text-gray-100' 
+              : 'bg-white border-gray-300 text-gray-900'
+          }`}>
+           <option value="">Todos</option>
+           {reportTypes.map(rt => (
+             <option key={rt.id} value={rt.id}>{rt.title.replace(/^\d+\.\s*/,'')}</option>
+           ))}
+         </select>
+       </div>
+                <div>
+          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Criticidad</label>
+          <select name="grado_criticidad" value={filters.grado_criticidad} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+            useDarkTheme 
+              ? 'bg-gray-800 border-gray-600 text-gray-100' 
+              : 'bg-white border-gray-300 text-gray-900'
+          }`}>
+           <option value="">Todas</option>
+           {gradosCriticidad.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
+         </select>
+       </div>
+                <div>
+          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Afectación</label>
+          <select name="tipo_afectacion" value={filters.tipo_afectacion} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+            useDarkTheme 
+              ? 'bg-gray-800 border-gray-600 text-gray-100' 
+              : 'bg-white border-gray-300 text-gray-900'
+          }`}>
+           <option value="">Todas</option>
+           {tiposAfectacion.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
+         </select>
+       </div>
+                <div>
+          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Proyecto</label>
+          <select name="proyecto" value={filters.proyecto} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+            useDarkTheme 
+              ? 'bg-gray-800 border-gray-600 text-gray-100' 
+              : 'bg-white border-gray-300 text-gray-900'
+          }`}>
+           <option value="">Todos</option>
+           {proyectos.map(proyecto => (
+             <option key={proyecto} value={proyecto}>{proyecto}</option>
+           ))}
+         </select>
+       </div>
+                <div>
+          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Responsable</label>
+          <select name="revisado_por" value={filters.revisado_por} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+            useDarkTheme 
+              ? 'bg-gray-800 border-gray-600 text-gray-100' 
+              : 'bg-white border-gray-300 text-gray-900'
+          }`}>
+           <option value="">Todos</option>
+           {responsables.map(resp => (
+             <option key={resp.id} value={resp.id}>{resp.nombre}</option>
+           ))}
+         </select>
+       </div>
+                <div>
+          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Desde</label>
+          <input type="date" name="date_from" value={filters.date_from} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+            useDarkTheme 
+              ? 'bg-gray-800 border-gray-600 text-gray-100' 
+              : 'bg-white border-gray-300 text-gray-900'
+          }`} />
+       </div>
+                <div>
+          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Hasta</label>
+          <input type="date" name="date_to" value={filters.date_to} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+            useDarkTheme 
+              ? 'bg-gray-800 border-gray-600 text-gray-100' 
+              : 'bg-white border-gray-300 text-gray-900'
+          }`} />
+       </div>
+                <div>
+          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Buscar</label>
+          <input type="text" name="q" placeholder="Texto libre" value={filters.q} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+            useDarkTheme 
+              ? 'bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-400' 
+              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+          }`} />
         </div>
-                 <div>
-           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Criticidad</label>
-           <select name="grado_criticidad" value={filters.grado_criticidad} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
-             useDarkTheme 
-               ? 'bg-gray-800 border-gray-600 text-gray-100' 
-               : 'bg-white border-gray-300 text-gray-900'
-           }`}>
-            <option value="">Todas</option>
-            {gradosCriticidad.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
-          </select>
         </div>
-                 <div>
-           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Afectación</label>
-           <select name="tipo_afectacion" value={filters.tipo_afectacion} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
-             useDarkTheme 
-               ? 'bg-gray-800 border-gray-600 text-gray-100' 
-               : 'bg-white border-gray-300 text-gray-900'
-           }`}>
-            <option value="">Todas</option>
-            {tiposAfectacion.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
-          </select>
-        </div>
-                 <div>
-           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Proyecto</label>
-           <select name="proyecto" value={filters.proyecto} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
-             useDarkTheme 
-               ? 'bg-gray-800 border-gray-600 text-gray-100' 
-               : 'bg-white border-gray-300 text-gray-900'
-           }`}>
-            <option value="">Todos</option>
-            {proyectos.map(proyecto => (
-              <option key={proyecto} value={proyecto}>{proyecto}</option>
-            ))}
-          </select>
-        </div>
-                 <div>
-           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Desde</label>
-           <input type="date" name="date_from" value={filters.date_from} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
-             useDarkTheme 
-               ? 'bg-gray-800 border-gray-600 text-gray-100' 
-               : 'bg-white border-gray-300 text-gray-900'
-           }`} />
-        </div>
-                 <div>
-           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Hasta</label>
-           <input type="date" name="date_to" value={filters.date_to} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
-             useDarkTheme 
-               ? 'bg-gray-800 border-gray-600 text-gray-100' 
-               : 'bg-white border-gray-300 text-gray-900'
-           }`} />
-        </div>
-                 <div>
-           <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Buscar</label>
-           <input type="text" name="q" placeholder="Texto libre" value={filters.q} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
-             useDarkTheme 
-               ? 'bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-400' 
-               : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-           }`} />
-         </div>
-         </div>
          
          {/* Action Buttons and Pagination */}
          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
