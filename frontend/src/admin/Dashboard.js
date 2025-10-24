@@ -2119,7 +2119,7 @@ const Dashboard = () => {
 
           {/* Gestión completa de reportes (solo Admin) */}
           {isAdmin() && (
-            <div className="mb-8">
+            <div>
               <div className="mb-6 pb-4 border-b border-gray-700/50">
                 <div className="flex flex-col items-center justify-center text-center space-y-3">
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>

@@ -790,6 +790,89 @@ const ReportsTable = ({
                     <span>Fecha: {formatReportDateTime(report.fecha_evento, report.creado_en)}</span>
                   </div>
                   
+                  {/* Indicador de Responsable */}
+                  {report.nombre_revisor ? (
+                    <div className={`mt-3 flex items-center space-x-2 p-3 rounded-lg border ${
+                      useDarkTheme 
+                        ? 'bg-blue-900/30 border-blue-700/50' 
+                        : 'bg-blue-500/20 border-blue-400/50'
+                    }`}>
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                        useDarkTheme ? 'bg-blue-600' : 'bg-blue-500'
+                      }`}>
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <p className={`text-xs font-medium ${
+                          useDarkTheme ? 'text-blue-300' : 'text-blue-100'
+                        }`}>Caso asignado a:</p>
+                        <p className={`text-sm font-bold ${
+                          useDarkTheme ? 'text-white' : 'text-white'
+                        }`}>{report.nombre_revisor}</p>
+                      </div>
+                      <div className={`flex-shrink-0 px-2 py-1 rounded-full text-xs font-semibold ${
+                        useDarkTheme 
+                          ? 'bg-green-900/50 text-green-300 border border-green-700/50' 
+                          : 'bg-green-500/30 text-green-100 border border-green-400/50'
+                      }`}>
+                        ✓ Asignado
+                      </div>
+                    </div>
+                  ) : report.estado !== 'pendiente' ? (
+                    <div className={`mt-3 flex items-center space-x-2 p-3 rounded-lg border ${
+                      useDarkTheme 
+                        ? 'bg-gray-800/50 border-gray-700' 
+                        : 'bg-gray-500/20 border-gray-400/50'
+                    }`}>
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                        useDarkTheme ? 'bg-gray-700' : 'bg-gray-500'
+                      }`}>
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <p className={`text-xs font-medium ${
+                          useDarkTheme ? 'text-gray-400' : 'text-gray-200'
+                        }`}>Responsable:</p>
+                        <p className={`text-sm font-semibold ${
+                          useDarkTheme ? 'text-gray-300' : 'text-white'
+                        }`}>Sin asignar</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`mt-3 flex items-center space-x-2 p-3 rounded-lg border ${
+                      useDarkTheme 
+                        ? 'bg-yellow-900/20 border-yellow-700/50' 
+                        : 'bg-yellow-500/20 border-yellow-400/50'
+                    }`}>
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                        useDarkTheme ? 'bg-yellow-700' : 'bg-yellow-500'
+                      }`}>
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <p className={`text-xs font-medium ${
+                          useDarkTheme ? 'text-yellow-300' : 'text-yellow-100'
+                        }`}>Estado:</p>
+                        <p className={`text-sm font-bold ${
+                          useDarkTheme ? 'text-white' : 'text-white'
+                        }`}>Esperando asignación</p>
+                      </div>
+                      <div className={`flex-shrink-0 px-2 py-1 rounded-full text-xs font-semibold ${
+                        useDarkTheme 
+                          ? 'bg-yellow-900/50 text-yellow-300 border border-yellow-700/50' 
+                          : 'bg-yellow-500/30 text-yellow-100 border border-yellow-400/50'
+                      }`}>
+                        ⏳ Pendiente
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Mostrar primera imagen si existe */}
                   {report.evidencias && report.evidencias.length > 0 && (
                     <div className="mt-3">
