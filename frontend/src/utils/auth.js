@@ -4,7 +4,18 @@
 export const isAuthenticated = () => {
   const fromLocal = localStorage.getItem('isLoggedIn');
   const fromSession = sessionStorage.getItem('isLoggedIn');
-  return fromLocal === 'true' || fromSession === 'true';
+  const token = localStorage.getItem('token');
+  
+  // Verificar que exista el flag Y el token
+  const hasSession = fromLocal === 'true' || fromSession === 'true';
+  
+  if (hasSession && !token) {
+    // Si hay sesión marcada pero no hay token, limpiar todo
+    logout();
+    return false;
+  }
+  
+  return hasSession && !!token;
 };
 
 // Obtener datos del usuario

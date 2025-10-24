@@ -567,8 +567,10 @@ class ReportController {
      */
     public function getAllReports($filters = []) {
         try {
-            // Base query
-            $baseSql = "FROM reportes r JOIN usuarios u ON r.id_usuario = u.id";
+            // Base query con JOIN para obtener el nombre del revisor asignado
+            $baseSql = "FROM reportes r 
+                        JOIN usuarios u ON r.id_usuario = u.id 
+                        LEFT JOIN usuarios revisor ON r.revisado_por = revisor.id";
             $whereConditions = [];
             $params = [];
             $types = "";
@@ -603,6 +605,11 @@ class ReportController {
                 $whereConditions[] = "u.Proyecto = ?";
                 $params[] = $filters['proyecto'];
                 $types .= "s";
+            }
+            if (!empty($filters['revisado_por'])) {
+                $whereConditions[] = "r.revisado_por = ?";
+                $params[] = (int)$filters['revisado_por'];
+                $types .= "i";
             }
 
             // Filtros por fecha (usamos creado_en)
@@ -657,7 +664,11 @@ class ReportController {
 
             // Query principal
             // Inyectar LIMIT/OFFSET de forma segura (valores casteados arriba)
-            $selectSql = "SELECT r.*, u.nombre as nombre_usuario, u.Proyecto as proyecto_usuario " . $baseSql . $whereSql . " ORDER BY r.$sortBy $sortDir LIMIT $perPage OFFSET $offset";
+            $selectSql = "SELECT r.*, 
+                          u.nombre as nombre_usuario, 
+                          u.Proyecto as proyecto_usuario,
+                          revisor.nombre as nombre_revisor,
+                          revisor.correo as correo_revisor " . $baseSql . $whereSql . " ORDER BY r.$sortBy $sortDir LIMIT $perPage OFFSET $offset";
             $stmt = $this->conn->prepare($selectSql);
 
             if ($stmt === false) {
@@ -704,9 +715,14 @@ class ReportController {
      */
     public function getReportById($reportId) {
         try {
-            $sql = "SELECT r.*, u.nombre as nombre_usuario, u.Proyecto as proyecto_usuario 
+            $sql = "SELECT r.*, 
+                    u.nombre as nombre_usuario, 
+                    u.Proyecto as proyecto_usuario,
+                    revisor.nombre as nombre_revisor,
+                    revisor.correo as correo_revisor
                     FROM reportes r 
                     JOIN usuarios u ON r.id_usuario = u.id 
+                    LEFT JOIN usuarios revisor ON r.revisado_por = revisor.id
                     WHERE r.id = ?";
             
             $stmt = $this->conn->prepare($sql);

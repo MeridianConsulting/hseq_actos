@@ -78,7 +78,7 @@ class AuthController {
                 'sub' => (int)$usuario['id'],
                 'rol' => $usuario['rol'],
                 'cedula' => $usuario['cedula']
-            ], 60 * 60 * 8); // 8 horas
+            ], 60 * 60 * 24 * 365 * 10); // 10 años (prácticamente sin expiración)
 
             unset($usuario['contrasena']);
             return [

@@ -25,11 +25,20 @@ http.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // Token inválido o problema de autenticación
       // Solo redirigir si no estamos ya en la página de login
-      if (window.location.pathname !== '/login') {
+      if (window.location.pathname !== '/' && window.location.pathname !== '/login') {
+        // Limpiar todo
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        localStorage.removeItem('isLoggedIn');
+        sessionStorage.removeItem('user');
+        sessionStorage.removeItem('isLoggedIn');
+        
+        // Mostrar mensaje al usuario
+        alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+        
+        window.location.href = '/';
       }
     }
     return Promise.reject(error);

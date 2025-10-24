@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 // import Home from './admin/Home'; // Ya no se usa
 import Dashboard from './admin/Dashboard';
 import UsersAdmin from './admin/UsersAdmin';
@@ -30,6 +31,26 @@ const PublicRoute = ({ children }) => {
 };
 
 function App() {
+  useEffect(() => {
+    // Verificar integridad de la sesión al cargar
+    const token = localStorage.getItem('token');
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true' || 
+                       sessionStorage.getItem('isLoggedIn') === 'true';
+    
+    // Si dice que está logueado pero no hay token, limpiar
+    if (isLoggedIn && !token) {
+      localStorage.removeItem('user');
+      localStorage.removeItem('isLoggedIn');
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('isLoggedIn');
+      
+      // Si no está en login, redirigir
+      if (window.location.pathname !== '/' && window.location.pathname !== '/login') {
+        window.location.href = '/';
+      }
+    }
+  }, []);
+
   return (
     <Router>
       <div className="App">
