@@ -1284,6 +1284,8 @@ class ReportController {
             $titulo = $rep['asunto'] ?: ($rep['asunto_conversacion'] ?: '(sin asunto)');
             $subject = '';
             $body = '';
+            $attachments = [];
+            
             if ($tipo === 'creacion') {
                 $subject = "[HSEQ] Nuevo reporte #{$rep['id']} - {$rep['tipo_reporte']}";
                 $body = "<p>Hola {$rep['nombre']},</p>
@@ -1292,13 +1294,36 @@ class ReportController {
                          <p>Estado actual: <strong>{$rep['estado']}</strong></p>
                          <p>Fecha de creación: {$rep['creado_en']}</p>";
             } else if ($tipo === 'estado') {
-                $estado = $this->e($extra['nuevo_estado'] ?? '');
-                $subject = "[HSEQ] Estado actualizado reporte #{$rep['id']} → {$estado}";
+                $estadoOriginal = $extra['nuevo_estado'] ?? '';
+                $estadoEscapado = $this->e($estadoOriginal);
+                $subject = "[HSEQ] Estado actualizado reporte #{$rep['id']} → {$estadoEscapado}";
                 $body = "<p>Hola {$rep['nombre']},</p>
-                         <p>El estado de tu reporte <strong>#{$rep['id']}</strong> ha cambiado a <strong>{$estado}</strong>.</p>
+                         <p>El estado de tu reporte <strong>#{$rep['id']}</strong> ha cambiado a <strong>{$estadoEscapado}</strong>.</p>
                          <p>Título: <strong>{$this->e($titulo)}</strong></p>";
                 if (!empty($extra['comentarios'])) {
                     $body .= "<p>Comentarios de revisión: {$this->e($extra['comentarios'])}</p>";
+                }
+                
+                // Si el reporte fue aprobado o rechazado (cerrado), adjuntar PDF
+                if (in_array($estadoOriginal, ['aprobado', 'rechazado'])) {
+                    try {
+                        error_log("Intentando generar PDF para reporte #{$reportId} con estado {$estadoOriginal}");
+                        $pdfContent = $this->generateReportPDFContent($reportId);
+                        if ($pdfContent) {
+                            $attachments[] = [
+                                'content' => $pdfContent,
+                                'filename' => "reporte_hseq_{$reportId}.pdf",
+                                'mime_type' => 'application/pdf'
+                            ];
+                            $body .= "<p>📎 <em>Se adjunta el PDF del reporte completo.</em></p>";
+                            error_log("PDF generado exitosamente para reporte #{$reportId}");
+                        } else {
+                            error_log("No se pudo generar PDF para reporte #{$reportId} - pdfContent es null");
+                        }
+                    } catch (Exception $e) {
+                        error_log("Error generando PDF para adjuntar: " . $e->getMessage());
+                        error_log("Stack trace: " . $e->getTraceAsString());
+                    }
                 }
             } else if ($tipo === 'vencido') {
                 $subject = "[HSEQ] Recordatorio: reporte #{$rep['id']} supera 30 días";
@@ -1310,7 +1335,7 @@ class ReportController {
 
             // Enviar correo (forzado a test durante pruebas)
             $sendTo = $testTo ?: $destinatario;
-            $sendResult = send_email($sendTo, $subject, $body);
+            $sendResult = send_email($sendTo, $subject, $body, null, $attachments);
 
             // Registrar en notificaciones
             $sqlN = 'INSERT INTO notificaciones (id_reporte, destinatario, medio) VALUES (?, ?, "correo")';
@@ -1321,8 +1346,236 @@ class ReportController {
                 $stmtN->close();
             }
         } catch (Exception $e) {
+            error_log("Error en notifyReportEvent: " . $e->getMessage());
             // Silencioso, no romper flujo del reporte
         }
+    }
+
+    /**
+     * Genera el contenido PDF del reporte y lo retorna como string binario
+     */
+    private function generateReportPDFContent(int $reportId): ?string {
+        try {
+            // Obtener datos completos del reporte (copiado de pdfController)
+            $stmt = $this->conn->prepare("
+                SELECT r.*, u.nombre as nombre_usuario, u.proyecto as proyecto_usuario
+                FROM reportes r 
+                JOIN usuarios u ON r.id_usuario = u.id 
+                WHERE r.id = ?
+            ");
+            
+            if (!$stmt) {
+                error_log("Error preparando query de reporte: " . $this->conn->error);
+                return null;
+            }
+            
+            $stmt->bind_param('i', $reportId);
+            $stmt->execute();
+            $reporte = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            
+            if (!$reporte) {
+                error_log("Reporte no encontrado para generar PDF: ID=$reportId");
+                return null;
+            }
+            
+            // Obtener evidencias del reporte
+            try {
+                $stmt = $this->conn->prepare("
+                    SELECT * FROM evidencias 
+                    WHERE id_reporte = ? 
+                    ORDER BY creado_en ASC
+                ");
+                
+                if ($stmt) {
+                    $stmt->bind_param('i', $reportId);
+                    $stmt->execute();
+                    $evidencias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                    $stmt->close();
+                    $reporte['evidencias'] = $evidencias;
+                } else {
+                    $reporte['evidencias'] = [];
+                }
+            } catch (Exception $e) {
+                error_log("Error obteniendo evidencias: " . $e->getMessage());
+                $reporte['evidencias'] = [];
+            }
+            
+            // Generar HTML simplificado del reporte
+            $html = $this->generateSimplePDFHTML($reporte);
+            
+            // Generar PDF usando TCPDF
+            if (!class_exists('TCPDF')) {
+                $tcpdfPath = __DIR__ . '/../vendor/tcpdf/tcpdf.php';
+                if (file_exists($tcpdfPath)) {
+                    require_once $tcpdfPath;
+                } else {
+                    error_log("TCPDF no está disponible en: $tcpdfPath");
+                    return null;
+                }
+            }
+            
+            // Verificar que las constantes estén definidas
+            if (!defined('PDF_PAGE_ORIENTATION')) {
+                define('PDF_PAGE_ORIENTATION', 'P');
+            }
+            if (!defined('PDF_UNIT')) {
+                define('PDF_UNIT', 'mm');
+            }
+            if (!defined('PDF_PAGE_FORMAT')) {
+                define('PDF_PAGE_FORMAT', 'A4');
+            }
+            
+            // Crear instancia de TCPDF
+            $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+            
+            // Configurar documento
+            $pdf->SetCreator('Sistema HSEQ Meridian');
+            $pdf->SetAuthor('Meridian Consulting LTDA');
+            $pdf->SetTitle('Reporte HSEQ #' . $reporte['id']);
+            $pdf->SetSubject('Reporte de Seguridad, Salud Ocupacional y Medio Ambiente');
+            
+            // Configurar márgenes
+            $pdf->SetMargins(15, 15, 15);
+            $pdf->SetHeaderMargin(5);
+            $pdf->SetFooterMargin(10);
+            
+            // Configurar auto page breaks
+            $pdf->SetAutoPageBreak(TRUE, 25);
+            
+            // Desactivar header y footer por defecto
+            $pdf->setPrintHeader(false);
+            $pdf->setPrintFooter(false);
+            
+            // Agregar página
+            $pdf->AddPage();
+            
+            // Escribir HTML
+            $pdf->writeHTML($html, true, false, true, false, '');
+            
+            // Retornar PDF como string en lugar de descargarlo
+            return $pdf->Output('', 'S'); // 'S' retorna el documento como string
+            
+        } catch (Exception $e) {
+            error_log("Error generando contenido PDF: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return null;
+        }
+    }
+    
+    /**
+     * Genera HTML simplificado para el PDF
+     */
+    private function generateSimplePDFHTML($reporte): string {
+        $titulo = $reporte['asunto'] ?: ($reporte['asunto_conversacion'] ?: 'Sin título');
+        $evidencias = $reporte['evidencias'] ?? [];
+        
+        $html = '<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; font-size: 12px; }
+                .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #2c5aa0; padding-bottom: 20px; }
+                .header h1 { color: #2c5aa0; margin: 0; font-size: 24px; }
+                .section { margin-bottom: 25px; border: 1px solid #ddd; border-radius: 5px; }
+                .section h3 { background-color: #f8f9fa; padding: 12px; margin: 0; color: #2c5aa0; }
+                .section-content { padding: 15px; }
+                .info-row { margin-bottom: 8px; }
+                .info-label { font-weight: bold; color: #333; }
+                .info-value { color: #666; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>REPORTE HSEQ</h1>
+                <h2>MERIDIAN CONSULTING LTDA</h2>
+            </div>
+            
+            <div class="section">
+                <h3>INFORMACIÓN GENERAL</h3>
+                <div class="section-content">
+                    <div class="info-row">
+                        <span class="info-label">ID del Reporte:</span>
+                        <span class="info-value">' . htmlspecialchars($reporte['id']) . '</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Tipo de Reporte:</span>
+                        <span class="info-value">' . htmlspecialchars($reporte['tipo_reporte']) . '</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Estado:</span>
+                        <span class="info-value">' . htmlspecialchars($reporte['estado']) . '</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Usuario:</span>
+                        <span class="info-value">' . htmlspecialchars($reporte['nombre_usuario']) . '</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Fecha del Evento:</span>
+                        <span class="info-value">' . htmlspecialchars($reporte['fecha_evento'] ?? 'N/A') . '</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Título:</span>
+                        <span class="info-value">' . htmlspecialchars($titulo) . '</span>
+                    </div>
+                </div>
+            </div>';
+            
+        // Descripción según tipo
+        if (!empty($reporte['descripcion_hallazgo'])) {
+            $html .= '
+            <div class="section">
+                <h3>DESCRIPCIÓN</h3>
+                <div class="section-content">
+                    <p>' . nl2br(htmlspecialchars($reporte['descripcion_hallazgo'])) . '</p>
+                </div>
+            </div>';
+        } elseif (!empty($reporte['descripcion_incidente'])) {
+            $html .= '
+            <div class="section">
+                <h3>DESCRIPCIÓN</h3>
+                <div class="section-content">
+                    <p>' . nl2br(htmlspecialchars($reporte['descripcion_incidente'])) . '</p>
+                </div>
+            </div>';
+        } elseif (!empty($reporte['descripcion_conversacion'])) {
+            $html .= '
+            <div class="section">
+                <h3>DESCRIPCIÓN</h3>
+                <div class="section-content">
+                    <p>' . nl2br(htmlspecialchars($reporte['descripcion_conversacion'])) . '</p>
+                </div>
+            </div>';
+        }
+        
+        // Comentarios de revisión
+        if (!empty($reporte['comentarios_revision'])) {
+            $html .= '
+            <div class="section">
+                <h3>COMENTARIOS DE REVISIÓN</h3>
+                <div class="section-content">
+                    <p>' . nl2br(htmlspecialchars($reporte['comentarios_revision'])) . '</p>
+                </div>
+            </div>';
+        }
+        
+        // Evidencias
+        if (!empty($evidencias)) {
+            $html .= '
+            <div class="section">
+                <h3>EVIDENCIAS</h3>
+                <div class="section-content">
+                    <p>Se han adjuntado ' . count($evidencias) . ' evidencia(s) a este reporte.</p>
+                </div>
+            </div>';
+        }
+        
+        $html .= '
+        </body>
+        </html>';
+        
+        return $html;
     }
 
     private function e(string $s): string {
