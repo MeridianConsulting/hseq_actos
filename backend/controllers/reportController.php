@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../utils/mailer.php';
+require_once __DIR__ . '/pdfController.php';
 
 class ReportController {
     private $conn;
@@ -1309,36 +1310,9 @@ class ReportController {
                     $body .= "<p>Comentarios de revisión: {$this->e($extra['comentarios'])}</p>";
                 }
                 
-            // Si el reporte fue aprobado o rechazado (cerrado), adjuntar PDF
+            // Si el reporte fue aprobado o rechazado (cerrado), NO adjuntar PDF (requerido por el cliente)
                 if (in_array($estadoOriginal, ['aprobado', 'rechazado'])) {
-                    try {
-                    error_log("Intentando obtener PDF para reporte #{$reportId} con estado {$estadoOriginal}");
-                    // 1) Generar y guardar un PDF temporal en disco (robusto y rápido de adjuntar)
-                    $tmpPath = $this->generateAndStorePDFTemp($reportId);
-                    if ($tmpPath) { error_log('PDF temporal generado: ' . $tmpPath); }
-                    $pdfContent = null;
-                    if ($tmpPath && file_exists($tmpPath)) {
-                        $pdfContent = @file_get_contents($tmpPath) ?: null;
-                    }
-                    // 2) Fallback: endpoint de descarga
-                    if (!$pdfContent) { $pdfContent = $this->fetchReportPDFViaEndpoint($reportId); }
-                    // 3) Fallback final: generación en memoria
-                    if (!$pdfContent) { $pdfContent = $this->generateReportPDFContent($reportId); }
-                        if ($pdfContent) {
-                            $attachments[] = [
-                                'content' => $pdfContent,
-                                'filename' => "reporte_hseq_{$reportId}.pdf",
-                                'mime_type' => 'application/pdf'
-                            ];
-                            $body .= "<p>📎 <em>Se adjunta el PDF del reporte completo.</em></p>";
-                        error_log("PDF obtenido exitosamente para reporte #{$reportId}");
-                        } else {
-                        error_log("No se pudo obtener/generar PDF para reporte #{$reportId} - pdfContent es null");
-                        }
-                    } catch (Exception $e) {
-                    error_log("Error obteniendo/generando PDF para adjuntar: " . $e->getMessage());
-                        error_log("Stack trace: " . $e->getTraceAsString());
-                    }
+                    // Intencionalmente no se adjunta PDF para evitar demoras/errores; el frontend abrirá Gmail
                 }
             } else if ($tipo === 'vencido') {
                 $subject = "[HSEQ] Recordatorio: reporte #{$rep['id']} supera 30 días";
@@ -1445,13 +1419,18 @@ class ReportController {
      */
     private function generateAndStorePDFTemp(int $reportId): ?string {
         try {
+            // Directorio preferente
             $uploadsDir = __DIR__ . '/../uploads/tmp';
-            if (!is_dir($uploadsDir)) {
-                @mkdir($uploadsDir, 0775, true);
-            }
+            if (!is_dir($uploadsDir)) { @mkdir($uploadsDir, 0775, true); }
+            // Fallback a sys_get_temp_dir()/hseq si no es escribible
             if (!is_dir($uploadsDir) || !is_writable($uploadsDir)) {
-                error_log('Directorio temporal no disponible para PDF: ' . $uploadsDir);
-                return null;
+                $sysTmp = rtrim((string)sys_get_temp_dir(), DIRECTORY_SEPARATOR);
+                $uploadsDir = $sysTmp . DIRECTORY_SEPARATOR . 'hseq';
+                if (!is_dir($uploadsDir)) { @mkdir($uploadsDir, 0775, true); }
+                if (!is_dir($uploadsDir) || !is_writable($uploadsDir)) {
+                    error_log('Directorio temporal no disponible para PDF: ' . $uploadsDir);
+                    return null;
+                }
             }
             // Forzar generación local primero (evitar depender de endpoint)
             $pdfContent = $this->generateReportPDFContent($reportId);
@@ -1461,8 +1440,11 @@ class ReportController {
             }
             if (!$pdfContent) { return null; }
             $file = $uploadsDir . '/reporte_hseq_' . $reportId . '_' . time() . '.pdf';
-            $ok = @file_put_contents($file, $pdfContent);
-            if ($ok === false) { return null; }
+            $bytes = @file_put_contents($file, $pdfContent);
+            if ($bytes === false || $bytes === 0 || !file_exists($file) || filesize($file) <= 0) {
+                error_log('file_put_contents falló o tamaño 0: ' . $file);
+                return null;
+            }
             return $file;
         } catch (Exception $e) {
             error_log('Excepción en generateAndStorePDFTemp: ' . $e->getMessage());

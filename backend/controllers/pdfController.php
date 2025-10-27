@@ -80,6 +80,63 @@ class PdfController {
             ], JSON_UNESCAPED_UNICODE);
         }
     }
+
+    /**
+     * Genera y retorna el PDF del reporte como binario en memoria
+     */
+    public function generateReportPDFBinary(int $reportId): ?string {
+        try {
+            // Datos del reporte
+            $reporte = $this->getReporteCompleto($reportId);
+            if (!$reporte) { return null; }
+
+            // HTML igual al de descarga
+            $html = $this->generateReportHTML($reporte);
+
+            // Asegurar TCPDF disponible (carga tolerante definida arriba)
+            if (!class_exists('TCPDF')) {
+                $base = __DIR__ . '/../vendor/tcpdf';
+                $inc = $base . '/include/tcpdf.php';
+                $boot = $base . '/tcpdf_include.php';
+                $wrap = $base . '/tcpdf.php';
+                if (file_exists($inc)) { require_once $inc; }
+                elseif (file_exists($boot)) { require_once $boot; }
+                elseif (file_exists($wrap) && file_exists($inc)) { require_once $wrap; }
+                else { return null; }
+            }
+
+            if (ini_get('zlib.output_compression')) { @ini_set('zlib.output_compression', 'Off'); }
+            while (ob_get_level() > 0) { @ob_end_clean(); }
+
+            $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+            $pdf->SetCreator('Sistema HSEQ Meridian');
+            $pdf->SetAuthor('Meridian Consulting LTDA');
+            $pdf->SetTitle('Reporte HSEQ #' . $reporte['id']);
+            $pdf->SetSubject('Reporte de Seguridad, Salud Ocupacional y Medio Ambiente');
+            $pdf->SetMargins(15, 15, 15);
+            $pdf->SetHeaderMargin(5);
+            $pdf->SetFooterMargin(10);
+            $pdf->SetAutoPageBreak(true, 25);
+            $pdf->setPrintHeader(false);
+            $pdf->setPrintFooter(false);
+            $pdf->AddPage();
+
+            try {
+                $pdf->writeHTML($html, true, false, true, false, '');
+            } catch (\Exception $e) {
+                $htmlSimple = '<h1>Reporte HSEQ #' . $reporte['id'] . '</h1>';
+                $htmlSimple .= '<p>ID: ' . $reporte['id'] . '</p>';
+                $htmlSimple .= '<p>Tipo: ' . ($reporte['tipo_reporte'] ?? 'N/A') . '</p>';
+                $htmlSimple .= '<p>Usuario: ' . ($reporte['nombre_usuario'] ?? 'N/A') . '</p>';
+                $pdf->writeHTML($htmlSimple, true, false, true, false, '');
+            }
+
+            return $pdf->Output('', 'S');
+        } catch (\Exception $e) {
+            error_log('generateReportPDFBinary error: ' . $e->getMessage());
+            return null;
+        }
+    }
     
     /**
      * Obtiene todos los datos del reporte incluyendo evidencias
