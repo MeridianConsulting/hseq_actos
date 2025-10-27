@@ -555,6 +555,27 @@ function handleRequest($method, $path){
         }
     }
 
+    // Endpoint: generar y almacenar PDF temporal de un reporte
+    if (preg_match('/^(?:api\/)?reports\/(\d+)\/pdf-temp$/', $path, $matches) && $method === 'POST') {
+        if (!$requireRole(['soporte','admin'])) { return; }
+        try {
+            $reportId = (int)$matches[1];
+            $reportController = new ReportController();
+            $result = $reportController->storeReportPDFTemp($reportId);
+            http_response_code($result['success'] ? 200 : 400);
+            echo json_encode($result);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error interno del servidor',
+                'error' => $e->getMessage()
+            ]);
+            return;
+        }
+    }
+
     // Endpoint para obtener reportes vencidos (>30 días)
     if($path === 'reports/overdue' && $method === 'GET'){
         try {

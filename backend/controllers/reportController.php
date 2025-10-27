@@ -1264,6 +1264,11 @@ class ReportController {
      * Enviar notificación por correo y registrar en tabla notificaciones
      */
     public function notifyReportEvent(int $reportId, string $tipo, array $extra = []) : void {
+        // Interceptar y suprimir warnings/notice locales para no activar el handler global (evita 500)
+        $prevHandler = set_error_handler(function($severity, $message, $file, $line) {
+            error_log("notifyReportEvent warning [$severity]: $message in " . basename($file) . ":$line");
+            return true; // indicar que el warning fue manejado
+        });
         try {
             // Obtener datos del reporte y usuario
             $sql = "SELECT r.id, r.tipo_reporte, r.asunto, r.asunto_conversacion, r.creado_en, r.estado, u.nombre, u.correo 
@@ -1274,12 +1279,12 @@ class ReportController {
             $res = $stmt->get_result();
             $rep = $res->fetch_assoc();
             $stmt->close();
-            if (!$rep) return;
+            if (!$rep) { if ($prevHandler) { restore_error_handler(); } return; }
 
-            $destinatario = $rep['correo'] ?: 'desarrolloit@meridian.com.co';
-            // En pruebas, forzar destinatario
-            $testTo = getenv('MAIL_TEST_TO');
-            if (!$testTo) { $testTo = 'desarrolloit@meridian.com.co'; }
+            // Destinatario principal: correo del usuario del reporte
+            $destinatario = $rep['correo'] ?: '';
+            // En pruebas, puede definirse MAIL_TEST_TO para redirigir envío
+            $testTo = getenv('MAIL_TEST_TO') ?: null;
 
             $titulo = $rep['asunto'] ?: ($rep['asunto_conversacion'] ?: '(sin asunto)');
             $subject = '';
@@ -1304,11 +1309,21 @@ class ReportController {
                     $body .= "<p>Comentarios de revisión: {$this->e($extra['comentarios'])}</p>";
                 }
                 
-                // Si el reporte fue aprobado o rechazado (cerrado), adjuntar PDF
+            // Si el reporte fue aprobado o rechazado (cerrado), adjuntar PDF
                 if (in_array($estadoOriginal, ['aprobado', 'rechazado'])) {
                     try {
-                        error_log("Intentando generar PDF para reporte #{$reportId} con estado {$estadoOriginal}");
-                        $pdfContent = $this->generateReportPDFContent($reportId);
+                    error_log("Intentando obtener PDF para reporte #{$reportId} con estado {$estadoOriginal}");
+                    // 1) Generar y guardar un PDF temporal en disco (robusto y rápido de adjuntar)
+                    $tmpPath = $this->generateAndStorePDFTemp($reportId);
+                    if ($tmpPath) { error_log('PDF temporal generado: ' . $tmpPath); }
+                    $pdfContent = null;
+                    if ($tmpPath && file_exists($tmpPath)) {
+                        $pdfContent = @file_get_contents($tmpPath) ?: null;
+                    }
+                    // 2) Fallback: endpoint de descarga
+                    if (!$pdfContent) { $pdfContent = $this->fetchReportPDFViaEndpoint($reportId); }
+                    // 3) Fallback final: generación en memoria
+                    if (!$pdfContent) { $pdfContent = $this->generateReportPDFContent($reportId); }
                         if ($pdfContent) {
                             $attachments[] = [
                                 'content' => $pdfContent,
@@ -1316,12 +1331,12 @@ class ReportController {
                                 'mime_type' => 'application/pdf'
                             ];
                             $body .= "<p>📎 <em>Se adjunta el PDF del reporte completo.</em></p>";
-                            error_log("PDF generado exitosamente para reporte #{$reportId}");
+                        error_log("PDF obtenido exitosamente para reporte #{$reportId}");
                         } else {
-                            error_log("No se pudo generar PDF para reporte #{$reportId} - pdfContent es null");
+                        error_log("No se pudo obtener/generar PDF para reporte #{$reportId} - pdfContent es null");
                         }
                     } catch (Exception $e) {
-                        error_log("Error generando PDF para adjuntar: " . $e->getMessage());
+                    error_log("Error obteniendo/generando PDF para adjuntar: " . $e->getMessage());
                         error_log("Stack trace: " . $e->getTraceAsString());
                     }
                 }
@@ -1333,9 +1348,16 @@ class ReportController {
             }
             $body .= "<hr/><p>Este es un mensaje automático. No responder.</p>";
 
-            // Enviar correo (forzado a test durante pruebas)
+            // Log de adjuntos
+            try { error_log('Adjuntos a enviar: ' . count($attachments)); } catch (Exception $e) {}
+
+            // Enviar correo: usar test si está configurado, de lo contrario enviar al destinatario real
             $sendTo = $testTo ?: $destinatario;
+            if (!$sendTo) { $sendTo = 'soportehseq@meridian.com.co'; }
             $sendResult = send_email($sendTo, $subject, $body, null, $attachments);
+            if (is_array($sendResult)) {
+                error_log('Resultado envío correo HSEQ: ' . json_encode($sendResult));
+            }
 
             // Registrar en notificaciones
             $sqlN = 'INSERT INTO notificaciones (id_reporte, destinatario, medio) VALUES (?, ?, "correo")';
@@ -1348,6 +1370,103 @@ class ReportController {
         } catch (Exception $e) {
             error_log("Error en notifyReportEvent: " . $e->getMessage());
             // Silencioso, no romper flujo del reporte
+        } finally {
+            if ($prevHandler) { restore_error_handler(); }
+        }
+    }
+
+    /**
+     * Obtiene el PDF usando el endpoint público de descarga
+     */
+    private function fetchReportPDFViaEndpoint(int $reportId): ?string {
+        try {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            $url = $scheme . '://' . $host . '/backend/api/reports/' . $reportId . '/pdf';
+
+            // Usar cURL para obtener binario del PDF
+            if (!function_exists('curl_init')) {
+                error_log('cURL no está disponible para fetch del PDF');
+                return null;
+            }
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+            // Propagar Authorization si está presente para evitar 401
+            $headers = ['Accept: application/pdf'];
+            if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+                $headers[] = 'Authorization: ' . $_SERVER['HTTP_AUTHORIZATION'];
+            }
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            // Evitar problemas de certificados en entornos con self-signed (si aplica)
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            $response = curl_exec($ch);
+            $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if (curl_errno($ch)) {
+                error_log('cURL error al obtener PDF: ' . curl_error($ch));
+            }
+            curl_close($ch);
+            if ($httpCode === 200 && $response) {
+                return $response;
+            }
+            error_log("Fetch PDF via endpoint falló con código HTTP: $httpCode");
+            return null;
+        } catch (Exception $e) {
+            error_log('Excepción en fetchReportPDFViaEndpoint: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * API: Genera y almacena el PDF temporal y retorna su ruta/metadata
+     */
+    public function storeReportPDFTemp(int $reportId): array {
+        try {
+            $filePath = $this->generateAndStorePDFTemp($reportId);
+            if (!$filePath || !file_exists($filePath)) {
+                return [ 'success' => false, 'message' => 'No fue posible generar el PDF temporal' ];
+            }
+            return [
+                'success' => true,
+                'file' => basename($filePath),
+                'path' => $filePath,
+                'size' => filesize($filePath)
+            ];
+        } catch (Exception $e) {
+            return [ 'success' => false, 'message' => 'Error generando PDF: ' . $e->getMessage() ];
+        }
+    }
+
+    /**
+     * Genera un PDF y lo guarda como archivo temporal en backend/uploads/tmp
+     */
+    private function generateAndStorePDFTemp(int $reportId): ?string {
+        try {
+            $uploadsDir = __DIR__ . '/../uploads/tmp';
+            if (!is_dir($uploadsDir)) {
+                @mkdir($uploadsDir, 0775, true);
+            }
+            if (!is_dir($uploadsDir) || !is_writable($uploadsDir)) {
+                error_log('Directorio temporal no disponible para PDF: ' . $uploadsDir);
+                return null;
+            }
+            // Forzar generación local primero (evitar depender de endpoint)
+            $pdfContent = $this->generateReportPDFContent($reportId);
+            if (!$pdfContent) {
+                error_log('generateReportPDFContent devolvió null, intentando endpoint de PDF');
+                $pdfContent = $this->fetchReportPDFViaEndpoint($reportId);
+            }
+            if (!$pdfContent) { return null; }
+            $file = $uploadsDir . '/reporte_hseq_' . $reportId . '_' . time() . '.pdf';
+            $ok = @file_put_contents($file, $pdfContent);
+            if ($ok === false) { return null; }
+            return $file;
+        } catch (Exception $e) {
+            error_log('Excepción en generateAndStorePDFTemp: ' . $e->getMessage());
+            return null;
         }
     }
 
@@ -1404,13 +1523,29 @@ class ReportController {
             // Generar HTML simplificado del reporte
             $html = $this->generateSimplePDFHTML($reporte);
             
-            // Generar PDF usando TCPDF
+            // Generar PDF usando TCPDF con carga segura
             if (!class_exists('TCPDF')) {
-                $tcpdfPath = __DIR__ . '/../vendor/tcpdf/tcpdf.php';
-                if (file_exists($tcpdfPath)) {
-                    require_once $tcpdfPath;
-                } else {
-                    error_log("TCPDF no está disponible en: $tcpdfPath");
+                $base = __DIR__ . '/../vendor/tcpdf';
+                $pathInclude = $base . '/include/tcpdf.php';
+                $pathWrapper = $base . '/tcpdf.php';
+                $pathBootstrap = $base . '/tcpdf_include.php';
+
+                $loaded = false;
+                // Preferir incluir directamente la clase si existe
+                if (file_exists($pathInclude)) {
+                    require_once $pathInclude;
+                    $loaded = class_exists('TCPDF');
+                } elseif (file_exists($pathBootstrap)) {
+                    require_once $pathBootstrap;
+                    $loaded = class_exists('TCPDF');
+                } elseif (file_exists($pathWrapper) && file_exists($pathInclude)) {
+                    // Solo cargar el wrapper si también existe su include
+                    require_once $pathWrapper;
+                    $loaded = class_exists('TCPDF');
+                }
+
+                if (!$loaded) {
+                    error_log('No fue posible cargar TCPDF de forma segura (falta include/tcpdf.php).');
                     return null;
                 }
             }

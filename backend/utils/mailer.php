@@ -33,40 +33,55 @@ function send_email(string $to, string $subject, string $htmlBody, ?string $text
 
     try {
         $from = mailer_from();
-        $boundary = md5(time());
-        
+        $boundary = md5(uniqid((string)mt_rand(), true));
+
+        $hasAttachments = is_array($attachments) && count($attachments) > 0;
+
         // Headers
         $headers = "From: {$from}\r\n";
         $headers .= "MIME-Version: 1.0\r\n";
-        $headers .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n";
-        
-        // Cuerpo del mensaje
-        $message = "--{$boundary}\r\n";
-        $message .= "Content-Type: text/html; charset=UTF-8\r\n";
-        $message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
-        $message .= $htmlBody . "\r\n";
-        
-        // Agregar adjuntos
-        foreach ($attachments as $attachment) {
-            if (!isset($attachment['content']) || !isset($attachment['filename'])) {
-                continue;
-            }
-            
-            $content = $attachment['content'];
-            $filename = $attachment['filename'];
-            $mimeType = $attachment['mime_type'] ?? 'application/octet-stream';
-            
-            $message .= "--{$boundary}\r\n";
-            $message .= "Content-Type: {$mimeType}; name=\"{$filename}\"\r\n";
-            $message .= "Content-Transfer-Encoding: base64\r\n";
-            $message .= "Content-Disposition: attachment; filename=\"{$filename}\"\r\n\r\n";
-            $message .= chunk_split(base64_encode($content)) . "\r\n";
+        if ($hasAttachments) {
+            $headers .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n";
+        } else {
+            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
         }
-        
-        $message .= "--{$boundary}--";
-        
-        // Enviar correo
-        $result = mail($to, $subject, $message, $headers);
+
+        // Cuerpo del mensaje
+        if ($hasAttachments) {
+            $message = "--{$boundary}\r\n";
+            $message .= "Content-Type: text/html; charset=UTF-8\r\n";
+            $message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+            $message .= $htmlBody . "\r\n";
+
+            // Agregar adjuntos
+            foreach ($attachments as $attachment) {
+                if (!isset($attachment['content']) || !isset($attachment['filename'])) {
+                    continue;
+                }
+
+                $content = $attachment['content'];
+                $filename = $attachment['filename'];
+                $mimeType = $attachment['mime_type'] ?? 'application/octet-stream';
+
+                $message .= "--{$boundary}\r\n";
+                $message .= "Content-Type: {$mimeType}; name=\"{$filename}\"\r\n";
+                $message .= "Content-Transfer-Encoding: base64\r\n";
+                $message .= "Content-Disposition: attachment; filename=\"{$filename}\"\r\n\r\n";
+                $message .= chunk_split(base64_encode($content));
+                $message .= "\r\n";
+            }
+
+            $message .= "--{$boundary}--\r\n"; // cierre correcto de multipart
+        } else {
+            $message = $htmlBody;
+        }
+
+        // Enviar correo (suprimir warnings y establecer envelope sender cuando sea posible)
+        $fromSafe = preg_replace("/[\r\n]+/", '', mailer_from());
+        $envelope = filter_var($fromSafe, FILTER_VALIDATE_EMAIL) ? "-f{$fromSafe}" : null;
+        $result = $envelope !== null
+            ? @mail($to, $subject, $message, $headers, $envelope)
+            : @mail($to, $subject, $message, $headers);
         
         if ($result) {
             return ['success' => true, 'message' => 'Correo enviado exitosamente'];

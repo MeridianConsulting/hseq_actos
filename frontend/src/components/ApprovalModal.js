@@ -120,8 +120,8 @@ ${userName}`;
              // Call the onApprove callback with the form data
        await onApprove(report.id, formData.motivoAprobacion);
        
-       // Generate and open Gmail draft
-       const gmailUrl = generateGmailUrl(formData.motivoAprobacion);
+      // Abrir redacción en Gmail (adicional al envío automático del backend)
+      const gmailUrl = generateGmailUrl(formData.motivoAprobacion);
       window.open(gmailUrl, '_blank');
       
       // Close modal

@@ -1,9 +1,21 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
 
-// Incluir TCPDF si está disponible
-if (file_exists(__DIR__ . '/../vendor/tcpdf/tcpdf.php')) {
-    require_once __DIR__ . '/../vendor/tcpdf/tcpdf.php';
+// Incluir TCPDF de forma tolerante (evitar fatal si falta include/)
+$tcpdfBase = __DIR__ . '/../vendor/tcpdf';
+$tcpdfInclude = $tcpdfBase . '/include/tcpdf.php';
+$tcpdfBootstrap = $tcpdfBase . '/tcpdf_include.php';
+$tcpdfWrapper = $tcpdfBase . '/tcpdf.php';
+if (!class_exists('TCPDF')) {
+    if (file_exists($tcpdfInclude)) {
+        require_once $tcpdfInclude;
+    } elseif (file_exists($tcpdfBootstrap)) {
+        require_once $tcpdfBootstrap;
+    } elseif (file_exists($tcpdfWrapper) && file_exists($tcpdfInclude)) {
+        require_once $tcpdfWrapper;
+    } else {
+        // No cargar nada si no está completo; el método generatePDF validará y devolverá error controlado
+    }
 }
 
 class PdfController {
