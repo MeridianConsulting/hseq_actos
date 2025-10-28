@@ -603,12 +603,25 @@ class ReportController {
                 $types .= "s";
             }
             if (!empty($filters['proyecto'])) {
-                $whereConditions[] = "u.Proyecto = ?";
-                $params[] = $filters['proyecto'];
-                $types .= "s";
+                // Si el filtro contiene comas, es una lista de valores
+                if (strpos($filters['proyecto'], ',') !== false) {
+                    $proyectos = explode(',', $filters['proyecto']);
+                    $proyectos = array_map('trim', $proyectos); // Limpiar espacios
+                    $placeholders = str_repeat('?,', count($proyectos) - 1) . '?';
+                    $whereConditions[] = "u.Proyecto IN ($placeholders)";
+                    foreach ($proyectos as $proyecto) {
+                        $params[] = $proyecto;
+                        $types .= "s";
+                    }
+                } else {
+                    // Un solo valor
+                    $whereConditions[] = "u.Proyecto = ?";
+                    $params[] = $filters['proyecto'];
+                    $types .= "s";
+                }
             }
             if (!empty($filters['revisado_por'])) {
-                $whereConditions[] = "r.revisado_por = ?";
+                $whereConditions[] = "r.id_usuario = ?";
                 $params[] = (int)$filters['revisado_por'];
                 $types .= "i";
             }

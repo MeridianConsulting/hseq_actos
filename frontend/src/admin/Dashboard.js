@@ -36,7 +36,7 @@ const Dashboard = () => {
     tipo_reporte: '',
     estado: '',
     grado_criticidad: '',
-    proyecto: '',
+    proceso: '', // Cambiado de proyecto a proceso
     revisado_por: '',
     date_from: '',
     date_to: ''
@@ -229,7 +229,7 @@ const Dashboard = () => {
       tipo_reporte: '',
       estado: '',
       grado_criticidad: '',
-      proyecto: '',
+      proceso: '',
       revisado_por: '',
       date_from: '',
       date_to: ''
@@ -555,7 +555,7 @@ const Dashboard = () => {
              TipoReporte: r.tipo_reporte,
              Estado: r.estado,
              Usuario: r.nombre_usuario || '',
-             Proyecto: r.proyecto_usuario || '',
+             Proceso: r.proyecto_usuario || '',
              Asunto: r.asunto || r.asunto_conversacion || '',
              FechaEvento: r.fecha_evento || '',
              FechaCreacion: r.creado_en ? new Date(r.creado_en).toLocaleDateString('es-ES') : '',
@@ -1022,11 +1022,23 @@ const Dashboard = () => {
   }, [stats, selectedPeriod, reportService, userService]);
 
   const handleDownloadExcelWithFilters = useCallback(async () => {
-    // Limpiar filtros vacíos
+    // Limpiar filtros vacíos y mapear proceso a proyecto para el backend
     const cleanFilters = {};
     Object.keys(excelFilters).forEach(key => {
       if (excelFilters[key] !== '') {
-        cleanFilters[key] = excelFilters[key];
+        // Mapear 'proceso' a 'proyecto' para el backend
+        if (key === 'proceso') {
+          // Mapear las categorías del filtro a los valores reales de la base de datos
+          if (excelFilters[key] === 'proyectos') {
+            // Para proyectos, usar un filtro que incluya todos los valores de proyectos
+            cleanFilters['proyecto'] = '3047761-4,COMPANY MAN,COMPANY MAN  - APIAY,COMPANY MAN  - CASTILLA,COMPANY MAN  - GGS,COMPANY MAN - ADMINISTRACION,COMPANY MAN - APIAY,COMPANY MAN - CPO09,COMPANY MAN - GGS,FRONTERA,FRONTERA - ADMINISTRACION,PETROSERVICIOS,PETROSERVICIOS - ADMINISTRACION';
+          } else if (excelFilters[key] === 'administrativa') {
+            // Para gestión administrativa, usar un filtro que incluya todos los valores administrativos
+            cleanFilters['proyecto'] = 'ADMINISTRACION,ADMINISTRACION  COMPANY MAN,ADMINISTRACION - STAFF,Administrativo,ZIRCON';
+          }
+        } else {
+          cleanFilters[key] = excelFilters[key];
+        }
       }
     });
     
@@ -1958,7 +1970,7 @@ const Dashboard = () => {
                      Excel CON Filtros
                    </h3>
                    <p className="text-xs md:text-sm mb-4 md:mb-6 text-gray-300">
-                     Excel personalizado con filtros aplicados: tipo, estado, proyecto, responsable, fechas y más
+                     Excel personalizado con filtros aplicados: tipo, estado, proceso, responsable, fechas y más
                    </p>
                    
                    {/* Quick stats */}
@@ -2220,29 +2232,28 @@ const Dashboard = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm mb-2 font-medium text-gray-300">Proyecto</label>
+                    <label className="block text-sm mb-2 font-medium text-gray-300">Proceso</label>
                     <select 
-                      name="proyecto" 
-                      value={excelFilters.proyecto} 
+                      name="proceso" 
+                      value={excelFilters.proceso} 
                       onChange={handleExcelFilterChange}
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     >
-                      <option value="">Todos los proyectos</option>
-                      {proyectos.map(proyecto => (
-                        <option key={proyecto} value={proyecto}>{proyecto}</option>
-                      ))}
+                      <option value="">Todos los procesos</option>
+                      <option value="proyectos">Proyectos</option>
+                      <option value="administrativa">Gestión Administrativa</option>
                     </select>
                   </div>
                   
                   <div>
-                    <label className="block text-sm mb-2 font-medium text-gray-300">Responsable</label>
+                    <label className="block text-sm mb-2 font-medium text-gray-300">Usuario que Reportó</label>
                     <select 
                       name="revisado_por" 
                       value={excelFilters.revisado_por} 
                       onChange={handleExcelFilterChange}
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     >
-                      <option value="">Todos los responsables</option>
+                      <option value="">Todos los usuarios</option>
                       {responsables.map(resp => (
                         <option key={resp.id} value={resp.id}>{resp.nombre}</option>
                       ))}
@@ -2277,7 +2288,7 @@ const Dashboard = () => {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-semibold text-gray-300">Filtros Activos:</span>
                     <span className="text-xs text-gray-400">
-                      {Object.values(excelFilters).filter(v => v !== '').length} de 7 filtros aplicados
+                      {Object.values(excelFilters).filter(v => v !== '').length} de 6 filtros aplicados
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2">

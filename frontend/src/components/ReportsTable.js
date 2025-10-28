@@ -61,6 +61,70 @@ const formatReportDateTime = (fechaEvento, creadoEn) => {
   }
 };
 
+// Función para calcular días transcurridos desde la creación del reporte
+const calculateDaysElapsed = (fechaEvento, creadoEn, fechaCierre = null) => {
+  try {
+    const fecha = creadoEn || fechaEvento;
+    if (!fecha) return 0;
+    
+    let date;
+    if (typeof fecha === 'string') {
+      if (fecha.includes('T')) {
+        date = new Date(fecha);
+      } else if (fecha.includes('-') && fecha.includes(':')) {
+        date = new Date(fecha.replace(' ', 'T'));
+      } else if (fecha.includes('-')) {
+        date = new Date(fecha + 'T00:00:00');
+      } else {
+        date = new Date(fecha);
+      }
+    } else {
+      date = new Date(fecha);
+    }
+    
+    if (isNaN(date.getTime())) return 0;
+    
+    // Usar fecha de cierre si se proporciona, sino usar fecha actual
+    const endDate = fechaCierre ? new Date(fechaCierre) : new Date();
+    const diffTime = Math.abs(endDate - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  } catch (error) {
+    return 0;
+  }
+};
+
+// Función para obtener el estado de tiempo del reporte
+const getTimeStatus = (fechaEvento, creadoEn, estado, fechaRevision) => {
+  // Si el reporte está cerrado, calcular días desde creación hasta cierre
+  if (estado === 'aprobado' || estado === 'rechazado') {
+    const fechaCierre = fechaRevision || new Date(); // Usar fecha de revisión si existe, sino fecha actual
+    const daysElapsed = calculateDaysElapsed(fechaEvento, creadoEn, fechaCierre);
+    return {
+      days: daysElapsed,
+      isOverdue: false, // Los reportes cerrados nunca están vencidos
+      status: `Se gestionó en ${daysElapsed} días`,
+      statusClass: 'text-green-500',
+      bgClass: 'bg-green-100 text-green-800',
+      darkBgClass: 'bg-green-900/30 text-green-300 border-green-700/50',
+      isClosed: true
+    };
+  } else {
+    // Para reportes abiertos, calcular días desde creación hasta ahora
+    const daysElapsed = calculateDaysElapsed(fechaEvento, creadoEn);
+    return {
+      days: daysElapsed,
+      isOverdue: daysElapsed > 15,
+      status: daysElapsed <= 15 ? 'A tiempo' : 'Vencido',
+      statusClass: daysElapsed <= 15 ? 'text-green-500' : 'text-red-500',
+      bgClass: daysElapsed <= 15 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800',
+      darkBgClass: daysElapsed <= 15 ? 'bg-green-900/30 text-green-300 border-green-700/50' : 'bg-red-900/30 text-red-300 border-red-700/50',
+      isClosed: false
+    };
+  }
+};
+
 const ReportsTable = ({ 
   user, 
   showStatusActions = true, 
@@ -84,8 +148,9 @@ const ReportsTable = ({
     estado: '',
     grado_criticidad: '',
     tipo_afectacion: '',
-    proyecto: '',
-    revisado_por: '', // Nuevo filtro de responsable
+    proceso: '', // Cambiado de proyecto a proceso
+    revisado_por: '', // Filtro de usuario creador del reporte
+    efectividad_cierre: '', // Nuevo filtro de efectividad de cierre
     date_from: '',
     date_to: '',
     q: '',
@@ -187,6 +252,20 @@ const ReportsTable = ({
     try {
       // Cargar reportes con filtros aplicados pero sin filtrar por estado
       const apiFilters = { ...filters };
+      
+      // Mapear 'proceso' a 'proyecto' para el backend
+      if (apiFilters.proceso) {
+        // Mapear las categorías del filtro a los valores reales de la base de datos
+        if (apiFilters.proceso === 'proyectos') {
+          // Para proyectos, usar un filtro que incluya todos los valores de proyectos
+          apiFilters.proyecto = '3047761-4,COMPANY MAN,COMPANY MAN  - APIAY,COMPANY MAN  - CASTILLA,COMPANY MAN  - GGS,COMPANY MAN - ADMINISTRACION,COMPANY MAN - APIAY,COMPANY MAN - CPO09,COMPANY MAN - GGS,FRONTERA,FRONTERA - ADMINISTRACION,PETROSERVICIOS,PETROSERVICIOS - ADMINISTRACION';
+        } else if (apiFilters.proceso === 'administrativa') {
+          // Para gestión administrativa, usar un filtro que incluya todos los valores administrativos
+          apiFilters.proyecto = 'ADMINISTRACION,ADMINISTRACION  COMPANY MAN,ADMINISTRACION - STAFF,Administrativo,ZIRCON';
+        }
+        delete apiFilters.proceso;
+      }
+      
       // Solo aplicar filtro de estado si no es 'closed' (que incluye aprobado y rechazado)
       if (activeTab === 'pending') apiFilters.estado = 'pendiente';
       else if (activeTab === 'in_review') apiFilters.estado = 'en_revision';
@@ -273,8 +352,8 @@ const ReportsTable = ({
   
   const handleReset = () => {
     setFilters({
-      tipo_reporte: '', estado: '', grado_criticidad: '', tipo_afectacion: '', proyecto: '',
-      revisado_por: '', date_from: '', date_to: '', q: '', page: 1, per_page: 10, sort_by: 'creado_en', sort_dir: 'desc'
+      tipo_reporte: '', estado: '', grado_criticidad: '', tipo_afectacion: '', proceso: '',
+      revisado_por: '', efectividad_cierre: '', date_from: '', date_to: '', q: '', page: 1, per_page: 10, sort_by: 'creado_en', sort_dir: 'desc'
     });
     // Vuelve a cargar con filtros limpios
     setTimeout(loadReports, 0);
@@ -444,18 +523,55 @@ const ReportsTable = ({
     }
   };
 
-  // Filtrar reportes por la pestaña activa
+  // Filtrar reportes por la pestaña activa y filtros adicionales
   const filteredReports = reports.filter(report => {
+    // Filtro por pestaña activa
+    let matchesTab = false;
     switch (activeTab) {
       case 'pending':
-        return report.estado === 'pendiente';
+        matchesTab = report.estado === 'pendiente';
+        break;
       case 'in_review':
-        return report.estado === 'en_revision';
+        matchesTab = report.estado === 'en_revision';
+        break;
       case 'closed':
-        return report.estado === 'aprobado' || report.estado === 'rechazado';
+        matchesTab = report.estado === 'aprobado' || report.estado === 'rechazado';
+        break;
       default:
-        return true;
+        matchesTab = true;
     }
+    
+    if (!matchesTab) return false;
+    
+    // Filtro por responsable (usuario que creó el reporte)
+    if (filters.revisado_por) {
+      const responsableId = parseInt(filters.revisado_por);
+      const reportUserId = parseInt(report.id_usuario);
+      if (reportUserId !== responsableId) return false;
+    }
+    
+    // Filtro por efectividad de cierre
+    if (filters.efectividad_cierre) {
+      const timeStatus = getTimeStatus(report.fecha_evento, report.creado_en, report.estado, report.fecha_revision);
+      const daysElapsed = timeStatus.days;
+      
+      switch (filters.efectividad_cierre) {
+        case 'a_tiempo':
+          if (daysElapsed > 15) return false;
+          break;
+        case 'vencido':
+          if (daysElapsed <= 15) return false;
+          break;
+        case 'cerrado_rapido':
+          if (daysElapsed > 7) return false;
+          break;
+        case 'cerrado_normal':
+          if (daysElapsed <= 7 || daysElapsed > 15) return false;
+          break;
+      }
+    }
+    
+    return true;
   });
 
   // Calcular estadísticas basadas en todos los reportes
@@ -631,20 +747,19 @@ const ReportsTable = ({
          </select>
        </div>
                 <div>
-          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Proyecto</label>
-          <select name="proyecto" value={filters.proyecto} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Proceso</label>
+          <select name="proceso" value={filters.proceso} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
             useDarkTheme 
               ? 'bg-gray-800 border-gray-600 text-gray-100' 
               : 'bg-white border-gray-300 text-gray-900'
           }`}>
            <option value="">Todos</option>
-           {proyectos.map(proyecto => (
-             <option key={proyecto} value={proyecto}>{proyecto}</option>
-           ))}
+           <option value="proyectos">Proyectos</option>
+           <option value="administrativa">Gestión Administrativa</option>
          </select>
        </div>
                 <div>
-          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Responsable</label>
+          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Usuario que Reportó</label>
           <select name="revisado_por" value={filters.revisado_por} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
             useDarkTheme 
               ? 'bg-gray-800 border-gray-600 text-gray-100' 
@@ -654,6 +769,20 @@ const ReportsTable = ({
            {responsables.map(resp => (
              <option key={resp.id} value={resp.id}>{resp.nombre}</option>
            ))}
+         </select>
+       </div>
+                <div>
+          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Efectividad de cierre</label>
+          <select name="efectividad_cierre" value={filters.efectividad_cierre} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+            useDarkTheme 
+              ? 'bg-gray-800 border-gray-600 text-gray-100' 
+              : 'bg-white border-gray-300 text-gray-900'
+          }`}>
+           <option value="">Todos</option>
+           <option value="a_tiempo">A tiempo (≤15 días)</option>
+           <option value="vencido">Vencido (&gt;15 días)</option>
+           <option value="cerrado_rapido">Cerrado rápido (≤7 días)</option>
+           <option value="cerrado_normal">Cerrado normal (8-15 días)</option>
          </select>
        </div>
                 <div>
@@ -752,11 +881,21 @@ const ReportsTable = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredReports.map(report => (
+            {filteredReports.map(report => {
+              const timeStatus = getTimeStatus(report.fecha_evento, report.creado_en, report.estado, report.fecha_revision);
+              return (
               <div key={report.id} className={`rounded-xl p-4 sm:p-6 border ${
                 useDarkTheme 
-                  ? 'bg-gray-800/90 border-gray-700' 
-                  : 'bg-white/20 border-white/30'
+                  ? timeStatus.isClosed
+                    ? 'bg-green-900/20 border-green-700/50'
+                    : timeStatus.isOverdue 
+                      ? 'bg-red-900/20 border-red-700/50' 
+                      : 'bg-gray-800/90 border-gray-700'
+                  : timeStatus.isClosed
+                    ? 'bg-green-100/20 border-green-300/50'
+                    : timeStatus.isOverdue
+                      ? 'bg-red-100/20 border-red-300/50'
+                      : 'bg-white/20 border-white/30'
               }`}>
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-0 mb-4">
                   <div className="flex items-center space-x-3">
@@ -768,6 +907,24 @@ const ReportsTable = ({
                     }`}>
                       ID: {report.id}
                     </span>
+                    {/* Indicador de tiempo transcurrido */}
+                    <div className={`px-2 py-1 rounded-full text-xs font-semibold border ${
+                      useDarkTheme ? timeStatus.darkBgClass : timeStatus.bgClass
+                    }`}>
+                      {timeStatus.days} días
+                    </div>
+                    {/* Estado de tiempo */}
+                    <div className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      timeStatus.isOverdue 
+                        ? useDarkTheme 
+                          ? 'bg-red-900/50 text-red-300 border border-red-700/50' 
+                          : 'bg-red-100 text-red-800 border border-red-300'
+                        : useDarkTheme
+                          ? 'bg-green-900/50 text-green-300 border border-green-700/50'
+                          : 'bg-green-100 text-green-800 border border-green-300'
+                    }`}>
+                      {timeStatus.status}
+                    </div>
                   </div>
                   <div className="text-left sm:text-right">
                     <p className={`text-sm font-semibold drop-shadow ${
@@ -994,7 +1151,8 @@ const ReportsTable = ({
                    </button>
                  </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
         
