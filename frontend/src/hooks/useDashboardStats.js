@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { reportService } from '../services/api';
 
-export const useDashboardStats = (period) => {
+export const useDashboardStats = (period, filters = {}) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -10,7 +10,7 @@ export const useDashboardStats = (period) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await reportService.fetchDashboardStats(period);
+      const response = await reportService.fetchDashboardStats(period, filters);
       
       if (response.success) {
         setStats(response.data);
@@ -22,7 +22,7 @@ export const useDashboardStats = (period) => {
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, [period, filters]);
 
   useEffect(() => {
     fetchStats();

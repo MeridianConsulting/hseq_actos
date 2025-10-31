@@ -45,7 +45,22 @@ const Dashboard = () => {
   const [responsables, setResponsables] = useState([]);
   const [showExcelFiltersModal, setShowExcelFiltersModal] = useState(false);
 
-  const { stats, loading, error } = useDashboardStats(selectedPeriod);
+  // Filtro global de proyecto para dashboards/reportes
+  const [dashboardProceso, setDashboardProceso] = useState('');
+  const dashboardFilters = useMemo(() => {
+    if (!dashboardProceso) return {};
+    if (dashboardProceso === 'cw') {
+      return { proyecto: '3047761-4,COMPANY MAN,COMPANY MAN  - APIAY,COMPANY MAN  - CASTILLA,COMPANY MAN  - GGS,COMPANY MAN - ADMINISTRACION,COMPANY MAN - APIAY,COMPANY MAN - CPO09,COMPANY MAN - GGS' };
+    } else if (dashboardProceso === 'frontera') {
+      return { proyecto: 'FRONTERA,FRONTERA - ADMINISTRACION' };
+    } else if (dashboardProceso === 'petro') {
+      return { proyecto: 'PETROSERVICIOS,PETROSERVICIOS - ADMINISTRACION' };
+    } else if (dashboardProceso === 'administrativo') {
+      return { proyecto: 'ADMINISTRACION,ADMINISTRACION  COMPANY MAN,ADMINISTRACION - STAFF,Administrativo,ZIRCON' };
+    }
+    return {};
+  }, [dashboardProceso]);
+  const { stats, loading, error } = useDashboardStats(selectedPeriod, dashboardFilters);
   
   // Debug: Log cuando cambie el período seleccionado
 
@@ -1932,6 +1947,30 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
+          {/* Filtro global de Proyecto para dashboards/reportes */}
+          <div className="mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-gray-300">Proyecto</label>
+                <select
+                  value={dashboardProceso}
+                  onChange={(e) => setDashboardProceso(e.target.value)}
+                  className="px-3 py-2 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value="">Todos</option>
+                  <option value="cw">CW</option>
+                  <option value="frontera">Frontera</option>
+                  <option value="petro">Petro Servicios</option>
+                  <option value="administrativo">Administrativo</option>
+                </select>
+              </div>
+              {dashboardProceso && (
+                <div className="text-xs text-gray-400">
+                  Filtro aplicado a estadísticas, gráficos y tabla: <span className="text-blue-300 font-semibold">{dashboardProceso}</span>
+                </div>
+              )}
+            </div>
+          </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                {/* Reporte Principal */}
                <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
@@ -2264,6 +2303,7 @@ const Dashboard = () => {
                   title="Todos los Reportes"
                   containerClassName=""
                   useDarkTheme={true}
+                  externalFilters={{ proceso: dashboardProceso }}
                 />
               </div>
             </div>

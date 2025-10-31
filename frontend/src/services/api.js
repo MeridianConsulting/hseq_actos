@@ -134,10 +134,11 @@ export const reportService = {
      * Obtener estadísticas del dashboard
      * @returns {Promise<Object>}
      */
-    fetchDashboardStats: async (period) => {
+    fetchDashboardStats: async (period, filters = {}) => {
         try {
             const params = new URLSearchParams();
             if (period) params.append('period', period);
+            if (filters.proyecto) params.append('proyecto', filters.proyecto);
             const query = params.toString();
             const url = `reports/dashboard-stats${query ? `?${query}` : ''}`;
             const response = await api.get(url);

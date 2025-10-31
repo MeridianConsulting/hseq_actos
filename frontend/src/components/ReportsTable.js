@@ -131,7 +131,8 @@ const ReportsTable = ({
   onStatusChange, 
   containerClassName = "",
   title = "Reportes",
-  useDarkTheme = true
+  useDarkTheme = true,
+  externalFilters = {}
 }) => {
   const [activeTab, setActiveTab] = useState('pending');
   const [reports, setReports] = useState([]);
@@ -251,7 +252,7 @@ const ReportsTable = ({
     setIsLoading(true);
     try {
       // Cargar reportes con filtros aplicados pero sin filtrar por estado
-      const apiFilters = { ...filters };
+      const apiFilters = { ...externalFilters, ...filters };
       
       // Mapear 'proceso' a 'proyecto' para el backend (secciones separadas)
       if (apiFilters.proceso) {
