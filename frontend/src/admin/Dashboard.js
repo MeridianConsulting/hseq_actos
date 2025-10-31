@@ -1028,12 +1028,14 @@ const Dashboard = () => {
       if (excelFilters[key] !== '') {
         // Mapear 'proceso' a 'proyecto' para el backend
         if (key === 'proceso') {
-          // Mapear las categorías del filtro a los valores reales de la base de datos
-          if (excelFilters[key] === 'proyectos') {
-            // Para proyectos, usar un filtro que incluya todos los valores de proyectos
-            cleanFilters['proyecto'] = '3047761-4,COMPANY MAN,COMPANY MAN  - APIAY,COMPANY MAN  - CASTILLA,COMPANY MAN  - GGS,COMPANY MAN - ADMINISTRACION,COMPANY MAN - APIAY,COMPANY MAN - CPO09,COMPANY MAN - GGS,FRONTERA,FRONTERA - ADMINISTRACION,PETROSERVICIOS,PETROSERVICIOS - ADMINISTRACION';
-          } else if (excelFilters[key] === 'administrativa') {
-            // Para gestión administrativa, usar un filtro que incluya todos los valores administrativos
+          // Mapear opciones separadas a listas de proyectos
+          if (excelFilters[key] === 'cw') {
+            cleanFilters['proyecto'] = '3047761-4,COMPANY MAN,COMPANY MAN  - APIAY,COMPANY MAN  - CASTILLA,COMPANY MAN  - GGS,COMPANY MAN - ADMINISTRACION,COMPANY MAN - APIAY,COMPANY MAN - CPO09,COMPANY MAN - GGS';
+          } else if (excelFilters[key] === 'frontera') {
+            cleanFilters['proyecto'] = 'FRONTERA,FRONTERA - ADMINISTRACION';
+          } else if (excelFilters[key] === 'petro') {
+            cleanFilters['proyecto'] = 'PETROSERVICIOS,PETROSERVICIOS - ADMINISTRACION';
+          } else if (excelFilters[key] === 'administrativo') {
             cleanFilters['proyecto'] = 'ADMINISTRACION,ADMINISTRACION  COMPANY MAN,ADMINISTRACION - STAFF,Administrativo,ZIRCON';
           }
         } else {
@@ -2239,9 +2241,11 @@ const Dashboard = () => {
                       onChange={handleExcelFilterChange}
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     >
-                      <option value="">Todos los procesos</option>
-                      <option value="proyectos">Proyectos</option>
-                      <option value="administrativa">Gestión Administrativa</option>
+                     <option value="">Todos los proyectos</option>
+                     <option value="cw">CW</option>
+                     <option value="frontera">Frontera</option>
+                     <option value="petro">Petro Servicios</option>
+                     <option value="administrativo">Administrativo</option>
                     </select>
                   </div>
                   

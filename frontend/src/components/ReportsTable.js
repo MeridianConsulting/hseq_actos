@@ -253,14 +253,16 @@ const ReportsTable = ({
       // Cargar reportes con filtros aplicados pero sin filtrar por estado
       const apiFilters = { ...filters };
       
-      // Mapear 'proceso' a 'proyecto' para el backend
+      // Mapear 'proceso' a 'proyecto' para el backend (secciones separadas)
       if (apiFilters.proceso) {
-        // Mapear las categorías del filtro a los valores reales de la base de datos
-        if (apiFilters.proceso === 'proyectos') {
-          // Para proyectos, usar un filtro que incluya todos los valores de proyectos
-          apiFilters.proyecto = '3047761-4,COMPANY MAN,COMPANY MAN  - APIAY,COMPANY MAN  - CASTILLA,COMPANY MAN  - GGS,COMPANY MAN - ADMINISTRACION,COMPANY MAN - APIAY,COMPANY MAN - CPO09,COMPANY MAN - GGS,FRONTERA,FRONTERA - ADMINISTRACION,PETROSERVICIOS,PETROSERVICIOS - ADMINISTRACION';
-        } else if (apiFilters.proceso === 'administrativa') {
-          // Para gestión administrativa, usar un filtro que incluya todos los valores administrativos
+        if (apiFilters.proceso === 'cw') {
+          // Proyectos Company Man (CW)
+          apiFilters.proyecto = '3047761-4,COMPANY MAN,COMPANY MAN  - APIAY,COMPANY MAN  - CASTILLA,COMPANY MAN  - GGS,COMPANY MAN - ADMINISTRACION,COMPANY MAN - APIAY,COMPANY MAN - CPO09,COMPANY MAN - GGS';
+        } else if (apiFilters.proceso === 'frontera') {
+          apiFilters.proyecto = 'FRONTERA,FRONTERA - ADMINISTRACION';
+        } else if (apiFilters.proceso === 'petro') {
+          apiFilters.proyecto = 'PETROSERVICIOS,PETROSERVICIOS - ADMINISTRACION';
+        } else if (apiFilters.proceso === 'administrativo') {
           apiFilters.proyecto = 'ADMINISTRACION,ADMINISTRACION  COMPANY MAN,ADMINISTRACION - STAFF,Administrativo,ZIRCON';
         }
         delete apiFilters.proceso;
@@ -747,15 +749,17 @@ const ReportsTable = ({
          </select>
        </div>
                 <div>
-          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Proceso</label>
+         <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Proyecto</label>
           <select name="proceso" value={filters.proceso} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
             useDarkTheme 
               ? 'bg-gray-800 border-gray-600 text-gray-100' 
               : 'bg-white border-gray-300 text-gray-900'
           }`}>
            <option value="">Todos</option>
-           <option value="proyectos">Proyectos</option>
-           <option value="administrativa">Gestión Administrativa</option>
+           <option value="cw">CW</option>
+           <option value="frontera">Frontera</option>
+           <option value="petro">Petro Servicios</option>
+           <option value="administrativo">Administrativo</option>
          </select>
        </div>
                 <div>
