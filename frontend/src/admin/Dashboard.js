@@ -1048,6 +1048,79 @@ const Dashboard = () => {
     await handleDownloadExcel(cleanFilters);
   }, [excelFilters, handleDownloadExcel]);
 
+  // Exportar: Conteo de reportes por usuario (quién reportó más)
+  const handleDownloadExcelUserCounts = useCallback(async () => {
+    try {
+      // Obtener gran cantidad de reportes (sin filtros adicionales)
+      const queryParams = { per_page: 10000, page: 1 };
+      const resp = await reportService.getAllReports(queryParams);
+      if (!resp || !resp.success || !Array.isArray(resp.reports) || resp.reports.length === 0) {
+        alert('No se encontraron reportes para generar el resumen por usuario');
+        return;
+      }
+
+      // Agrupar por usuario que reportó
+      const countsByUserId = new Map();
+      resp.reports.forEach(r => {
+        const userId = r.id_usuario ?? 'desconocido';
+        const userName = r.nombre_usuario ?? 'Desconocido';
+        if (!countsByUserId.has(userId)) {
+          countsByUserId.set(userId, { id_usuario: userId, nombre_usuario: userName, cantidad_reportes: 0 });
+        }
+        countsByUserId.get(userId).cantidad_reportes += 1;
+      });
+
+      // Ordenar descendente por cantidad
+      const rows = Array.from(countsByUserId.values()).sort((a, b) => b.cantidad_reportes - a.cantidad_reportes);
+
+      const fileName = `reportes_por_usuario_${new Date().toISOString().substring(0,10)}.xlsx`;
+
+      try {
+        // ExcelJS con encabezados bonitos
+        const ExcelJSModule = await import('exceljs');
+        const ExcelJS = ExcelJSModule.default || ExcelJSModule;
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('Reporte por Usuario');
+        ws.columns = [
+          { header: 'ID Usuario', key: 'id_usuario', width: 14 },
+          { header: 'Nombre Usuario', key: 'nombre_usuario', width: 36 },
+          { header: 'Cantidad de Reportes', key: 'cantidad_reportes', width: 22 }
+        ];
+        ws.addRows(rows);
+        // Estilos mínimos
+        ws.getRow(1).font = { bold: true };
+        ws.getRow(1).alignment = { horizontal: 'center' };
+        ws.eachRow((row, idx) => {
+          row.alignment = { vertical: 'middle' };
+          if (idx % 2 === 0) {
+            row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B1220' } };
+          }
+        });
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        return;
+      } catch (err) {
+        // Fallback a xlsx simple
+      }
+
+      const XLSXModule = await import('xlsx');
+      const XLSX = XLSXModule.default || XLSXModule;
+      const wb = XLSX.utils.book_new();
+      const sheet = XLSX.utils.json_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, sheet, 'Reporte por Usuario');
+      XLSX.writeFile(wb, fileName);
+    } catch (error) {
+      alert('Error al generar Excel por usuario: ' + (error?.message || String(error)));
+    }
+  }, [reportService]);
+
   const handleOpenExcelFiltersModal = useCallback(() => {
     setShowExcelFiltersModal(true);
   }, []);
@@ -1964,7 +2037,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-               {/* Excel con Filtros */}
+              {/* Excel con Filtros */}
                <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
                  <div className="text-center">
                    <div className="text-4xl md:text-5xl mb-4 md:mb-6">🔍</div>
@@ -2012,6 +2085,43 @@ const Dashboard = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       <span className="text-sm md:text-base">CONFIGURAR Y GENERAR</span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Excel Reportes por Usuario */}
+              <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
+                <div className="text-center">
+                  <div className="text-4xl md:text-5xl mb-4 md:mb-6">👤</div>
+                  <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
+                    Excel Reportes por Usuario
+                  </h3>
+                  <p className="text-xs md:text-sm mb-4 md:mb-6 text-gray-300">
+                    Cantidad de reportes por usuario (quién reportó más), ordenado descendentemente
+                  </p>
+
+                  <button 
+                    className="w-full group relative font-bold py-3 md:py-4 px-4 md:px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
+                    style={{
+                      background: 'linear-gradient(45deg, #22c55e, #16a34a)',
+                      color: 'white',
+                      boxShadow: '0 15px 35px -5px rgba(34, 197, 94, 0.5)',
+                      '--focus-ring-color': 'rgba(34, 197, 94, 0.5)'
+                    }}
+                    onClick={handleDownloadExcelUserCounts}
+                  >
+                    <div 
+                      className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
+                      style={{
+                        background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)'
+                      }}
+                    ></div>
+                    <span className="relative flex items-center justify-center space-x-2">
+                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="text-sm md:text-base">EXPORTAR EXCEL</span>
                     </span>
                   </button>
                 </div>
