@@ -2246,7 +2246,7 @@ const Dashboard = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm mb-2 font-medium text-gray-300">Usuario que Reportó</label>
+                   <label className="block text-sm mb-2 font-medium text-gray-300">Usuario asignado</label>
                     <select 
                       name="revisado_por" 
                       value={excelFilters.revisado_por} 

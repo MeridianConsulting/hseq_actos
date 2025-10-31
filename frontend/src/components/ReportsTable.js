@@ -759,7 +759,7 @@ const ReportsTable = ({
          </select>
        </div>
                 <div>
-          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Usuario que Reportó</label>
+         <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Usuario asignado</label>
           <select name="revisado_por" value={filters.revisado_por} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
             useDarkTheme 
               ? 'bg-gray-800 border-gray-600 text-gray-100' 
