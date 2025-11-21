@@ -3403,3 +3403,16 @@ body:not([data-page="dashboard"]) header.main-header.scrolled {
     height: 240px !important;
   }
 }
+
+/* Estilos para el wrapper de la gráfica de reportes por periodo */
+.bar-periodo-wrapper {
+  height: 320px;
+  min-height: 320px;
+}
+
+@media (max-width: 768px) {
+  .bar-periodo-wrapper {
+    height: 260px;
+    min-height: 260px;
+  }
+}

@@ -1557,12 +1557,12 @@ const Dashboard = () => {
                   </div>
                   
                   {/* Chart Container */}
-                  <div className="relative" style={{ height: '280px', minHeight: '280px' }}>
+                  <div className="relative bar-periodo-wrapper" style={{ height: '320px', minHeight: '320px' }}>
                     <ResponsiveBar
                       data={incidentsByMonth}
                       keys={['incidentes', 'hallazgos', 'conversaciones', 'pqr']}
                       indexBy="period"
-                      margin={{ top: 30, right: 80, bottom: 50, left: 50 }}
+                      margin={{ top: 30, right: 40, bottom: 110, left: 60 }}
                       padding={0.3}
                       groupMode="grouped"
                       valueScale={{ type: 'linear' }}
@@ -1593,6 +1593,7 @@ const Dashboard = () => {
                       axisBottom={{
                         tickSize: 5,
                         tickPadding: 8,
+                        tickRotation: 0,
                         legend: 'Periodo',
                         legendPosition: 'middle',
                         legendOffset: 40
@@ -1602,7 +1603,7 @@ const Dashboard = () => {
                         tickPadding: 8,
                        legend: 'Total de reportes',
                         legendPosition: 'middle',
-                        legendOffset: -45
+                        legendOffset: -50
                       }}
                       labelSkipHeight={14}
                       labelSkipWidth={10}
@@ -1611,15 +1612,24 @@ const Dashboard = () => {
                       legends={[
                         {
                           dataFrom: 'keys',
-                          anchor: 'bottom-right',
-                          direction: 'column',
-                          translateX: 70,
-                          translateY: 0,
-                          itemWidth: 100,
+                          anchor: 'bottom',
+                          direction: 'row',
+                          justify: false,
+                          translateX: 0,
+                          translateY: 70,
+                          itemWidth: 80,
                           itemHeight: 18,
-                          itemTextColor: '#fcf7ff',
+                          itemsSpacing: 16,
+                          itemDirection: 'left-to-right',
+                          itemTextColor: '#f3f4f6',
                           symbolSize: 12,
-                          symbolShape: 'circle'
+                          symbolShape: 'circle',
+                          effects: [
+                            {
+                              on: 'hover',
+                              style: { itemTextColor: '#ffffff' }
+                            }
+                          ]
                         }
                       ]}
                     />
@@ -1823,24 +1833,6 @@ const Dashboard = () => {
                           <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
                             Evolución temporal
                           </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
-                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Incidentes</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#eab308' }}></div>
-                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Hallazgos</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
-                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Conversaciones</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#a855f7' }}></div>
-                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>PQR</span>
                         </div>
                       </div>
                     </div>
