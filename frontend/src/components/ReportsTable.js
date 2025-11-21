@@ -254,17 +254,23 @@ const ReportsTable = ({
       // Cargar reportes con filtros aplicados pero sin filtrar por estado
       const apiFilters = { ...externalFilters, ...filters };
       
-      // Mapear 'proceso' a 'proyecto' para el backend (secciones separadas)
+      // Mapear 'proceso' a 'proyecto' para el backend (mapeo de Gestiones a Proyectos)
       if (apiFilters.proceso) {
-        if (apiFilters.proceso === 'cw') {
-          // Proyectos Company Man (CW)
-          apiFilters.proyecto = '3047761-4,COMPANY MAN,COMPANY MAN  - APIAY,COMPANY MAN  - CASTILLA,COMPANY MAN  - GGS,COMPANY MAN - ADMINISTRACION,COMPANY MAN - APIAY,COMPANY MAN - CPO09,COMPANY MAN - GGS';
+        if (apiFilters.proceso === 'petroservicios') {
+          // Gestión Proyecto - Petroservicios
+          apiFilters.proyecto = 'PETROSERVICIOS';
+        } else if (apiFilters.proceso === 'administrativa') {
+          // Gestión Administrativa
+          apiFilters.proyecto = 'ADMINISTRACION,COMPANY MAN - ADMINISTRACION,ADMINISTRACION - STAFF,FRONTERA - ADMINISTRACION,Administrativo,PETROSERVICIOS - ADMINISTRACION,ADMINISTRACION COMPANY MAN';
+        } else if (apiFilters.proceso === 'company-man') {
+          // Gestión Proyecto - Company man
+          apiFilters.proyecto = '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN - GGS,COMPANY MAN - CASTILLA';
         } else if (apiFilters.proceso === 'frontera') {
-          apiFilters.proyecto = 'FRONTERA,FRONTERA - ADMINISTRACION';
-        } else if (apiFilters.proceso === 'petro') {
-          apiFilters.proyecto = 'PETROSERVICIOS,PETROSERVICIOS - ADMINISTRACION';
-        } else if (apiFilters.proceso === 'administrativo') {
-          apiFilters.proyecto = 'ADMINISTRACION,ADMINISTRACION  COMPANY MAN,ADMINISTRACION - STAFF,Administrativo,ZIRCON';
+          // Gestión Proyecto Frontera
+          apiFilters.proyecto = 'FRONTERA';
+        } else if (apiFilters.proceso === 'zircon') {
+          // Gestión Proyecto ZIRCON
+          apiFilters.proyecto = 'ZIRCON';
         }
         delete apiFilters.proceso;
       }
@@ -750,17 +756,18 @@ const ReportsTable = ({
          </select>
        </div>
                 <div>
-         <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Proyecto</label>
+         <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Proceso</label>
           <select name="proceso" value={filters.proceso} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
             useDarkTheme 
               ? 'bg-gray-800 border-gray-600 text-gray-100' 
               : 'bg-white border-gray-300 text-gray-900'
           }`}>
-           <option value="">Todos</option>
-           <option value="cw">CW</option>
-           <option value="frontera">Frontera</option>
-           <option value="petro">Petro Servicios</option>
-           <option value="administrativo">Administrativo</option>
+           <option value="">Todos los Procesos</option>
+           <option value="petroservicios">Gestión Proyecto - Petroservicios</option>
+           <option value="administrativa">Gestión Administrativa</option>
+           <option value="company-man">Gestión Proyecto - Company man</option>
+           <option value="frontera">Gestión Proyecto Frontera</option>
+           <option value="zircon">Gestión Proyecto ZIRCON</option>
          </select>
        </div>
                 <div>

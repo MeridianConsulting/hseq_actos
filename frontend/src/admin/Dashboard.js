@@ -45,18 +45,25 @@ const Dashboard = () => {
   const [responsables, setResponsables] = useState([]);
   const [showExcelFiltersModal, setShowExcelFiltersModal] = useState(false);
 
-  // Filtro global de proyecto para dashboards/reportes
+  // Filtro global de proceso (gestión) para dashboards/reportes
   const [dashboardProceso, setDashboardProceso] = useState('');
   const dashboardFilters = useMemo(() => {
     if (!dashboardProceso) return {};
-    if (dashboardProceso === 'cw') {
-      return { proyecto: '3047761-4,COMPANY MAN,COMPANY MAN  - APIAY,COMPANY MAN  - CASTILLA,COMPANY MAN  - GGS,COMPANY MAN - ADMINISTRACION,COMPANY MAN - APIAY,COMPANY MAN - CPO09,COMPANY MAN - GGS' };
+    if (dashboardProceso === 'petroservicios') {
+      // Gestión Proyecto - Petroservicios
+      return { proyecto: 'PETROSERVICIOS' };
+    } else if (dashboardProceso === 'administrativa') {
+      // Gestión Administrativa
+      return { proyecto: 'ADMINISTRACION,COMPANY MAN - ADMINISTRACION,ADMINISTRACION - STAFF,FRONTERA - ADMINISTRACION,Administrativo,PETROSERVICIOS - ADMINISTRACION,ADMINISTRACION COMPANY MAN' };
+    } else if (dashboardProceso === 'company-man') {
+      // Gestión Proyecto - Company man
+      return { proyecto: '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN - GGS,COMPANY MAN - CASTILLA' };
     } else if (dashboardProceso === 'frontera') {
-      return { proyecto: 'FRONTERA,FRONTERA - ADMINISTRACION' };
-    } else if (dashboardProceso === 'petro') {
-      return { proyecto: 'PETROSERVICIOS,PETROSERVICIOS - ADMINISTRACION' };
-    } else if (dashboardProceso === 'administrativo') {
-      return { proyecto: 'ADMINISTRACION,ADMINISTRACION  COMPANY MAN,ADMINISTRACION - STAFF,Administrativo,ZIRCON' };
+      // Gestión Proyecto Frontera
+      return { proyecto: 'FRONTERA' };
+    } else if (dashboardProceso === 'zircon') {
+      // Gestión Proyecto ZIRCON
+      return { proyecto: 'ZIRCON' };
     }
     return {};
   }, [dashboardProceso]);
@@ -1119,17 +1126,23 @@ const Dashboard = () => {
     const cleanFilters = {};
     Object.keys(excelFilters).forEach(key => {
       if (excelFilters[key] !== '') {
-        // Mapear 'proceso' a 'proyecto' para el backend
+        // Mapear 'proceso' a 'proyecto' para el backend (mapeo de Gestiones a Proyectos)
         if (key === 'proceso') {
-          // Mapear opciones separadas a listas de proyectos
-          if (excelFilters[key] === 'cw') {
-            cleanFilters['proyecto'] = '3047761-4,COMPANY MAN,COMPANY MAN  - APIAY,COMPANY MAN  - CASTILLA,COMPANY MAN  - GGS,COMPANY MAN - ADMINISTRACION,COMPANY MAN - APIAY,COMPANY MAN - CPO09,COMPANY MAN - GGS';
+          if (excelFilters[key] === 'petroservicios') {
+            // Gestión Proyecto - Petroservicios
+            cleanFilters['proyecto'] = 'PETROSERVICIOS';
+          } else if (excelFilters[key] === 'administrativa') {
+            // Gestión Administrativa
+            cleanFilters['proyecto'] = 'ADMINISTRACION,COMPANY MAN - ADMINISTRACION,ADMINISTRACION - STAFF,FRONTERA - ADMINISTRACION,Administrativo,PETROSERVICIOS - ADMINISTRACION,ADMINISTRACION COMPANY MAN';
+          } else if (excelFilters[key] === 'company-man') {
+            // Gestión Proyecto - Company man
+            cleanFilters['proyecto'] = '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN - GGS,COMPANY MAN - CASTILLA';
           } else if (excelFilters[key] === 'frontera') {
-            cleanFilters['proyecto'] = 'FRONTERA,FRONTERA - ADMINISTRACION';
-          } else if (excelFilters[key] === 'petro') {
-            cleanFilters['proyecto'] = 'PETROSERVICIOS,PETROSERVICIOS - ADMINISTRACION';
-          } else if (excelFilters[key] === 'administrativo') {
-            cleanFilters['proyecto'] = 'ADMINISTRACION,ADMINISTRACION  COMPANY MAN,ADMINISTRACION - STAFF,Administrativo,ZIRCON';
+            // Gestión Proyecto Frontera
+            cleanFilters['proyecto'] = 'FRONTERA';
+          } else if (excelFilters[key] === 'zircon') {
+            // Gestión Proyecto ZIRCON
+            cleanFilters['proyecto'] = 'ZIRCON';
           }
         } else {
           cleanFilters[key] = excelFilters[key];
@@ -2023,21 +2036,22 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-          {/* Filtro global de Proyecto para dashboards/reportes */}
+          {/* Filtro global de Proceso para dashboards/reportes */}
           <div className="mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center gap-3">
-                <label className="text-sm text-gray-300">Proyecto</label>
+                <label className="text-sm text-gray-300">Proceso</label>
                 <select
                   value={dashboardProceso}
                   onChange={(e) => setDashboardProceso(e.target.value)}
                   className="px-3 py-2 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 >
-                  <option value="">Todos</option>
-                  <option value="cw">CW</option>
-                  <option value="frontera">Frontera</option>
-                  <option value="petro">Petro Servicios</option>
-                  <option value="administrativo">Administrativo</option>
+                  <option value="">Todos los Procesos</option>
+                  <option value="petroservicios">Gestión Proyecto - Petroservicios</option>
+                  <option value="administrativa">Gestión Administrativa</option>
+                  <option value="company-man">Gestión Proyecto - Company man</option>
+                  <option value="frontera">Gestión Proyecto Frontera</option>
+                  <option value="zircon">Gestión Proyecto ZIRCON</option>
                 </select>
               </div>
               {dashboardProceso && (
@@ -2467,11 +2481,12 @@ const Dashboard = () => {
                       onChange={handleExcelFilterChange}
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     >
-                     <option value="">Todos los proyectos</option>
-                     <option value="cw">CW</option>
-                     <option value="frontera">Frontera</option>
-                     <option value="petro">Petro Servicios</option>
-                     <option value="administrativo">Administrativo</option>
+                     <option value="">Todos los Procesos</option>
+                     <option value="petroservicios">Gestión Proyecto - Petroservicios</option>
+                     <option value="administrativa">Gestión Administrativa</option>
+                     <option value="company-man">Gestión Proyecto - Company man</option>
+                     <option value="frontera">Gestión Proyecto Frontera</option>
+                     <option value="zircon">Gestión Proyecto ZIRCON</option>
                     </select>
                   </div>
                   
