@@ -19,7 +19,7 @@ import { reportTypes, gradosCriticidad } from '../config/formOptions';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
   
   const handlePeriodChange = useCallback((period) => {
     setSelectedPeriod(period);
@@ -60,28 +60,106 @@ const Dashboard = () => {
     }
     return {};
   }, [dashboardProceso]);
-  const { stats, loading, error } = useDashboardStats(selectedPeriod, dashboardFilters);
+  const effectivePeriod = selectedPeriod === 'all' ? undefined : selectedPeriod;
+  const { stats, loading, error } = useDashboardStats(effectivePeriod, dashboardFilters);
   
   // Debug: Log cuando cambie el período seleccionado
 
+  // Utilidades para agrupar por periodo (mes/trimestre/año)
+  const monthNameToIndex = useMemo(() => ({
+    'ene': 0, 'enero': 0,
+    'feb': 1, 'febrero': 1,
+    'mar': 2, 'marzo': 2,
+    'abr': 3, 'abril': 3,
+    'may': 4, 'mayo': 4,
+    'jun': 5, 'junio': 5,
+    'jul': 6, 'julio': 6,
+    'ago': 7, 'agosto': 7,
+    'sep': 8, 'sept': 8, 'septiembre': 8,
+    'oct': 9, 'octubre': 9,
+    'nov': 10, 'noviembre': 10,
+    'dic': 11, 'diciembre': 11
+  }), []);
+
+  const parseMonthIndex = (m) => {
+    if (m.mes_num != null) return Math.max(0, Math.min(11, Number(m.mes_num) - 1));
+    const raw = (m.mes_corto || m.mes || '').toString().trim().toLowerCase();
+    if (raw && monthNameToIndex.hasOwnProperty(raw)) return monthNameToIndex[raw];
+    return undefined;
+  };
+
+  const parseYear = (m) => {
+    if (m.anio != null) return Number(m.anio);
+    if (m.year != null) return Number(m.year);
+    // Intentar extraer año de periodos tipo "Ene 2024" o "2024"
+    const str = (m.periodo || m.mes || m.mes_corto || '').toString();
+    const match = str.match(/(20\d{2}|19\d{2})/);
+    return match ? Number(match[1]) : undefined;
+  };
+
+  const aggregateByPeriod = (rows, periodType) => {
+    if (periodType === 'month') {
+      const monthRows = rows.map(m => {
+        const y = parseYear(m);
+        const mi = parseMonthIndex(m);
+        const label = (m.mes_corto || m.mes || m.periodo || '').toString() || '—';
+        return {
+          period: label,
+          _y: y ?? 0,
+          _m: mi ?? 0,
+          incidentes: Number(m.incidentes) || 0,
+          hallazgos: Number(m.hallazgos) || 0,
+          conversaciones: Number(m.conversaciones) || 0,
+          pqr: Number(m.pqr || 0) || 0
+        };
+      });
+      monthRows.sort((a, b) => (a._y - b._y) || (a._m - b._m));
+      return monthRows.map(({ _y, _m, ...rest }) => rest);
+    }
+    const acc = new Map();
+    rows.forEach(m => {
+      const y = parseYear(m);
+      const mi = parseMonthIndex(m);
+      let key;
+      let label;
+      if (periodType === 'quarter') {
+        const q = mi != null ? (Math.floor(mi / 3) + 1) : (m.tri || m.q);
+        key = `${y || ''}-Q${q || ''}`;
+        label = m.trimestre_corto || m.trimestre || m.periodo || (q ? `T${q} ${y || ''}` : '');
+      } else {
+        key = `${y || ''}`;
+        label = (y != null ? String(y) : (m.periodo || ''));
+      }
+      if (!acc.has(key)) acc.set(key, { period: label, incidentes: 0, hallazgos: 0, conversaciones: 0, pqr: 0 });
+      const cur = acc.get(key);
+      cur.incidentes += Number(m.incidentes) || 0;
+      cur.hallazgos += Number(m.hallazgos) || 0;
+      cur.conversaciones += Number(m.conversaciones) || 0;
+      cur.pqr += Number(m.pqr || 0) || 0;
+    });
+    // Ordenar por año y trimestre si posible
+    const sorted = Array.from(acc.values()).sort((a, b) => {
+      const ay = Number((a.period.match(/(20\d{2}|19\d{2})/) || [])[1]) || 0;
+      const by = Number((b.period.match(/(20\d{2}|19\d{2})/) || [])[1]) || 0;
+      if (ay !== by) return ay - by;
+      const aq = Number((a.period.match(/T(\d)/) || [])[1]) || 0;
+      const bq = Number((b.period.match(/T(\d)/) || [])[1]) || 0;
+      return aq - bq;
+    });
+    return sorted;
+  };
+
   // Bar chart: Reportes por periodo (dinámico por selectedPeriod)
-  const incidentsByMonth = useMemo(() => (stats?.incidentesPorMes || []).map(m => ({
-    month: m.mes_corto || m.mes,
-    incidentes: Number(m.incidentes),
-    hallazgos: Number(m.hallazgos),
-    conversaciones: Number(m.conversaciones),
-    pqr: Number(m.pqr || 0),
-  })), [stats?.incidentesPorMes]);
+  const incidentsByMonth = useMemo(() => {
+    const data = stats?.incidentesPorMes || [];
+    if (!Array.isArray(data)) return [];
+    const periodType = selectedPeriod === 'all' ? 'month' : selectedPeriod;
+    return aggregateByPeriod(data, periodType);
+  }, [stats?.incidentesPorMes, selectedPeriod]);
 
-  // Pie chart: Distribución por tipo
-  const incidentsByType = useMemo(() => stats?.distribucionTipo?.map(t => ({
-    id: t.tipo_reporte,
-    label: t.tipo_reporte.charAt(0).toUpperCase() + t.tipo_reporte.slice(1),
-    value: Number(t.cantidad),
-    color: t.color
-  })) || [], [stats?.distribucionTipo]);
+  // Pie chart: Distribución por tipo (definida más abajo con filtro de periodo)
 
-  // Resumen de reportes para gráfico de barras (sustituye Métricas de seguridad)
+  // Resumen de gestión para gráfico de barras (sustituye Métricas de seguridad)
   const totalReportes = useMemo(() => Number(stats?.kpis?.total_reportes) || 0, [stats?.kpis?.total_reportes]);
   const totalCerrados = useMemo(() => Number(stats?.kpis?.total_cerrados) || 0, [stats?.kpis?.total_cerrados]);
   const totalAbiertosCalc = useMemo(() => Math.max(totalReportes - totalCerrados, 0), [totalReportes, totalCerrados]);
@@ -1099,7 +1177,7 @@ const Dashboard = () => {
         ws.columns = [
           { header: 'ID Usuario', key: 'id_usuario', width: 14 },
           { header: 'Nombre Usuario', key: 'nombre_usuario', width: 36 },
-          { header: 'Cantidad de Reportes', key: 'cantidad_reportes', width: 22 }
+          { header: 'Total de Reportes', key: 'cantidad_reportes', width: 22 }
         ];
         ws.addRows(rows);
         // Estilos mínimos
@@ -1140,58 +1218,56 @@ const Dashboard = () => {
     setShowExcelFiltersModal(true);
   }, []);
 
-  // Line chart: Tendencias mensuales
-  const monthlyTrends = useMemo(() => [
-    {
-      id: 'Incidentes',
-      color: '#ef4444',
-      data: (stats?.tendencias || []).map(m => ({
-        x: m.mes_corto || m.mes,
-        y: Number(m.incidentes)
-      }))
-    },
-    {
-      id: 'Hallazgos',
-      color: '#eab308',
-      data: (stats?.tendencias || []).map(m => ({
-        x: m.mes_corto || m.mes,
-        y: Number(m.hallazgos)
-      }))
-    },
-    {
-      id: 'Conversaciones',
-      color: '#3b82f6',
-      data: (stats?.tendencias || []).map(m => ({
-        x: m.mes_corto || m.mes,
-        y: Number(m.conversaciones)
-      }))
-    },
-    {
-      id: 'PQR',
-      color: '#a855f7',
-      data: (stats?.tendencias || []).map(m => ({
-        x: m.mes_corto || m.mes,
-        y: Number(m.pqr || 0)
-      }))
+  // Line chart: Tendencias por periodo (agrega si el backend no lo hace)
+  const monthlyTrends = useMemo(() => {
+    const rows = stats?.tendencias || [];
+    const periodType = selectedPeriod === 'all' ? 'month' : selectedPeriod;
+    const aggregated = aggregateByPeriod(rows, periodType).map(r => ({ x: r.period, ...r }));
+    return [
+      { id: 'Incidentes', color: '#ef4444', data: aggregated.map(r => ({ x: r.x || r.period, y: Number(r.incidentes) || 0 })) },
+      { id: 'Hallazgos', color: '#eab308', data: aggregated.map(r => ({ x: r.x || r.period, y: Number(r.hallazgos) || 0 })) },
+      { id: 'Conversaciones', color: '#3b82f6', data: aggregated.map(r => ({ x: r.x || r.period, y: Number(r.conversaciones) || 0 })) },
+      { id: 'PQR', color: '#a855f7', data: aggregated.map(r => ({ x: r.x || r.period, y: Number(r.pqr) || 0 })) }
+    ];
+  }, [stats?.tendencias, selectedPeriod]);
+
+  // Pie: Distribución por tipo filtrada por periodo
+  const incidentsByType = useMemo(() => {
+    const colors = {
+      incidentes: '#ef4444',
+      hallazgos: '#eab308',
+      conversaciones: '#3b82f6',
+      pqr: '#a855f7'
+    };
+    const labelCap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    // Si es 'Todos', usar los datos del backend directamente si existen
+    if (selectedPeriod === 'all' && Array.isArray(stats?.distribucionTipo)) {
+      return stats.distribucionTipo.map(t => ({
+        id: t.tipo_reporte,
+        label: labelCap(t.tipo_reporte),
+        value: Number(t.cantidad),
+        color: t.color || colors[t.tipo_reporte] || '#8884d8'
+      }));
     }
-  ], [stats?.tendencias]);
+    // Sumar los valores de incidentsByMonth por tipo
+    const sum = { incidentes: 0, hallazgos: 0, conversaciones: 0, pqr: 0 };
+    incidentsByMonth.forEach(r => {
+      sum.incidentes += Number(r.incidentes) || 0;
+      sum.hallazgos += Number(r.hallazgos) || 0;
+      sum.conversaciones += Number(r.conversaciones) || 0;
+      sum.pqr += Number(r.pqr) || 0;
+    });
+    return Object.entries(sum).map(([k, v]) => ({ id: k, label: labelCap(k), value: v, color: colors[k] }));
+  }, [stats?.distribucionTipo, incidentsByMonth, selectedPeriod]);
 
   const reportesResumenChart = useMemo(() => {
+    // Usar KPIs del backend (ya filtrados por periodo si no es 'Todos')
     const pendientes = Number(stats?.kpis?.pendientes) || 0;
     const enRevision = Number(stats?.kpis?.en_revision) || 0;
     const aprobados = Number(stats?.kpis?.aprobados) || 0;
     const rechazados = Number(stats?.kpis?.rechazados) || 0;
-
-    return [
-      { 
-        estado: 'Reportes', 
-        Pendientes: pendientes,
-        'En Revisión': enRevision,
-        Aprobados: aprobados,
-        Rechazados: rechazados
-      }
-    ];
-  }, [stats?.kpis]);
+    return [{ estado: 'Reportes', Pendientes: pendientes, 'En Revisión': enRevision, Aprobados: aprobados, Rechazados: rechazados }];
+  }, [stats?.kpis, selectedPeriod]);
 
   return (
     <>
@@ -1365,7 +1441,7 @@ const Dashboard = () => {
           {/* Period Filter */}
           <div className="flex justify-center mb-8">
             <div className="flex flex-wrap justify-center gap-3">
-              {['month', 'quarter', 'year'].map((period) => (
+              {['all','month', 'quarter', 'year'].map((period) => (
                 <button
                   key={period}
                   onClick={() => handlePeriodChange(period)}
@@ -1392,7 +1468,7 @@ const Dashboard = () => {
                       Cargando...
                     </>
                   ) : (
-                    period === 'month' ? 'Mensual' : period === 'quarter' ? 'Trimestral' : 'Anual'
+                  period === 'all' ? 'Todos' : period === 'month' ? 'Mensual' : period === 'quarter' ? 'Trimestral' : 'Anual'
                   )}
                 </button>
               ))}
@@ -1457,7 +1533,7 @@ const Dashboard = () => {
                         </div>
                         <div>
                           <h3 className="text-lg md:text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                            Cantidad de reportes por periodo
+                            Total de reportes por periodo
                           </h3>
                           <p className="text-xs md:text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
                             Análisis mensual
@@ -1490,7 +1566,7 @@ const Dashboard = () => {
                     <ResponsiveBar
                       data={incidentsByMonth}
                       keys={['incidentes', 'hallazgos', 'conversaciones', 'pqr']}
-                      indexBy="month"
+                      indexBy="period"
                       margin={{ top: 30, right: 80, bottom: 50, left: 50 }}
                       padding={0.3}
                       groupMode="grouped"
@@ -1529,7 +1605,7 @@ const Dashboard = () => {
                       axisLeft={{
                         tickSize: 5,
                         tickPadding: 8,
-                        legend: 'Cantidad de reportes',
+                       legend: 'Total de reportes',
                         legendPosition: 'middle',
                         legendOffset: -45
                       }}
@@ -1555,7 +1631,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Resumen de Reportes - Barras por estado y criticidad */}
+                {/* Resumen de gestión - Barras por estado y criticidad */}
                 <div 
                   className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-6 relative overflow-hidden"
                   style={{
@@ -1585,7 +1661,7 @@ const Dashboard = () => {
                         </div>
                         <div>
                           <h3 className="text-xl font-bold text-gray-100 tracking-wide">
-                            Resumen de reportes
+                            Resumen de gestión
                           </h3>
                           <p className="text-sm text-gray-400">
                             Distribución por estado
@@ -1802,7 +1878,7 @@ const Dashboard = () => {
                       axisLeft={{
                         tickSize: 5,
                         tickPadding: 8,
-                        legend: 'Cantidad de reportes',
+                       legend: 'Total de reportes',
                         legendPosition: 'middle',
                         legendOffset: -50
                       }}
@@ -2137,7 +2213,7 @@ const Dashboard = () => {
                     Excel Reportes por Usuario
                   </h3>
                   <p className="text-xs md:text-sm mb-4 md:mb-6 text-gray-300">
-                    Cantidad de reportes por usuario (quién reportó más), ordenado descendentemente
+                    Total de reportes por usuario (quién reportó más), ordenado descendentemente
                   </p>
 
                   <button 
