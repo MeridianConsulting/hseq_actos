@@ -61,6 +61,60 @@ const formatReportDateTime = (fechaEvento, creadoEn) => {
   }
 };
 
+// Función para determinar a qué proceso (gestión) pertenece un proyecto
+const getProcesoFromProyecto = (proyecto) => {
+  if (!proyecto || proyecto.trim() === '') {
+    return 'Gestión Administrativa';
+  }
+  
+  const proyectoTrim = proyecto.trim();
+  
+  // Gestión Proyecto - Petroservicios
+  if (proyectoTrim === 'PETROSERVICIOS') {
+    return 'Gestión Proyecto - Petroservicios';
+  }
+  
+  // Gestión Administrativa
+  const proyectosAdministrativos = [
+    'ADMINISTRACION',
+    'COMPANY MAN - ADMINISTRACION',
+    'ADMINISTRACION - STAFF',
+    'FRONTERA - ADMINISTRACION',
+    'Administrativo',
+    'PETROSERVICIOS - ADMINISTRACION',
+    'ADMINISTRACION COMPANY MAN'
+  ];
+  if (proyectosAdministrativos.includes(proyectoTrim)) {
+    return 'Gestión Administrativa';
+  }
+  
+  // Gestión Proyecto - Company man
+  const proyectosCompanyMan = [
+    '3047761-4',
+    'COMPANY MAN - APIAY',
+    'COMPANY MAN',
+    'COMPANY MAN - CPO09',
+    'COMPANY MAN - GGS',
+    'COMPANY MAN - CASTILLA'
+  ];
+  if (proyectosCompanyMan.includes(proyectoTrim)) {
+    return 'Gestión Proyecto - Company man';
+  }
+  
+  // Gestión Proyecto Frontera
+  if (proyectoTrim === 'FRONTERA') {
+    return 'Gestión Proyecto Frontera';
+  }
+  
+  // Gestión Proyecto ZIRCON
+  if (proyectoTrim === 'ZIRCON') {
+    return 'Gestión Proyecto ZIRCON';
+  }
+  
+  // Si no coincide con ninguna gestión, retornar el proyecto original
+  return proyectoTrim;
+};
+
 // Función para calcular días transcurridos desde la creación del reporte
 const calculateDaysElapsed = (fechaEvento, creadoEn, fechaCierre = null) => {
   try {
@@ -910,7 +964,7 @@ const ReportsTable = ({
                       : 'bg-white/20 border-white/30'
               }`}>
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-0 mb-4">
-                  <div className="flex items-center space-x-3">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(report.estado)} drop-shadow`}>
                       {report.estado}
                     </span>
@@ -918,6 +972,14 @@ const ReportsTable = ({
                       useDarkTheme ? 'text-gray-300' : 'text-white/80'
                     }`}>
                       ID: {report.id}
+                    </span>
+                    {/* Badge de Proceso */}
+                    <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold border ${
+                      useDarkTheme 
+                        ? 'bg-purple-900/40 text-purple-200 border-purple-700/50' 
+                        : 'bg-purple-500/30 text-purple-100 border-purple-400/50'
+                    }`}>
+                      {getProcesoFromProyecto(report.proyecto_usuario)}
                     </span>
                     {/* Indicador de tiempo transcurrido */}
                     <div className={`px-2 py-1 rounded-full text-xs font-semibold border ${
