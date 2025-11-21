@@ -1553,24 +1553,6 @@ const Dashboard = () => {
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2 md:space-x-3">
-                        <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
-                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Incidentes</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#eab308' }}></div>
-                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Hallazgos</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
-                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>Conversaciones</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#a855f7' }}></div>
-                          <span className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.7)' }}>PQR</span>
-                        </div>
-                      </div>
                     </div>
                   </div>
                   
