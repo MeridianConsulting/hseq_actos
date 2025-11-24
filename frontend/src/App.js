@@ -7,6 +7,7 @@ import Login from './pages/login';
 import CollaboratorDashboard from './pages/CollaboratorDashboard';
 import SupportDashboard from './pages/SupportDashboard';
 import CreateReport from './pages/CreateReport';
+import ReportsList from './admin/ReportsList';
 
 import { isAuthenticated, getUser, getRoleRoute } from './utils/auth';
 import SEO from './components/SEO';
@@ -110,6 +111,14 @@ function App() {
                   <UsersAdmin />
                 </ProtectedRoute>
               } 
+            />
+            <Route
+              path="/admin/reports"
+              element={
+                <ProtectedRoute>
+                  <ReportsList />
+                </ProtectedRoute>
+              }
             />
 
             {/* Ruta por defecto para rutas no encontradas */}

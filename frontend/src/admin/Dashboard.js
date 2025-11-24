@@ -45,6 +45,54 @@ const Dashboard = () => {
   const [responsables, setResponsables] = useState([]);
   const [showExcelFiltersModal, setShowExcelFiltersModal] = useState(false);
 
+  // Modal Consolidados por usuario
+  const [showConsolidadosModal, setShowConsolidadosModal] = useState(false);
+  const [consolidadosType, setConsolidadosType] = useState('');
+  const [consolidadosUsers, setConsolidadosUsers] = useState([]);
+  const [consolidadosLoading, setConsolidadosLoading] = useState(false);
+  const [consolidadosSearch, setConsolidadosSearch] = useState('');
+
+  const handleOpenConsolidadosModal = useCallback(() => {
+    setShowConsolidadosModal(true);
+    setConsolidadosType('');
+    setConsolidadosUsers([]);
+    setConsolidadosSearch('');
+  }, []);
+
+  const handleCloseConsolidadosModal = useCallback(() => {
+    setShowConsolidadosModal(false);
+  }, []);
+
+  const fetchConsolidadosUsers = useCallback(async (type) => {
+    try {
+      setConsolidadosLoading(true);
+      setConsolidadosType(type);
+      const resp = await reportService.getAllReports({ tipo_reporte: type, per_page: 1000, page: 1 });
+      const list = resp?.reports || resp?.data || [];
+      const map = new Map();
+      list.forEach(r => {
+        const name = r.nombre_usuario || r.nombre || r.Usuario || 'Sin nombre';
+        const id = r.id_usuario || r.user_id || r.id || null;
+        const key = `${name}||${id}`;
+        if (!map.has(key)) map.set(key, { id, nombre: name, count: 0 });
+        map.get(key).count += 1;
+      });
+      const arr = Array.from(map.values()).sort((a, b) => (b.count - a.count) || ((a.nombre || '').localeCompare(b.nombre || '')));
+      setConsolidadosUsers(arr);
+    } catch (e) {
+      console.error('Error cargando consolidados por usuario:', e);
+      setConsolidadosUsers([]);
+    } finally {
+      setConsolidadosLoading(false);
+    }
+  }, []);
+
+  const filteredConsolidadosUsers = useMemo(() => {
+    if (!consolidadosSearch) return consolidadosUsers;
+    const q = consolidadosSearch.toLowerCase();
+    return consolidadosUsers.filter(u => (u.nombre || '').toLowerCase().includes(q));
+  }, [consolidadosUsers, consolidadosSearch]);
+
   // Filtro global de proceso (gestión) para dashboards/reportes
   const [dashboardProceso, setDashboardProceso] = useState('');
   const dashboardFilters = useMemo(() => {
@@ -617,7 +665,7 @@ const Dashboard = () => {
     w.document.close();
   }, [stats, selectedPeriod, reportService, userService]);
 
-  const handleDownloadExcel = useCallback(async (customFilters = {}) => {
+  const handleDownloadExcel = useCallback(async (customFilters = {}, fileNamePrefix = '') => {
 
      // Obtener todos los reportes con información completa y filtros aplicados
      let reportesDetallados = [];
@@ -747,7 +795,9 @@ const Dashboard = () => {
        return;
      }
 
-     const fileName = `reportes_detallados_hseq_${new Date().toISOString().substring(0,10)}.xlsx`;
+    // Sanear prefijo para filename
+    const safePrefix = String(fileNamePrefix || '').trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_\-]/g, '');
+    const fileName = `${safePrefix ? safePrefix + '_' : ''}reportes_detallados_hseq_${new Date().toISOString().substring(0,10)}.xlsx`;
 
      // Funciones auxiliares para procesamiento de imágenes (copiadas de ReportDetailsModal)
      const isProbablyImageBlob = async (blob) => {
@@ -2193,44 +2243,63 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Excel Reportes por Usuario */}
-              <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
-                <div className="text-center">
-                  <div className="text-4xl md:text-5xl mb-4 md:mb-6">👤</div>
-                  <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
-                    Excel Reportes por Usuario
-                  </h3>
-                  <p className="text-xs md:text-sm mb-4 md:mb-6 text-gray-300">
-                    Total de reportes por usuario (quién reportó más), ordenado descendentemente
-                  </p>
+              {/* Excel Reportes por Usuario + Consolidados (lado a lado) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:col-span-2">
+                <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
+                  <div className="text-center">
+                    <div className="flex items-center space-x-4">
+                      <div className="text-5xl">👤</div>
+                      <div className="flex-1 text-left">
+                        <h3 className="text-xl md:text-2xl font-bold mb-1 text-white">Excel Reportes por Usuario</h3>
+                        <p className="text-xs md:text-sm text-gray-300 mb-3">Total de reportes por usuario (quién reportó más), ordenado descendentemente</p>
+                        <button 
+                          className="font-bold py-2 px-4 rounded-lg transition-colors duration-200"
+                          style={{
+                            background: 'linear-gradient(45deg, #22c55e, #16a34a)',
+                            color: 'white',
+                            boxShadow: '0 12px 24px -8px rgba(34, 197, 94, 0.45)'
+                          }}
+                          onClick={handleDownloadExcelUserCounts}
+                        >
+                          EXPORTAR EXCEL
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-                  <button 
-                    className="w-full group relative font-bold py-3 md:py-4 px-4 md:px-6 rounded-2xl transition-all duration-500 transform hover:scale-105 overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent"
-                    style={{
-                      background: 'linear-gradient(45deg, #22c55e, #16a34a)',
-                      color: 'white',
-                      boxShadow: '0 15px 35px -5px rgba(34, 197, 94, 0.5)',
-                      '--focus-ring-color': 'rgba(34, 197, 94, 0.5)'
-                    }}
-                    onClick={handleDownloadExcelUserCounts}
-                  >
-                    <div 
-                      className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
-                      style={{
-                        background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)'
-                      }}
-                    ></div>
-                    <span className="relative flex items-center justify-center space-x-2">
-                      <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span className="text-sm md:text-base">EXPORTAR EXCEL</span>
-                    </span>
-                  </button>
+                <div
+                  onClick={handleOpenConsolidadosModal}
+                  className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+                  style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}
+                >
+                  <div className="text-center">
+                    <div className="flex items-center space-x-4">
+                      <div className="text-5xl">👥</div>
+                      <div className="flex-1 text-left">
+                        <h3 className="text-xl md:text-2xl font-bold mb-1 text-white">Consolidados de reportes por usuario</h3>
+                        <p className="text-xs md:text-sm text-gray-300 mb-3">Haz clic para abrir el panel y seleccionar Hallazgos, Conversaciones, Reflexiones o PQRs</p>
+                        <button 
+                          className="font-bold py-2 px-4 rounded-lg transition-colors duration-200"
+                          style={{
+                            background: 'linear-gradient(45deg, #06b6d4, #0891b2)',
+                            color: 'white',
+                            boxShadow: '0 12px 24px -8px rgba(6, 182, 212, 0.35)'
+                          }}
+                          onClick={handleOpenConsolidadosModal}
+                        >
+                          ABRIR
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+          
+          
+            
 
           {/* Administración de Usuarios (solo Admin) */}
           {isAdmin() && (
@@ -2556,6 +2625,97 @@ const Dashboard = () => {
                     <span>Generar Excel</span>
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Consolidados por usuario */}
+        {showConsolidadosModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}>
+            <div className="bg-gray-900 rounded-2xl border border-gray-700 max-w-4xl w-full max-h-[90vh] overflow-y-auto" style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+              {/* Header */}
+              <div className="sticky top-0 bg-gray-800 border-b border-gray-700 p-6 flex justify-between items-center z-10">
+                <div>
+                  <h3 className="text-2xl font-bold text-white flex items-center"><span className="mr-3">📥</span>Consolidados de reportes por usuario</h3>
+                  <p className="text-sm text-gray-400 mt-1">Selecciona un tipo y busca por nombre para ver quién reportó información</p>
+                </div>
+                <button onClick={handleCloseConsolidadosModal} className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700 rounded-lg">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6">
+                <div className="flex flex-col md:flex-row md:items-start md:space-x-6">
+                  <div className="mb-4 md:mb-0">
+                    <div className="grid grid-cols-2 gap-3">
+                      <button onClick={() => fetchConsolidadosUsers('hallazgos')} className={`px-4 py-3 rounded-lg text-sm font-semibold ${consolidadosType==='hallazgos' ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-200 hover:bg-gray-700'}`}>
+                        Hallazgos
+                      </button>
+                      <button onClick={() => fetchConsolidadosUsers('conversaciones')} className={`px-4 py-3 rounded-lg text-sm font-semibold ${consolidadosType==='conversaciones' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-200 hover:bg-gray-700'}`}>
+                        Conversaciones
+                      </button>
+                      <button onClick={() => fetchConsolidadosUsers('reflexiones')} className={`px-4 py-3 rounded-lg text-sm font-semibold ${consolidadosType==='reflexiones' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-200 hover:bg-gray-700'}`}>
+                        Reflexiones
+                      </button>
+                      <button onClick={() => fetchConsolidadosUsers('pqr')} className={`px-4 py-3 rounded-lg text-sm font-semibold ${consolidadosType==='pqr' ? 'bg-yellow-600 text-white' : 'bg-gray-800 text-gray-200 hover:bg-gray-700'}`}>
+                        PQRs
+                      </button>
+                    </div>
+
+                    <div className="mt-4">
+                      <label className="text-xs text-gray-400">Buscar por nombre</label>
+                      <input type="text" value={consolidadosSearch} onChange={(e) => setConsolidadosSearch(e.target.value)} placeholder="Escribe un nombre..." className="w-full mt-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 focus:outline-none" />
+                    </div>
+                  </div>
+
+                  <div className="flex-1">
+                    <div className="mb-3 text-sm text-gray-300">{consolidadosType ? `Resultados para: ${consolidadosType}` : 'Selecciona un tipo para cargar usuarios'}</div>
+
+                    {consolidadosLoading ? (
+                      <div className="text-center text-gray-400 py-6">Cargando...</div>
+                    ) : (
+                      <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2">
+                        {filteredConsolidadosUsers.length === 0 ? (
+                          <div className="text-sm text-gray-500">No se encontraron usuarios</div>
+                        ) : (
+                          filteredConsolidadosUsers.map(u => (
+                            <div key={`${u.id}-${u.nombre}`} className="bg-gray-800 border border-gray-700 rounded-lg p-3 flex items-center justify-between">
+                              <div>
+                                <div className="text-sm font-semibold text-gray-100">{u.nombre}</div>
+                                <div className="text-xs text-gray-400">Reportes: {u.count}</div>
+                              </div>
+                              <div>
+                                <button onClick={() => { 
+                                    const tipo = consolidadosType || '';
+                                    const userId = u.id || '';
+                                    const userName = u.nombre || '';
+                                    // Filtrar por user_id (usuario que reportó)
+                                    handleDownloadExcel({ tipo_reporte: tipo, user_id: userId }, userName);
+                                }}
+                                className="px-3 py-1 text-sm rounded-lg"
+                                style={{
+                                  background: 'linear-gradient(45deg, #22c55e, #16a34a)',
+                                  color: 'white',
+                                  boxShadow: '0 8px 20px -6px rgba(34,197,94,0.45)'
+                                }}
+                                >Generar Excel</button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="sticky bottom-0 bg-gray-800 border-t border-gray-700 p-6 flex justify-end">
+                <button onClick={handleCloseConsolidadosModal} className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm">Cerrar</button>
               </div>
             </div>
           </div>
