@@ -17,6 +17,60 @@ import { buildApi, buildUploadsUrl } from '../config/api';
 import ReportsTable from '../components/ReportsTable';
 import { reportTypes, gradosCriticidad } from '../config/formOptions';
 
+// Función para determinar a qué proceso (gestión) pertenece un proyecto
+const getProcesoFromProyecto = (proyecto) => {
+  if (!proyecto || proyecto.trim() === '') {
+    return 'Gestión Administrativa';
+  }
+  
+  const proyectoTrim = proyecto.trim();
+  
+  // Gestión Proyecto - Petroservicios
+  if (proyectoTrim === 'PETROSERVICIOS') {
+    return 'Gestión Proyecto - Petroservicios';
+  }
+  
+  // Gestión Administrativa
+  const proyectosAdministrativos = [
+    'ADMINISTRACION',
+    'COMPANY MAN - ADMINISTRACION',
+    'ADMINISTRACION - STAFF',
+    'FRONTERA - ADMINISTRACION',
+    'Administrativo',
+    'PETROSERVICIOS - ADMINISTRACION',
+    'ADMINISTRACION COMPANY MAN'
+  ];
+  if (proyectosAdministrativos.includes(proyectoTrim)) {
+    return 'Gestión Administrativa';
+  }
+  
+  // Gestión Proyecto - Company man
+  const proyectosCompanyMan = [
+    '3047761-4',
+    'COMPANY MAN - APIAY',
+    'COMPANY MAN',
+    'COMPANY MAN - CPO09',
+    'COMPANY MAN - GGS',
+    'COMPANY MAN - CASTILLA'
+  ];
+  if (proyectosCompanyMan.includes(proyectoTrim)) {
+    return 'Gestión Proyecto - Company man';
+  }
+  
+  // Gestión Proyecto Frontera
+  if (proyectoTrim === 'FRONTERA') {
+    return 'Gestión Proyecto Frontera';
+  }
+  
+  // Gestión Proyecto ZIRCON
+  if (proyectoTrim === 'ZIRCON') {
+    return 'Gestión Proyecto ZIRCON';
+  }
+  
+  // Si no coincide con ninguna gestión, retornar el proyecto original
+  return proyectoTrim;
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedPeriod, setSelectedPeriod] = useState('all');
@@ -30,6 +84,7 @@ const Dashboard = () => {
   const [assignError, setAssignError] = useState(null);
   const [reports, setReports] = useState([]);
   const [supports, setSupports] = useState([]);
+  const [reportsForProcessChart, setReportsForProcessChart] = useState([]);
   
   // Filtros para Excel
   const [excelFilters, setExcelFilters] = useState({
@@ -216,7 +271,14 @@ const Dashboard = () => {
 
   // Resumen de gestión para gráfico de barras (sustituye Métricas de seguridad)
   const totalReportes = useMemo(() => Number(stats?.kpis?.total_reportes) || 0, [stats?.kpis?.total_reportes]);
-  const totalCerrados = useMemo(() => Number(stats?.kpis?.total_cerrados) || 0, [stats?.kpis?.total_cerrados]);
+  // Cerrados: usa campo directo del backend si existe; si no, lo calcula como Aprobados + Rechazados
+  const totalCerrados = useMemo(() => {
+    const direct = Number(stats?.kpis?.total_cerrados);
+    if (!Number.isNaN(direct) && direct > 0) return direct;
+    const aprobados = Number(stats?.kpis?.aprobados) || 0;
+    const rechazados = Number(stats?.kpis?.rechazados) || 0;
+    return aprobados + rechazados;
+  }, [stats?.kpis?.total_cerrados, stats?.kpis?.aprobados, stats?.kpis?.rechazados]);
   const totalAbiertosCalc = useMemo(() => Math.max(totalReportes - totalCerrados, 0), [totalReportes, totalCerrados]);
   const totalAbiertos = useMemo(() => Number(stats?.kpis?.total_abiertos) || totalAbiertosCalc, [stats?.kpis?.total_abiertos, totalAbiertosCalc]);
 
@@ -232,11 +294,10 @@ const Dashboard = () => {
 
   // KPIs
   const kpis = useMemo(() => [
-    { title: 'Total Incidentes', value: stats?.kpis?.total_incidentes ?? '-', color: '#ef4444', icon: '⚠️' },
+    { title: 'Total reportes por periodo', value: totalReportes ?? '-', color: '#ef4444', icon: '⚠️' },
     { title: 'Reportes Procesados', value: stats?.kpis?.total_reportes ?? '-', color: '#22c55e', icon: '📋' },
-    { title: 'Capacitaciones', value: stats?.kpis?.total_conversaciones ?? '-', color: '#3b82f6', icon: '🎓' },
-    { title: 'Días sin Accidentes', value: stats?.diasSinAccidentes ?? '-', color: '#f59e0b', icon: '🏆' }
-  ], [stats?.kpis, stats?.diasSinAccidentes]);
+    { title: 'Cerrados', value: totalCerrados ?? '-', color: '#3b82f6', icon: '🎓' }
+  ], [totalReportes, stats?.kpis?.total_reportes, totalCerrados]);
 
   // Cargar proyectos únicos
   const loadProyectos = useCallback(async () => {
@@ -315,6 +376,27 @@ const Dashboard = () => {
     }
   }, [reportService, userService]);
 
+  // Cargar reportes para gráfica de procesos (cerrados y en revisión)
+  const loadReportsForProcessChart = useCallback(async () => {
+    try {
+      // Obtener todos los reportes y filtrar los cerrados (aprobados y rechazados) y en revisión
+      const resp = await reportService.getAllReports({ per_page: 10000, page: 1 });
+      
+      let allReports = [];
+      if (resp?.success && Array.isArray(resp.reports)) {
+        // Filtrar solo los cerrados (aprobados y rechazados) y en revisión
+        allReports = resp.reports.filter(r => 
+          r.estado === 'aprobado' || r.estado === 'rechazado' || r.estado === 'en_revision'
+        );
+      }
+      
+      setReportsForProcessChart(allReports);
+    } catch (e) {
+      console.error('Error cargando reportes para gráfica de procesos:', e);
+      setReportsForProcessChart([]);
+    }
+  }, []);
+
   useEffect(() => {
     const userData = getUser();
     if (userData) {
@@ -327,7 +409,9 @@ const Dashboard = () => {
       loadProyectos();
       loadResponsables();
     }
-  }, [loadAssignmentData, loadProyectos, loadResponsables]);
+    // Cargar reportes para gráfica de procesos
+    loadReportsForProcessChart();
+  }, [loadAssignmentData, loadProyectos, loadResponsables, loadReportsForProcessChart]);
 
   const handleAssignToSupport = useCallback(async (reportId, supportUserId) => {
     if (!supportUserId) return;
@@ -1281,18 +1365,37 @@ const Dashboard = () => {
     setShowExcelFiltersModal(true);
   }, []);
 
-  // Line chart: Tendencias por periodo (agrega si el backend no lo hace)
-  const monthlyTrends = useMemo(() => {
-    const rows = stats?.tendencias || [];
-    const periodType = selectedPeriod === 'all' ? 'month' : selectedPeriod;
-    const aggregated = aggregateByPeriod(rows, periodType).map(r => ({ x: r.period, ...r }));
-    return [
-      { id: 'Incidentes', color: '#ef4444', data: aggregated.map(r => ({ x: r.x || r.period, y: Number(r.incidentes) || 0 })) },
-      { id: 'Hallazgos', color: '#eab308', data: aggregated.map(r => ({ x: r.x || r.period, y: Number(r.hallazgos) || 0 })) },
-      { id: 'Conversaciones', color: '#3b82f6', data: aggregated.map(r => ({ x: r.x || r.period, y: Number(r.conversaciones) || 0 })) },
-      { id: 'PQR', color: '#a855f7', data: aggregated.map(r => ({ x: r.x || r.period, y: Number(r.pqr) || 0 })) }
-    ];
-  }, [stats?.tendencias, selectedPeriod]);
+  // Bar chart: Cantidad de reportes por proceso/área
+  const reportsByProcess = useMemo(() => {
+    // Si hay reportes cargados, agruparlos por proceso
+    if (reportsForProcessChart.length > 0) {
+      const processMap = new Map();
+      
+      reportsForProcessChart.forEach(report => {
+        const proyecto = report.proyecto_usuario || '';
+        const proceso = getProcesoFromProyecto(proyecto);
+        
+        if (!processMap.has(proceso)) {
+          processMap.set(proceso, 0);
+        }
+        processMap.set(proceso, processMap.get(proceso) + 1);
+      });
+      
+      // Convertir a array y ordenar por cantidad descendente
+      return Array.from(processMap.entries())
+        .map(([proceso, total]) => ({ proceso, total }))
+        .sort((a, b) => b.total - a.total);
+    }
+    
+    // Fallback: intentar usar datos del backend si existen
+    const rows = stats?.reportesPorProceso || stats?.reportes_por_proceso || [];
+    if (!Array.isArray(rows)) return [];
+
+    return rows.map((r) => ({
+      proceso: r.proceso || r.area || r.nombre || 'Sin proceso',
+      total: Number(r.total) || Number(r.cantidad) || Number(r.count) || 0,
+    }));
+  }, [reportsForProcessChart, stats?.reportesPorProceso, stats?.reportes_por_proceso]);
 
   // Pie: Distribución por tipo filtrada por periodo
   const incidentsByType = useMemo(() => {
@@ -1539,7 +1642,7 @@ const Dashboard = () => {
           </div>
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {loading && <div className="text-center text-base text-gray-300 col-span-full">Cargando KPIs...</div>}
             {error && <div className="text-center text-base text-red-500 col-span-full">{error}</div>}
             {!loading && !error && kpis.map((kpi, index) => (
@@ -1598,9 +1701,6 @@ const Dashboard = () => {
                           <h3 className="text-lg md:text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
                             Total de reportes por periodo
                           </h3>
-                          <p className="text-xs md:text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
-                            Análisis mensual
-                          </p>
                         </div>
                       </div>
                     </div>
@@ -1619,7 +1719,7 @@ const Dashboard = () => {
                       indexScale={{ type: 'band', round: true }}
                       colors={['#ef4444', '#eab308', '#3b82f6', '#a855f7']}
                       borderRadius={4}
-                      enableGridY={true}
+                      enableGridY={false}
                       theme={{
                         background: 'transparent',
                         text: { fill: '#f3f4f6', fontSize: 12 },
@@ -1640,21 +1740,8 @@ const Dashboard = () => {
                           }
                         }
                       }}
-                      axisBottom={{
-                        tickSize: 5,
-                        tickPadding: 8,
-                        tickRotation: 0,
-                        legend: 'Periodo',
-                        legendPosition: 'middle',
-                        legendOffset: 40
-                      }}
-                      axisLeft={{
-                        tickSize: 5,
-                        tickPadding: 8,
-                       legend: 'Total de reportes',
-                        legendPosition: 'middle',
-                        legendOffset: -50
-                      }}
+                      axisBottom={null}
+                      axisLeft={null}
                       labelSkipHeight={14}
                       labelSkipWidth={10}
                       labelTextColor="#ffffff"
@@ -1718,9 +1805,6 @@ const Dashboard = () => {
                           <h3 className="text-xl font-bold text-gray-100 tracking-wide">
                             Resumen de gestión
                           </h3>
-                          <p className="text-sm text-gray-400">
-                            Distribución por estado
-                          </p>
                         </div>
                       </div>
                       <div className="text-right space-y-1">
@@ -1763,20 +1847,8 @@ const Dashboard = () => {
                         grid: { line: { stroke: 'rgba(255,255,255,0.1)', strokeDasharray: '4 4' } },
                         tooltip: { container: { background: '#111827', color: '#f9fafb', fontSize: 13, borderRadius: 8, padding: '8px 12px', boxShadow: '0 6px 20px rgba(0,0,0,0.4)' } }
                       }}
-                      axisBottom={{
-                        tickSize: 0,
-                        tickPadding: 10,
-                        legend: 'Reportes',
-                        legendPosition: 'middle',
-                        legendOffset: 35
-                      }}
-                      axisLeft={{
-                        tickSize: 0,
-                        tickPadding: 8,
-                        legend: 'Cantidad',
-                        legendPosition: 'middle',
-                        legendOffset: -50
-                      }}
+                      axisBottom={null}
+                      axisLeft={null}
                       labelTextColor="#ffffff"
                       labelSkipHeight={16}
                       labelSkipWidth={12}
@@ -1878,83 +1950,98 @@ const Dashboard = () => {
                         </div>
                         <div>
                           <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                            Tendencias Mensuales
+                            Cantidad de reportes por proceso
                           </h3>
-                          <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
-                            Evolución temporal
-                          </p>
                         </div>
                       </div>
                     </div>
                   </div>
                   
                   {/* Chart Container */}
-                  <div className="relative" style={{ height: '320px' }}>
-                    <ResponsiveLine
-                      data={monthlyTrends}
-                      margin={{ top: 40, right: 60, bottom: 120, left: 60 }}
-                      xScale={{ type: 'point' }}
-                      yScale={{ type: 'linear', min: 0, max: 'auto', stacked: false, nice: true }}
-                      curve="monotoneX"
-                      lineWidth={3}
-                      colors={['#ef4444', '#eab308', '#3b82f6', '#a855f7']}
-                      pointSize={8}
-                      pointBorderWidth={2}
-                      pointBorderColor={{ from: 'serieColor' }}
-                      pointColor="#0f172a"
-                      enableGridX={false}
-                      enableGridY={true}
-                      axisBottom={{
-                        tickSize: 5,
-                        tickPadding: 10,
-                        tickRotation: -30,
-                        legend: 'Periodo',
-                        legendPosition: 'middle',
-                        legendOffset: 65
+                  <div className="relative" style={{ height: '400px' }}>
+                    <ResponsiveBar
+                      data={reportsByProcess}
+                      keys={['total']}
+                      indexBy="proceso"
+                      layout="horizontal"
+                      margin={{ top: 30, right: 120, bottom: 50, left: 180 }}
+                      padding={0.4}
+                      valueScale={{ type: 'linear' }}
+                      indexScale={{ type: 'band', round: true }}
+                      colors={(bar) => {
+                        const colors = [
+                          '#3b82f6', // Azul
+                          '#22c55e', // Verde
+                          '#f59e0b', // Amarillo/Naranja
+                          '#ef4444', // Rojo
+                          '#a855f7', // Púrpura
+                          '#06b6d4', // Cyan
+                          '#f97316', // Naranja
+                          '#84cc16'  // Lima
+                        ];
+                        return colors[bar.index % colors.length];
                       }}
-                      axisLeft={{
-                        tickSize: 5,
-                        tickPadding: 8,
-                       legend: 'Total de reportes',
-                        legendPosition: 'middle',
-                        legendOffset: -50
-                      }}
+                      borderRadius={6}
+                      enableGridX={true}
+                      enableGridY={false}
                       theme={{
                         background: 'transparent',
-                        text: { fill: '#f3f4f6' },
-                        axis: { ticks: { text: { fill: '#d1d5db' } } },
-                        grid: { line: { stroke: 'rgba(255,255,255,0.1)' } },
+                        text: { fill: '#f3f4f6', fontSize: 12 },
+                        axis: {
+                          ticks: { text: { fill: '#d1d5db', fontSize: 11 } },
+                          domain: { line: { stroke: 'rgba(255,255,255,0.15)' } },
+                          legend: { text: { fill: '#e5e7eb', fontWeight: 600, fontSize: 12 } }
+                        },
+                        grid: { line: { stroke: 'rgba(255,255,255,0.1)', strokeDasharray: '3 3' } },
                         tooltip: {
                           container: {
                             background: '#1f2937',
                             color: '#f9fafb',
+                            fontSize: 13,
                             borderRadius: 8,
-                            padding: '8px 12px'
+                            padding: '10px 14px',
+                            boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
+                            border: '1px solid rgba(255,255,255,0.1)'
                           }
                         }
                       }}
-                      legends={[
-                        {
-                          anchor: 'bottom',
-                          direction: 'row',
-                          justify: false,
-                          translateY: 110,
-                          itemWidth: 120,
-                          itemHeight: 20,
-                          itemTextColor: '#f3f4f6',
-                          symbolSize: 14,
-                          symbolShape: 'circle',
-                          effects: [
-                            {
-                              on: 'hover',
-                              style: { itemTextColor: '#ffffff' }
-                            }
-                          ]
-                        }
-                      ]}
-                      pointLabel={d => d.y > 0 ? d.y : ''}
-                      pointLabelYOffset={-14}
-                      useMesh={true}
+                      axisTop={null}
+                      axisRight={null}
+                      axisBottom={{
+                        tickSize: 5,
+                        tickPadding: 8,
+                        tickRotation: 0,
+                        legend: 'Cantidad de reportes',
+                        legendPosition: 'middle',
+                        legendOffset: 40
+                      }}
+                      axisLeft={{
+                        tickSize: 5,
+                        tickPadding: 8,
+                        tickRotation: 0,
+                        legend: '',
+                        legendPosition: 'middle',
+                        legendOffset: -160
+                      }}
+                      labelSkipHeight={14}
+                      labelSkipWidth={10}
+                      labelTextColor="#ffffff"
+                      label={d => d.value > 0 ? d.value : ''}
+                      tooltip={({ id, value, indexValue }) => (
+                        <div style={{
+                          background: '#1f2937',
+                          color: '#f9fafb',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          boxShadow: '0 6px 20px rgba(0,0,0,0.4)'
+                        }}>
+                          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{indexValue}</div>
+                          <div style={{ fontSize: '14px' }}>
+                            <strong>{value}</strong> reporte{value !== 1 ? 's' : ''}
+                          </div>
+                        </div>
+                      )}
                     />
                   </div>
                 </div>
@@ -1994,9 +2081,6 @@ const Dashboard = () => {
                           <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
                             Distribución por Tipo
                           </h3>
-                          <p className="text-sm" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
-                            Clasificación de incidentes
-                          </p>
                         </div>
                       </div>
                       <div className="text-right">
