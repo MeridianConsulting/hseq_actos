@@ -76,7 +76,10 @@ const Dashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('all');
   
   const handlePeriodChange = useCallback((period) => {
+    console.log('handlePeriodChange llamado con:', period);
     setSelectedPeriod(period);
+    // Los datos se recargarán automáticamente porque effectivePeriod cambia
+    // y el hook useDashboardStats se ejecutará de nuevo
   }, []);
   const [user, setUser] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -85,6 +88,7 @@ const Dashboard = () => {
   const [reports, setReports] = useState([]);
   const [supports, setSupports] = useState([]);
   const [reportsForProcessChart, setReportsForProcessChart] = useState([]);
+  const [closedReports, setClosedReports] = useState([]);
   
   // Filtros para Excel
   const [excelFilters, setExcelFilters] = useState({
@@ -106,26 +110,61 @@ const Dashboard = () => {
   const [consolidadosUsers, setConsolidadosUsers] = useState([]);
   const [consolidadosLoading, setConsolidadosLoading] = useState(false);
   const [consolidadosSearch, setConsolidadosSearch] = useState('');
+  const [consolidadosDateFrom, setConsolidadosDateFrom] = useState('');
+  const [consolidadosDateTo, setConsolidadosDateTo] = useState('');
 
   const handleOpenConsolidadosModal = useCallback(() => {
     setShowConsolidadosModal(true);
     setConsolidadosType('');
     setConsolidadosUsers([]);
     setConsolidadosSearch('');
+    setConsolidadosDateFrom('');
+    setConsolidadosDateTo('');
   }, []);
 
   const handleCloseConsolidadosModal = useCallback(() => {
     setShowConsolidadosModal(false);
   }, []);
 
-  const fetchConsolidadosUsers = useCallback(async (type) => {
+  const fetchConsolidadosUsers = useCallback(async (type, dateFrom = null, dateTo = null) => {
     try {
       setConsolidadosLoading(true);
       setConsolidadosType(type);
-      const resp = await reportService.getAllReports({ tipo_reporte: type, per_page: 1000, page: 1 });
+      
+      // Construir filtros
+      const filters = { tipo_reporte: type, per_page: 10000, page: 1 };
+      
+      // Agregar filtros de fecha si están presentes
+      if (dateFrom) {
+        filters.date_from = dateFrom;
+      }
+      if (dateTo) {
+        filters.date_to = dateTo;
+      }
+      
+      const resp = await reportService.getAllReports(filters);
       const list = resp?.reports || resp?.data || [];
+      
+      // Filtrar por fechas si están presentes (filtro adicional en el cliente por si el backend no lo aplica correctamente)
+      let filteredList = list;
+      if (dateFrom || dateTo) {
+        filteredList = list.filter(r => {
+          const fechaReporte = r.fecha_evento || r.creado_en;
+          if (!fechaReporte) return false;
+          
+          const fecha = new Date(fechaReporte);
+          if (dateFrom && fecha < new Date(dateFrom)) return false;
+          if (dateTo) {
+            const fechaToEnd = new Date(dateTo);
+            fechaToEnd.setHours(23, 59, 59, 999); // Incluir todo el día final
+            if (fecha > fechaToEnd) return false;
+          }
+          return true;
+        });
+      }
+      
       const map = new Map();
-      list.forEach(r => {
+      filteredList.forEach(r => {
         const name = r.nombre_usuario || r.nombre || r.Usuario || 'Sin nombre';
         const id = r.id_usuario || r.user_id || r.id || null;
         const key = `${name}||${id}`;
@@ -174,6 +213,9 @@ const Dashboard = () => {
   const { stats, loading, error } = useDashboardStats(effectivePeriod, dashboardFilters);
   
   // Debug: Log cuando cambie el período seleccionado
+  useEffect(() => {
+    console.log('Período seleccionado:', selectedPeriod, 'Effective period enviado al backend:', effectivePeriod);
+  }, [selectedPeriod, effectivePeriod]);
 
   // Utilidades para agrupar por periodo (mes/trimestre/año)
   const monthNameToIndex = useMemo(() => ({
@@ -376,26 +418,90 @@ const Dashboard = () => {
     }
   }, [reportService, userService]);
 
-  // Cargar reportes para gráfica de procesos (cerrados y en revisión)
+  // Cargar reportes para gráfica de procesos (cerrados y en revisión) - filtrados por período
   const loadReportsForProcessChart = useCallback(async () => {
     try {
-      // Obtener todos los reportes y filtrar los cerrados (aprobados y rechazados) y en revisión
-      const resp = await reportService.getAllReports({ per_page: 10000, page: 1 });
+      // Construir filtros según el período seleccionado
+      const filters = { per_page: 10000, page: 1 };
+      
+      // Agregar filtro de fecha según el período seleccionado
+      if (selectedPeriod !== 'all') {
+        const now = new Date();
+        let dateFrom, dateTo;
+        
+        if (selectedPeriod === 'month') {
+          // Mes actual
+          dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+          dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        } else if (selectedPeriod === 'quarter') {
+          // Trimestre actual (Q1: 0-2, Q2: 3-5, Q3: 6-8, Q4: 9-11)
+          const currentQuarter = Math.floor(now.getMonth() / 3);
+          dateFrom = new Date(now.getFullYear(), currentQuarter * 3, 1);
+          dateTo = new Date(now.getFullYear(), (currentQuarter + 1) * 3, 0, 23, 59, 59, 999);
+        } else if (selectedPeriod === 'year') {
+          // Año actual
+          dateFrom = new Date(now.getFullYear(), 0, 1);
+          dateTo = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+        }
+        
+        if (dateFrom && dateTo) {
+          filters.date_from = dateFrom.toISOString().split('T')[0];
+          filters.date_to = dateTo.toISOString().split('T')[0];
+        }
+      }
+      
+      // Obtener reportes con filtros aplicados
+      const resp = await reportService.getAllReports(filters);
       
       let allReports = [];
+      let closedOnlyReports = [];
       if (resp?.success && Array.isArray(resp.reports)) {
+        // Filtrar por fecha adicional si el backend no lo hizo correctamente
+        let filteredReports = resp.reports;
+        if (selectedPeriod !== 'all') {
+          const now = new Date();
+          let dateFrom, dateTo;
+          
+          if (selectedPeriod === 'month') {
+            dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+            dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+          } else if (selectedPeriod === 'quarter') {
+            const currentQuarter = Math.floor(now.getMonth() / 3);
+            dateFrom = new Date(now.getFullYear(), currentQuarter * 3, 1);
+            dateTo = new Date(now.getFullYear(), (currentQuarter + 1) * 3, 0, 23, 59, 59, 999);
+          } else if (selectedPeriod === 'year') {
+            dateFrom = new Date(now.getFullYear(), 0, 1);
+            dateTo = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+          }
+          
+          if (dateFrom && dateTo) {
+            filteredReports = resp.reports.filter(r => {
+              const fechaReporte = r.fecha_evento || r.creado_en;
+              if (!fechaReporte) return false;
+              const fecha = new Date(fechaReporte);
+              return fecha >= dateFrom && fecha <= dateTo;
+            });
+          }
+        }
+        
         // Filtrar solo los cerrados (aprobados y rechazados) y en revisión
-        allReports = resp.reports.filter(r => 
+        allReports = filteredReports.filter(r => 
           r.estado === 'aprobado' || r.estado === 'rechazado' || r.estado === 'en_revision'
+        );
+        // Solo cerrados para efectividad de cierre
+        closedOnlyReports = filteredReports.filter(r => 
+          r.estado === 'aprobado' || r.estado === 'rechazado'
         );
       }
       
       setReportsForProcessChart(allReports);
+      setClosedReports(closedOnlyReports);
     } catch (e) {
       console.error('Error cargando reportes para gráfica de procesos:', e);
       setReportsForProcessChart([]);
+      setClosedReports([]);
     }
-  }, []);
+  }, [selectedPeriod]);
 
   useEffect(() => {
     const userData = getUser();
@@ -412,6 +518,11 @@ const Dashboard = () => {
     // Cargar reportes para gráfica de procesos
     loadReportsForProcessChart();
   }, [loadAssignmentData, loadProyectos, loadResponsables, loadReportsForProcessChart]);
+
+  // Recargar reportes cuando cambie el período
+  useEffect(() => {
+    loadReportsForProcessChart();
+  }, [selectedPeriod, loadReportsForProcessChart]);
 
   const handleAssignToSupport = useCallback(async (reportId, supportUserId) => {
     if (!supportUserId) return;
@@ -1397,6 +1508,55 @@ const Dashboard = () => {
     }));
   }, [reportsForProcessChart, stats?.reportesPorProceso, stats?.reportes_por_proceso]);
 
+  // Pie: Efectividad de cierre (cerrados a tiempo ≤15 días vs no cerrados a tiempo >16 días)
+  const closureEffectiveness = useMemo(() => {
+    if (!Array.isArray(closedReports) || closedReports.length === 0) {
+      return [
+        { id: 'cerrados_a_tiempo', label: 'Cerrados a tiempo (≤15 días)', value: 0, color: '#22c55e' },
+        { id: 'no_cerrados_a_tiempo', label: 'No cerrados a tiempo (>16 días)', value: 0, color: '#ef4444' }
+      ];
+    }
+
+    let cerradosATiempo = 0;
+    let noCerradosATiempo = 0;
+
+    closedReports.forEach(report => {
+      // Obtener fecha de creación y fecha de cierre
+      const fechaCreacion = report.creado_en ? new Date(report.creado_en) : null;
+      // La fecha de cierre puede ser actualizado_en cuando cambió a aprobado/rechazado, o fecha_cierre
+      const fechaCierre = report.fecha_cierre 
+        ? new Date(report.fecha_cierre) 
+        : (report.actualizado_en ? new Date(report.actualizado_en) : null);
+
+      if (fechaCreacion && fechaCierre && !isNaN(fechaCreacion.getTime()) && !isNaN(fechaCierre.getTime())) {
+        // Calcular diferencia en días
+        const diffTime = fechaCierre.getTime() - fechaCreacion.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 15) {
+          cerradosATiempo++;
+        } else {
+          noCerradosATiempo++;
+        }
+      }
+    });
+
+    return [
+      { 
+        id: 'cerrados_a_tiempo', 
+        label: 'Cerrados a tiempo (≤15 días)', 
+        value: cerradosATiempo, 
+        color: '#22c55e' 
+      },
+      { 
+        id: 'no_cerrados_a_tiempo', 
+        label: 'No cerrados a tiempo (>16 días)', 
+        value: noCerradosATiempo, 
+        color: '#ef4444' 
+      }
+    ];
+  }, [closedReports]);
+
   // Pie: Distribución por tipo filtrada por periodo
   const incidentsByType = useMemo(() => {
     const colors = {
@@ -1605,15 +1765,18 @@ const Dashboard = () => {
           )}
 
           {/* Period Filter */}
-          <div className="flex justify-center mb-8">
-            <div className="flex flex-wrap justify-center gap-3">
+          <div className="flex flex-col items-center mb-8">
+            <div className="flex flex-wrap justify-center gap-3 mb-3">
               {['all','month', 'quarter', 'year'].map((period) => (
                 <button
                   key={period}
-                  onClick={() => handlePeriodChange(period)}
+                  onClick={() => {
+                    console.log('Click en período:', period);
+                    handlePeriodChange(period);
+                  }}
                   disabled={loading}
                   className={`py-2 px-3 md:px-4 rounded-lg font-semibold transition-all duration-300 text-sm md:text-base ${
-                    selectedPeriod === period ? 'scale-105' : 'hover:scale-105'
+                    selectedPeriod === period ? 'scale-105 ring-2 ring-white ring-opacity-50' : 'hover:scale-105'
                   } ${loading ? 'opacity-70 cursor-wait' : ''}`}
                   style={{
                     backgroundColor: selectedPeriod === period 
@@ -1622,7 +1785,8 @@ const Dashboard = () => {
                     color: selectedPeriod === period 
                       ? 'var(--color-dark)' 
                       : 'var(--color-secondary)',
-                    border: '1px solid rgba(252, 247, 255, 0.3)'
+                    border: '1px solid rgba(252, 247, 255, 0.3)',
+                    boxShadow: selectedPeriod === period ? '0 4px 12px rgba(0,0,0,0.3)' : 'none'
                   }}
                 >
                   {loading && selectedPeriod === period ? (
@@ -1639,6 +1803,39 @@ const Dashboard = () => {
                 </button>
               ))}
             </div>
+            {/* Indicador visual del período activo */}
+            {selectedPeriod && (
+              <div className={`text-sm text-gray-300 bg-gray-800/50 px-4 py-2 rounded-lg border transition-all duration-300 ${
+                loading ? 'border-yellow-500 animate-pulse' : 'border-gray-700'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold">Período activo: </span>
+                  <span className={`font-bold ${
+                    selectedPeriod === 'all' ? 'text-purple-300' :
+                    selectedPeriod === 'month' ? 'text-blue-300' :
+                    selectedPeriod === 'quarter' ? 'text-green-300' :
+                    'text-orange-300'
+                  }`}>
+                    {selectedPeriod === 'all' ? '📅 Todos los períodos' : 
+                     selectedPeriod === 'month' ? '📆 Mes actual' : 
+                     selectedPeriod === 'quarter' ? '📊 Trimestre actual' : 
+                     '📈 Año actual'}
+                  </span>
+                  {loading ? (
+                    <span className="ml-3 text-xs text-yellow-400 animate-pulse">🔄 Actualizando datos...</span>
+                  ) : stats ? (
+                    <>
+                      <span className="ml-3 text-xs text-gray-400">
+                        | Total reportes: <span className="font-bold text-white">{stats?.kpis?.total_reportes || 0}</span>
+                      </span>
+                      <span className="ml-3 text-xs text-gray-400">
+                        | Cerrados: <span className="font-bold text-green-400">{stats?.kpis?.aprobados + stats?.kpis?.rechazados || 0}</span>
+                      </span>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* KPI Cards */}
@@ -2079,15 +2276,15 @@ const Dashboard = () => {
                         </div>
                         <div>
                           <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                            Distribución por Tipo
+                            Efectividad de cierre
                           </h3>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                          {incidentsByType.reduce((acc, d) => acc + (Number(d.value) || 0), 0)}
+                          {closureEffectiveness.reduce((acc, d) => acc + (Number(d.value) || 0), 0)}
                         </div>
-                        <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Total</div>
+                        <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Total cerrados</div>
                       </div>
                     </div>
                   </div>
@@ -2095,7 +2292,7 @@ const Dashboard = () => {
                   {/* Chart Container */}
                   <div className="relative" style={{ height: '320px' }}>
                     <ResponsivePie
-                      data={incidentsByType}
+                      data={closureEffectiveness}
                       margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
                       innerRadius={0.5}
                       padAngle={0.7}
@@ -2111,13 +2308,37 @@ const Dashboard = () => {
                       arcLinkLabelsThickness={2}
                       arcLinkLabelsColor={{ from: 'color' }}
                       arcLabelsSkipAngle={10}
-                      arcLabelsTextColor="#000"
+                      arcLabelsTextColor="#ffffff"
+                      arcLabelsTextOffset={5}
+                      tooltip={({ id, value, label }) => {
+                        const total = closureEffectiveness.reduce((acc, d) => acc + (Number(d.value) || 0), 0);
+                        return (
+                          <div style={{
+                            background: '#1f2937',
+                            color: '#f9fafb',
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            boxShadow: '0 6px 20px rgba(0,0,0,0.4)'
+                          }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{label}</div>
+                            <div style={{ fontSize: '14px' }}>
+                              <strong>{value}</strong> caso{value !== 1 ? 's' : ''}
+                            </div>
+                            {total > 0 && (
+                              <div style={{ fontSize: '12px', marginTop: '4px', color: '#d1d5db' }}>
+                                {Math.round((value / total) * 100)}% del total
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }}
                       legends={[
                         {
                           anchor: 'bottom',
                           direction: 'row',
                           translateY: 56,
-                          itemWidth: 100,
+                          itemWidth: 200,
                           itemHeight: 18,
                           itemTextColor: '#fcf7ff',
                           symbolSize: 18,
@@ -2722,7 +2943,7 @@ const Dashboard = () => {
               <div className="sticky top-0 bg-gray-800 border-b border-gray-700 p-6 flex justify-between items-center z-10">
                 <div>
                   <h3 className="text-2xl font-bold text-white flex items-center"><span className="mr-3">📥</span>Consolidados de reportes por usuario</h3>
-                  <p className="text-sm text-gray-400 mt-1">Selecciona un tipo y busca por nombre para ver quién reportó información</p>
+                  <p className="text-sm text-gray-400 mt-1">Selecciona un tipo, filtra por fechas y busca por nombre para ver quién reportó información</p>
                 </div>
                 <button onClick={handleCloseConsolidadosModal} className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700 rounded-lg">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2736,18 +2957,68 @@ const Dashboard = () => {
                 <div className="flex flex-col md:flex-row md:items-start md:space-x-6">
                   <div className="mb-4 md:mb-0">
                     <div className="grid grid-cols-2 gap-3">
-                      <button onClick={() => fetchConsolidadosUsers('hallazgos')} className={`px-4 py-3 rounded-lg text-sm font-semibold ${consolidadosType==='hallazgos' ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-200 hover:bg-gray-700'}`}>
+                      <button onClick={() => fetchConsolidadosUsers('hallazgos', consolidadosDateFrom || undefined, consolidadosDateTo || undefined)} className={`px-4 py-3 rounded-lg text-sm font-semibold ${consolidadosType==='hallazgos' ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-200 hover:bg-gray-700'}`}>
                         Hallazgos
                       </button>
-                      <button onClick={() => fetchConsolidadosUsers('conversaciones')} className={`px-4 py-3 rounded-lg text-sm font-semibold ${consolidadosType==='conversaciones' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-200 hover:bg-gray-700'}`}>
+                      <button onClick={() => fetchConsolidadosUsers('conversaciones', consolidadosDateFrom || undefined, consolidadosDateTo || undefined)} className={`px-4 py-3 rounded-lg text-sm font-semibold ${consolidadosType==='conversaciones' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-200 hover:bg-gray-700'}`}>
                         Conversaciones
                       </button>
-                      <button onClick={() => fetchConsolidadosUsers('reflexiones')} className={`px-4 py-3 rounded-lg text-sm font-semibold ${consolidadosType==='reflexiones' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-200 hover:bg-gray-700'}`}>
+                      <button onClick={() => fetchConsolidadosUsers('reflexiones', consolidadosDateFrom || undefined, consolidadosDateTo || undefined)} className={`px-4 py-3 rounded-lg text-sm font-semibold ${consolidadosType==='reflexiones' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-200 hover:bg-gray-700'}`}>
                         Reflexiones
                       </button>
-                      <button onClick={() => fetchConsolidadosUsers('pqr')} className={`px-4 py-3 rounded-lg text-sm font-semibold ${consolidadosType==='pqr' ? 'bg-yellow-600 text-white' : 'bg-gray-800 text-gray-200 hover:bg-gray-700'}`}>
+                      <button onClick={() => fetchConsolidadosUsers('pqr', consolidadosDateFrom || undefined, consolidadosDateTo || undefined)} className={`px-4 py-3 rounded-lg text-sm font-semibold ${consolidadosType==='pqr' ? 'bg-yellow-600 text-white' : 'bg-gray-800 text-gray-200 hover:bg-gray-700'}`}>
                         PQRs
                       </button>
+                    </div>
+
+                    <div className="mt-4">
+                      <label className="text-xs text-gray-400 mb-2 block">Filtrar por fechas</label>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-xs text-gray-500 block mb-1">Fecha desde</label>
+                          <input 
+                            type="date" 
+                            value={consolidadosDateFrom} 
+                            onChange={(e) => setConsolidadosDateFrom(e.target.value)} 
+                            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" 
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 block mb-1">Fecha hasta</label>
+                          <input 
+                            type="date" 
+                            value={consolidadosDateTo} 
+                            onChange={(e) => setConsolidadosDateTo(e.target.value)} 
+                            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" 
+                          />
+                        </div>
+                        {(consolidadosDateFrom || consolidadosDateTo) && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                if (consolidadosType) {
+                                  fetchConsolidadosUsers(consolidadosType, consolidadosDateFrom || undefined, consolidadosDateTo || undefined);
+                                }
+                              }}
+                              className="flex-1 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold"
+                            >
+                              Aplicar filtros
+                            </button>
+                            <button
+                              onClick={() => {
+                                setConsolidadosDateFrom('');
+                                setConsolidadosDateTo('');
+                                if (consolidadosType) {
+                                  fetchConsolidadosUsers(consolidadosType);
+                                }
+                              }}
+                              className="px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
+                            >
+                              Limpiar
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="mt-4">
