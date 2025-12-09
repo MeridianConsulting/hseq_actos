@@ -306,7 +306,12 @@ const ReportsTable = ({
     setIsLoading(true);
     try {
       // Cargar reportes con filtros aplicados pero sin filtrar por estado
-      const apiFilters = { ...externalFilters, ...filters };
+      // Los filtros externos (como fecha del período) tienen prioridad sobre los filtros locales
+      // pero los filtros locales pueden sobrescribir otros campos si el usuario los modifica
+      const apiFilters = { 
+        ...filters,
+        ...externalFilters  // Los filtros externos (fecha del período) sobrescriben los locales
+      };
       
       // Mapear 'proceso' a 'proyecto' para el backend (mapeo de Gestiones a Proyectos)
       if (apiFilters.proceso) {
@@ -350,7 +355,7 @@ const ReportsTable = ({
     } finally {
       setIsLoading(false);
     }
-  }, [filters, activeTab]);
+  }, [filters, activeTab, externalFilters]);
 
   useEffect(() => {
     // Cargar estadísticas, proyectos, responsables y reportes al inicializar

@@ -139,6 +139,8 @@ export const reportService = {
             const params = new URLSearchParams();
             if (period) params.append('period', period);
             if (filters.proyecto) params.append('proyecto', filters.proyecto);
+            if (filters.date_from) params.append('date_from', filters.date_from);
+            if (filters.date_to) params.append('date_to', filters.date_to);
             const query = params.toString();
             const url = `reports/dashboard-stats${query ? `?${query}` : ''}`;
             const response = await api.get(url);

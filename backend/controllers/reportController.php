@@ -626,14 +626,14 @@ class ReportController {
                 $types .= "i";
             }
 
-            // Filtros por fecha (usamos creado_en)
+            // Filtros por fecha (usamos fecha_evento si está disponible, sino creado_en)
             if (!empty($filters['date_from'])) {
-                $whereConditions[] = "DATE(r.creado_en) >= ?";
+                $whereConditions[] = "DATE(COALESCE(r.fecha_evento, r.creado_en)) >= ?";
                 $params[] = $filters['date_from'];
                 $types .= "s";
             }
             if (!empty($filters['date_to'])) {
-                $whereConditions[] = "DATE(r.creado_en) <= ?";
+                $whereConditions[] = "DATE(COALESCE(r.fecha_evento, r.creado_en)) <= ?";
                 $params[] = $filters['date_to'];
                 $types .= "s";
             }
@@ -1119,33 +1119,47 @@ class ReportController {
             // Obtener el período desde el parámetro GET (por defecto: 'month')
             $period = $_GET['period'] ?? 'month';
             
-            // Determinar el intervalo numérico según el período
-            switch ($period) {
-                case 'quarter':
-                    $intervalNum = 12; // 4 trimestres = 12 meses
-                    break;
-                case 'year':
-                    $intervalNum = 24; // 2 años = 24 meses
-                    break;
-                case 'month':
-                default:
-                    $intervalNum = 6; // 6 meses
-                    break;
+            // Obtener filtros de fecha si están presentes
+            $dateFrom = $_GET['date_from'] ?? null;
+            $dateTo = $_GET['date_to'] ?? null;
+            
+            // Construir condición WHERE para fechas
+            $dateWhereClause = "";
+            if ($dateFrom && $dateTo) {
+                // Si hay filtros de fecha específicos, usarlos
+                $dateWhereClause = "WHERE DATE(COALESCE(fecha_evento, creado_en)) >= '" . $this->conn->real_escape_string($dateFrom) . "' 
+                                    AND DATE(COALESCE(fecha_evento, creado_en)) <= '" . $this->conn->real_escape_string($dateTo) . "'";
+            } else {
+                // Si no hay filtros específicos, usar el intervalo según el período
+                $intervalNum = 6; // Por defecto 6 meses
+                switch ($period) {
+                    case 'quarter':
+                        $intervalNum = 12; // 4 trimestres = 12 meses
+                        break;
+                    case 'year':
+                        $intervalNum = 24; // 2 años = 24 meses
+                        break;
+                    case 'month':
+                    default:
+                        $intervalNum = 6; // 6 meses
+                        break;
+                }
+                $dateWhereClause = "WHERE COALESCE(fecha_evento, creado_en) >= DATE_SUB(CURDATE(), INTERVAL $intervalNum MONTH)";
             }
             
             // 1. Incidentes por mes con formato mejorado (dinámico según período)
             $sqlIncidentesPorMes = "
                 SELECT 
-                    DATE_FORMAT(fecha_evento, '%Y-%m') as mes,
-                    DATE_FORMAT(fecha_evento, '%b') as mes_corto,
+                    DATE_FORMAT(COALESCE(fecha_evento, creado_en), '%Y-%m') as mes,
+                    DATE_FORMAT(COALESCE(fecha_evento, creado_en), '%b') as mes_corto,
                     COUNT(CASE WHEN tipo_reporte = 'incidentes' THEN 1 END) as incidentes,
                     COUNT(CASE WHEN tipo_reporte = 'hallazgos' THEN 1 END) as hallazgos,
                     COUNT(CASE WHEN tipo_reporte = 'conversaciones' THEN 1 END) as conversaciones,
                     COUNT(CASE WHEN tipo_reporte = 'pqr' THEN 1 END) as pqr,
                     COUNT(*) as total_reportes
                 FROM reportes 
-                WHERE fecha_evento >= DATE_SUB(CURDATE(), INTERVAL $intervalNum MONTH)
-                GROUP BY DATE_FORMAT(fecha_evento, '%Y-%m'), DATE_FORMAT(fecha_evento, '%b')
+                $dateWhereClause
+                GROUP BY DATE_FORMAT(COALESCE(fecha_evento, creado_en), '%Y-%m'), DATE_FORMAT(COALESCE(fecha_evento, creado_en), '%b')
                 ORDER BY mes ASC
             ";
             
@@ -1160,8 +1174,9 @@ class ReportController {
                 SELECT 
                     tipo_reporte,
                     COUNT(*) as cantidad,
-                    ROUND((COUNT(*) * 100.0) / (SELECT COUNT(*) FROM reportes), 2) as porcentaje
+                    ROUND((COUNT(*) * 100.0) / (SELECT COUNT(*) FROM reportes $dateWhereClause), 2) as porcentaje
                 FROM reportes 
+                $dateWhereClause
                 GROUP BY tipo_reporte
                 ORDER BY cantidad DESC
             ";
@@ -1178,15 +1193,15 @@ class ReportController {
             // 3. Tendencias mensuales para gráfico de líneas (dinámico según período)
             $sqlTendencias = "
                 SELECT 
-                    DATE_FORMAT(fecha_evento, '%Y-%m') as mes,
-                    DATE_FORMAT(fecha_evento, '%b') as mes_corto,
+                    DATE_FORMAT(COALESCE(fecha_evento, creado_en), '%Y-%m') as mes,
+                    DATE_FORMAT(COALESCE(fecha_evento, creado_en), '%b') as mes_corto,
                     COUNT(CASE WHEN tipo_reporte = 'incidentes' THEN 1 END) as incidentes,
                     COUNT(CASE WHEN tipo_reporte = 'hallazgos' THEN 1 END) as hallazgos,
                     COUNT(CASE WHEN tipo_reporte = 'conversaciones' THEN 1 END) as conversaciones,
                     COUNT(CASE WHEN tipo_reporte = 'pqr' THEN 1 END) as pqr
                 FROM reportes 
-                WHERE fecha_evento >= DATE_SUB(CURDATE(), INTERVAL $intervalNum MONTH)
-                GROUP BY DATE_FORMAT(fecha_evento, '%Y-%m'), DATE_FORMAT(fecha_evento, '%b')
+                $dateWhereClause
+                GROUP BY DATE_FORMAT(COALESCE(fecha_evento, creado_en), '%Y-%m'), DATE_FORMAT(COALESCE(fecha_evento, creado_en), '%b')
                 ORDER BY mes ASC
             ";
             $resultTendencias = $this->conn->query($sqlTendencias);
@@ -1209,17 +1224,25 @@ class ReportController {
                     COUNT(CASE WHEN estado = 'en_revision' THEN 1 END) as en_revision,
                     ROUND((COUNT(CASE WHEN estado = 'aprobado' THEN 1 END) * 100.0) / COUNT(*), 2) as tasa_aprobacion
                 FROM reportes
+                $dateWhereClause
             ";
             $resultKPIs = $this->conn->query($sqlKPIs);
             $kpis = $resultKPIs->fetch_assoc();
 
             // 5. Días sin accidentes (último incidente)
+            $incidentesWhereClause = "";
+            if (!empty($dateWhereClause)) {
+                // Agregar condición de tipo_reporte a la cláusula WHERE existente
+                $incidentesWhereClause = $dateWhereClause . " AND tipo_reporte = 'incidentes'";
+            } else {
+                $incidentesWhereClause = "WHERE tipo_reporte = 'incidentes'";
+            }
             $sqlUltimoIncidente = "
                 SELECT 
-                    COALESCE(DATEDIFF(CURDATE(), MAX(fecha_evento)), 0) as dias_sin_accidentes,
-                    MAX(fecha_evento) as ultimo_incidente
+                    COALESCE(DATEDIFF(CURDATE(), MAX(COALESCE(fecha_evento, creado_en))), 0) as dias_sin_accidentes,
+                    MAX(COALESCE(fecha_evento, creado_en)) as ultimo_incidente
                 FROM reportes 
-                WHERE tipo_reporte = 'incidentes'
+                $incidentesWhereClause
             ";
             $resultUltimoIncidente = $this->conn->query($sqlUltimoIncidente);
             $ultimoIncidente = $resultUltimoIncidente->fetch_assoc();
@@ -1234,6 +1257,7 @@ class ReportController {
                     ROUND((COUNT(CASE WHEN estado = 'en_revision' THEN 1 END) * 100.0) / COUNT(*), 0) as procedimientos,
                     ROUND((COUNT(CASE WHEN estado = 'aprobado' THEN 1 END) * 100.0) / COUNT(*), 0) as auditorias
                 FROM reportes
+                $dateWhereClause
             ";
             $resultMetricasSeguridad = $this->conn->query($sqlMetricasSeguridad);
             $metricasSeguridad = $resultMetricasSeguridad->fetch_assoc();
@@ -1244,6 +1268,7 @@ class ReportController {
                     COALESCE(grado_criticidad, 'No especificada') as criticidad,
                     COUNT(*) as cantidad
                 FROM reportes 
+                $dateWhereClause
                 GROUP BY grado_criticidad
                 ORDER BY cantidad DESC
             ";

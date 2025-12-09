@@ -210,12 +210,57 @@ const Dashboard = () => {
     return {};
   }, [dashboardProceso]);
   const effectivePeriod = selectedPeriod === 'all' ? undefined : selectedPeriod;
-  const { stats, loading, error } = useDashboardStats(effectivePeriod, dashboardFilters);
+  
+  // Calcular fechas según el período seleccionado para filtrar reportes
+  const periodDateFilters = useMemo(() => {
+    if (selectedPeriod === 'all') {
+      return {}; // Sin filtros de fecha
+    }
+    
+    const now = new Date();
+    let dateFrom, dateTo;
+    
+    if (selectedPeriod === 'month') {
+      // Mes actual
+      dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+      dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    } else if (selectedPeriod === 'quarter') {
+      // Trimestre actual (Q1: 0-2, Q2: 3-5, Q3: 6-8, Q4: 9-11)
+      const currentQuarter = Math.floor(now.getMonth() / 3);
+      dateFrom = new Date(now.getFullYear(), currentQuarter * 3, 1);
+      dateTo = new Date(now.getFullYear(), (currentQuarter + 1) * 3, 0, 23, 59, 59, 999);
+    } else if (selectedPeriod === 'year') {
+      // Año actual
+      dateFrom = new Date(now.getFullYear(), 0, 1);
+      dateTo = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+    }
+    
+    if (dateFrom && dateTo) {
+      return {
+        date_from: dateFrom.toISOString().split('T')[0],
+        date_to: dateTo.toISOString().split('T')[0]
+      };
+    }
+    
+    return {};
+  }, [selectedPeriod]);
+  
+  // Combinar filtros de dashboard con filtros de fecha del período
+  const dashboardStatsFilters = useMemo(() => {
+    return {
+      ...dashboardFilters,
+      ...periodDateFilters
+    };
+  }, [dashboardFilters, periodDateFilters]);
+  const { stats, loading, error } = useDashboardStats(effectivePeriod, dashboardStatsFilters);
   
   // Debug: Log cuando cambie el período seleccionado
   useEffect(() => {
     console.log('Período seleccionado:', selectedPeriod, 'Effective period enviado al backend:', effectivePeriod);
-  }, [selectedPeriod, effectivePeriod]);
+    console.log('Filtros de fecha para reportes:', periodDateFilters);
+    console.log('Filtros combinados para dashboard stats:', dashboardStatsFilters);
+    console.log('Stats actuales:', stats);
+  }, [selectedPeriod, effectivePeriod, periodDateFilters, dashboardStatsFilters, stats]);
 
   // Utilidades para agrupar por periodo (mes/trimestre/año)
   const monthNameToIndex = useMemo(() => ({
@@ -2741,7 +2786,10 @@ const Dashboard = () => {
                   title="Todos los Reportes"
                   containerClassName=""
                   useDarkTheme={true}
-                  externalFilters={{ proceso: dashboardProceso }}
+                  externalFilters={{ 
+                    proceso: dashboardProceso,
+                    ...periodDateFilters
+                  }}
                 />
               </div>
             </div>

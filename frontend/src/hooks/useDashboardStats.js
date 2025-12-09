@@ -16,8 +16,9 @@ export const useDashboardStats = (period, filters = {}) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching dashboard stats with period:', period, 'filters:', filtersRef.current);
-      const response = await reportService.fetchDashboardStats(period, filtersRef.current);
+      const currentFilters = filtersRef.current;
+      console.log('Fetching dashboard stats with period:', period, 'filters:', currentFilters);
+      const response = await reportService.fetchDashboardStats(period, currentFilters);
       
       if (response.success) {
         setStats(response.data);
@@ -32,10 +33,11 @@ export const useDashboardStats = (period, filters = {}) => {
       setLoading(false);
     }
   }, [period]);
-
+  
+  // Efecto para recargar cuando cambien el período o los filtros
   useEffect(() => {
     fetchStats();
-  }, [fetchStats]);
+  }, [period, filters, fetchStats]);
 
   const refreshStats = useCallback(() => {
     fetchStats();
