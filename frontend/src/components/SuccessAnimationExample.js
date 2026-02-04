@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import SuccessAnimation from './SuccessAnimation';
+import { Check } from 'lucide-react';
 
 // Ejemplo de uso del componente SuccessAnimation
 const SuccessAnimationExample = () => {
@@ -234,24 +235,24 @@ const SuccessAnimationExample = () => {
         <div className="mt-8 bg-blue-50 rounded-xl p-6">
           <h3 className="text-lg font-semibold mb-3 text-blue-900">Mejoras Implementadas:</h3>
           <ul className="space-y-2 text-blue-800">
-            <li className="flex items-center space-x-2">
-              <span className="text-green-500">✓</span>
+            <li className="flex items-center gap-2">
+              <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
               <span>Diseño más espacioso y profesional con bordes redondeados</span>
             </li>
-            <li className="flex items-center space-x-2">
-              <span className="text-green-500">✓</span>
+            <li className="flex items-center gap-2">
+              <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
               <span>Gradiente en el icono de check para mayor elegancia</span>
             </li>
-            <li className="flex items-center space-x-2">
-              <span className="text-green-500">✓</span>
+            <li className="flex items-center gap-2">
+              <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
               <span>Elementos decorativos sutiles para mayor dinamismo</span>
             </li>
-            <li className="flex items-center space-x-2">
-              <span className="text-green-500">✓</span>
+            <li className="flex items-center gap-2">
+              <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
               <span>Mejor tipografía con título "¡Éxito!" y mensaje descriptivo</span>
             </li>
-            <li className="flex items-center space-x-2">
-              <span className="text-green-500">✓</span>
+            <li className="flex items-center gap-2">
+              <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
               <span>Fondo con mayor opacidad y blur para mejor contraste</span>
             </li>
           </ul>

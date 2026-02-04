@@ -5,6 +5,7 @@ import { buildApi, buildUploadsUrl } from '../config/api';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 import { Document, Page, Text, View, StyleSheet, pdf, Image } from '@react-pdf/renderer';
+import { Clock, ClipboardCheck, CircleCheck, CircleX, X, AlertTriangle, ClipboardList, MessageCircle, FileText } from 'lucide-react';
 
 // ===================== Estilos PDF =====================
 const pdfStyles = StyleSheet.create({
@@ -592,6 +593,16 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     }
   };
 
+  const StatusIcon = ({ status, className = 'w-4 h-4' }) => {
+    switch (status) {
+      case 'pendiente': return <Clock className={className} />;
+      case 'en_revision': return <ClipboardCheck className={className} />;
+      case 'aprobado': return <CircleCheck className={className} />;
+      case 'rechazado': return <CircleX className={className} />;
+      default: return <Clock className={className} />;
+    }
+  };
+
   const getEventTypeLabel = (type) => {
     const labels = {
       'hallazgos': 'Hallazgos y Condiciones',
@@ -602,27 +613,18 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
   };
 
   const getEventTypeIcon = (type) => {
+    const iconClass = 'w-6 h-6 text-white';
     switch (type) {
       case 'hallazgos':
-        return (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-        );
+        return <ClipboardList className={iconClass} />;
       case 'incidentes':
-        return (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-          </svg>
-        );
+        return <AlertTriangle className={iconClass} />;
       case 'conversaciones':
-        return (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-          </svg>
-        );
+        return <MessageCircle className={iconClass} />;
+      case 'pqr':
+        return <FileText className={iconClass} />;
       default:
-        return null;
+        return <FileText className={iconClass} />;
     }
   };
 
@@ -1011,7 +1013,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                 });
                 
                 currentRow++;
-                console.log('✓ Imagen agregada al Excel:', evidencia.id);
+                console.log('Imagen agregada al Excel:', evidencia.id);
               } else {
                 // Si no se pudo cargar la imagen, solo mostrar información
                 worksheet.getCell(`A${currentRow}`).value = `Evidencia ${index + 1}`;
@@ -1214,7 +1216,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                   ...evidencia,
                   imageDataUrl: imageDataUrl,
                 });
-                console.log('✓ Imagen agregada al PDF:', evidencia.id);
+                console.log('Imagen agregada al PDF:', evidencia.id);
               } else {
                 evidenciasConImagenes.push({
                   ...evidencia,
@@ -1769,9 +1771,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
               onClick={onClose}
               className="w-8 h-8 sm:w-10 sm:h-10 bg-white bg-opacity-10 hover:bg-opacity-20 rounded-full flex items-center justify-center transition-all duration-200 self-end sm:self-auto"
             >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
-              </svg>
+              <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </button>
           </div>
         </div>
@@ -1801,7 +1801,8 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
               <div className="bg-gradient-to-r from-blue-500 bg-opacity-10 to-purple-500 bg-opacity-10 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-blue-500 border-opacity-20">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
                   <div className="flex items-center space-x-3">
-                    <span className={`px-3 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm font-semibold text-white ${getStatusColor(report.estado)}`}>
+                    <span className={`inline-flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm font-semibold text-white ${getStatusColor(report.estado)}`}>
+                      <StatusIcon status={report.estado} className="w-4 h-4 flex-shrink-0" />
                       {getStatusLabel(report.estado)}
                     </span>
                   </div>

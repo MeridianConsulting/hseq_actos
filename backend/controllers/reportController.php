@@ -583,9 +583,23 @@ class ReportController {
                 $types .= "s";
             }
             if (!empty($filters['estado'])) {
-                $whereConditions[] = "r.estado = ?";
-                $params[] = $filters['estado'];
-                $types .= "s";
+                $estadoVal = $filters['estado'];
+                if (strpos($estadoVal, ',') !== false) {
+                    $estados = array_map('trim', explode(',', $estadoVal));
+                    $estados = array_filter($estados);
+                    if (!empty($estados)) {
+                        $placeholders = implode(',', array_fill(0, count($estados), '?'));
+                        $whereConditions[] = "r.estado IN ($placeholders)";
+                        foreach ($estados as $e) {
+                            $params[] = $e;
+                            $types .= "s";
+                        }
+                    }
+                } else {
+                    $whereConditions[] = "r.estado = ?";
+                    $params[] = $estadoVal;
+                    $types .= "s";
+                }
             }
             if (!empty($filters['user_id'])) {
                 $whereConditions[] = "r.id_usuario = ?";

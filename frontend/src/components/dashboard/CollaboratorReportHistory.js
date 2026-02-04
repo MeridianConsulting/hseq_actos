@@ -3,6 +3,7 @@ import { getUser } from '../../utils/auth';
 import ReportService from '../../services/reportService';
 import SuccessAnimation from '../SuccessAnimation';
 import EditReportModal from '../forms/EditReportModal';
+import { Clock, ClipboardCheck, CircleCheck, CircleX, ClipboardList, AlertTriangle, MessageCircle, FileText, AlertCircle } from 'lucide-react';
 
 const CollaboratorReportHistory = () => {
   const [reports, setReports] = useState([]);
@@ -122,6 +123,16 @@ const CollaboratorReportHistory = () => {
     }
   };
 
+  const StatusIcon = ({ status, className = 'w-4 h-4' }) => {
+    switch (status) {
+      case 'pendiente': return <Clock className={className} />;
+      case 'en_revision': return <ClipboardCheck className={className} />;
+      case 'aprobado': return <CircleCheck className={className} />;
+      case 'rechazado': return <CircleX className={className} />;
+      default: return <Clock className={className} />;
+    }
+  };
+
   const getEventTypeLabel = (type) => {
     const labels = {
       'hallazgos': 'Hallazgos',
@@ -132,27 +143,18 @@ const CollaboratorReportHistory = () => {
   };
 
   const getEventTypeIcon = (type) => {
+    const iconClass = 'w-5 h-5 text-white';
     switch (type) {
       case 'hallazgos':
-        return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-        );
+        return <ClipboardList className={iconClass} />;
       case 'incidentes':
-        return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-          </svg>
-        );
+        return <AlertTriangle className={iconClass} />;
       case 'conversaciones':
-        return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-          </svg>
-        );
+        return <MessageCircle className={iconClass} />;
+      case 'pqr':
+        return <FileText className={iconClass} />;
       default:
-        return null;
+        return <FileText className={iconClass} />;
     }
   };
 
@@ -200,9 +202,7 @@ const CollaboratorReportHistory = () => {
         </h3>
         <div className="text-center py-12">
           <div className="bg-red-500 bg-opacity-20 border border-red-500 rounded-lg p-4 max-w-md mx-auto">
-            <svg className="w-12 h-12 mx-auto text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
+            <AlertCircle className="w-12 h-12 mx-auto text-red-400 mb-4" />
             <p className="text-red-300 text-lg mb-2">Error al cargar reportes</p>
             <p className="text-white text-opacity-70">{error}</p>
             <button
@@ -262,7 +262,8 @@ const CollaboratorReportHistory = () => {
                       {getEventTypeIcon(report.tipo_reporte)}
                     </div>
                     <div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(report.estado)}`}>
+                      <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(report.estado)}`}>
+                        <StatusIcon status={report.estado} className="w-[14px] h-[14px] flex-shrink-0" />
                         {getStatusLabel(report.estado)}
                       </span>
                       <p className="text-white text-sm font-semibold mt-1">

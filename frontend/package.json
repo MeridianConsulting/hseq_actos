@@ -20,6 +20,7 @@
     "jimp": "^1.6.0",
     "jspdf": "^2.5.2",
     "jszip": "^3.10.1",
+    "lucide-react": "^0.468.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.3",

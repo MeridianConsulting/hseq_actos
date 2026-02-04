@@ -16,64 +16,32 @@ import { userService } from '../services/api';
 import { buildApi, buildUploadsUrl } from '../config/api';
 import ReportsTable from '../components/ReportsTable';
 import { reportTypes, gradosCriticidad } from '../config/formOptions';
+import { AlertCircle, Clock, CircleCheck, Calendar, BarChart2, TrendingUp, Loader2, FileSpreadsheet, Search, X, User, Users, Plus } from 'lucide-react';
 
-// Función para determinar a qué proceso (gestión) pertenece un proyecto
+// Nombres de proceso unificados (PDF pág. 2)
 const getProcesoFromProyecto = (proyecto) => {
   if (!proyecto || proyecto.trim() === '') {
-    return 'Gestión Administrativa';
+    return 'Administrativo';
   }
-  
   const proyectoTrim = proyecto.trim();
-  
-  // Gestión Proyecto - Petroservicios
-  if (proyectoTrim === 'PETROSERVICIOS') {
-    return 'Gestión Proyecto - Petroservicios';
-  }
-  
-  // Gestión Administrativa
+  if (proyectoTrim === 'PETROSERVICIOS') return 'Proyecto Petroservicios';
   const proyectosAdministrativos = [
-    'ADMINISTRACION',
-    'COMPANY MAN - ADMINISTRACION',
-    'ADMINISTRACION - STAFF',
-    'FRONTERA - ADMINISTRACION',
-    'Administrativo',
-    'PETROSERVICIOS - ADMINISTRACION',
-    'ADMINISTRACION COMPANY MAN'
+    'ADMINISTRACION', 'COMPANY MAN - ADMINISTRACION', 'ADMINISTRACION - STAFF',
+    'FRONTERA - ADMINISTRACION', 'Administrativo', 'PETROSERVICIOS - ADMINISTRACION', 'ADMINISTRACION COMPANY MAN'
   ];
-  if (proyectosAdministrativos.includes(proyectoTrim)) {
-    return 'Gestión Administrativa';
-  }
-  
-  // Gestión Proyecto - Company man
+  if (proyectosAdministrativos.includes(proyectoTrim)) return 'Administrativo';
   const proyectosCompanyMan = [
-    '3047761-4',
-    'COMPANY MAN - APIAY',
-    'COMPANY MAN',
-    'COMPANY MAN - CPO09',
-    'COMPANY MAN - GGS',
-    'COMPANY MAN - CASTILLA'
+    '3047761-4', 'COMPANY MAN - APIAY', 'COMPANY MAN', 'COMPANY MAN - CPO09', 'COMPANY MAN - GGS', 'COMPANY MAN - CASTILLA'
   ];
-  if (proyectosCompanyMan.includes(proyectoTrim)) {
-    return 'Gestión Proyecto - Company man';
-  }
-  
-  // Gestión Proyecto Frontera
-  if (proyectoTrim === 'FRONTERA') {
-    return 'Gestión Proyecto Frontera';
-  }
-  
-  // Gestión Proyecto ZIRCON
-  if (proyectoTrim === 'ZIRCON') {
-    return 'Gestión Proyecto ZIRCON';
-  }
-  
-  // Si no coincide con ninguna gestión, retornar el proyecto original
+  if (proyectosCompanyMan.includes(proyectoTrim)) return 'Proyecto CW_Company Man';
+  if (proyectoTrim === 'FRONTERA') return 'Proyecto Frontera';
+  if (proyectoTrim === 'ZIRCON') return 'Proyecto ZIRCON';
   return proyectoTrim;
 };
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [selectedPeriod, setSelectedPeriod] = useState('all');
+  const [selectedPeriod, setSelectedPeriod] = useState('year');
   
   const handlePeriodChange = useCallback((period) => {
     console.log('handlePeriodChange llamado con:', period);
@@ -209,14 +177,10 @@ const Dashboard = () => {
     }
     return {};
   }, [dashboardProceso]);
-  const effectivePeriod = selectedPeriod === 'all' ? undefined : selectedPeriod;
+  const effectivePeriod = selectedPeriod;
   
   // Calcular fechas según el período seleccionado para filtrar reportes
   const periodDateFilters = useMemo(() => {
-    if (selectedPeriod === 'all') {
-      return {}; // Sin filtros de fecha
-    }
-    
     const now = new Date();
     let dateFrom, dateTo;
     
@@ -244,7 +208,25 @@ const Dashboard = () => {
     
     return {};
   }, [selectedPeriod]);
-  
+
+  // Etiqueta del período activo y rango formateado (para KPI y gráfico)
+  const periodLabel = useMemo(() => {
+    if (selectedPeriod === 'month') return 'Mensual';
+    if (selectedPeriod === 'quarter') return 'Trimestral';
+    return 'Anual';
+  }, [selectedPeriod]);
+
+  const periodRangeFormatted = useMemo(() => {
+    const from = periodDateFilters.date_from;
+    const to = periodDateFilters.date_to;
+    if (!from || !to) return '';
+    const formatDate = (d) => {
+      const [y, m, day] = d.split('-');
+      return `${day}/${m}/${y}`;
+    };
+    return `${formatDate(from)} - ${formatDate(to)}`;
+  }, [periodDateFilters.date_from, periodDateFilters.date_to]);
+
   // Combinar filtros de dashboard con filtros de fecha del período
   const dashboardStatsFilters = useMemo(() => {
     return {
@@ -350,14 +332,23 @@ const Dashboard = () => {
   const incidentsByMonth = useMemo(() => {
     const data = stats?.incidentesPorMes || [];
     if (!Array.isArray(data)) return [];
-    const periodType = selectedPeriod === 'all' ? 'month' : selectedPeriod;
+    const periodType = selectedPeriod;
     return aggregateByPeriod(data, periodType);
   }, [stats?.incidentesPorMes, selectedPeriod]);
+
+  // Colores determinísticos por categoría (evita repetición de color entre series)
+  const SERIES_COLOR = {
+    incidentes: '#3B82F6',
+    hallazgos: '#F59E0B',
+    conversaciones: '#10B981',
+    pqr: '#A855F7'
+  };
 
   // Pie chart: Distribución por tipo (definida más abajo con filtro de periodo)
 
   // Resumen de gestión para gráfico de barras (sustituye Métricas de seguridad)
   const totalReportes = useMemo(() => Number(stats?.kpis?.total_reportes) || 0, [stats?.kpis?.total_reportes]);
+  const pendientes = useMemo(() => Number(stats?.kpis?.pendientes) || 0, [stats?.kpis?.pendientes]);
   // Cerrados: usa campo directo del backend si existe; si no, lo calcula como Aprobados + Rechazados
   const totalCerrados = useMemo(() => {
     const direct = Number(stats?.kpis?.total_cerrados);
@@ -379,12 +370,18 @@ const Dashboard = () => {
   const areaProcesoTop = useMemo(() => stats?.areaProcesoTop || stats?.area_mas_reporta || '-', [stats?.areaProcesoTop, stats?.area_mas_reporta]);
   const hallazgoMasReportado = useMemo(() => stats?.hallazgoMasReportado || stats?.hallazgo_mas_reportado || '-', [stats?.hallazgoMasReportado, stats?.hallazgo_mas_reportado]);
 
-  // KPIs
+  // KPIs (coherentes con Resumen de gestión)
   const kpis = useMemo(() => [
-    { title: 'Total reportes por periodo', value: totalReportes ?? '-', color: '#ef4444', icon: '⚠️' },
-    { title: 'Reportes Procesados', value: stats?.kpis?.total_reportes ?? '-', color: '#22c55e', icon: '📋' },
-    { title: 'Cerrados', value: totalCerrados ?? '-', color: '#3b82f6', icon: '🎓' }
-  ], [totalReportes, stats?.kpis?.total_reportes, totalCerrados]);
+    {
+      title: 'Total reportes (período)',
+      value: totalReportes ?? '-',
+      color: '#ef4444',
+      Icon: AlertCircle,
+      subtitle: periodRangeFormatted ? `${periodLabel} · ${periodRangeFormatted}` : periodLabel
+    },
+    { title: 'Pendientes', value: pendientes ?? '-', color: '#fbbf24', Icon: Clock },
+    { title: 'Cerrados', value: totalCerrados ?? '-', color: '#22c55e', Icon: CircleCheck }
+  ], [totalReportes, pendientes, totalCerrados, periodLabel, periodRangeFormatted]);
 
   // Cargar proyectos únicos
   const loadProyectos = useCallback(async () => {
@@ -690,21 +687,21 @@ const Dashboard = () => {
     // Función auxiliar para obtener badge de tipo
     const getTipoBadge = (tipo) => {
       const tipos = {
-        'incidentes': '<span class="badge badge-danger">🚨 Incidente</span>',
-        'hallazgos': '<span class="badge badge-warning">🔍 Hallazgo</span>',
-        'conversaciones': '<span class="badge badge-info">💬 Conversación</span>',
-        'pqr': '<span class="badge badge-purple">📋 PQR</span>'
+        'incidentes': '<span class="badge badge-danger">Incidente</span>',
+        'hallazgos': '<span class="badge badge-warning">Hallazgo</span>',
+        'conversaciones': '<span class="badge badge-info">Conversación</span>',
+        'pqr': '<span class="badge badge-purple">PQR</span>'
       };
       return tipos[tipo] || '<span class="badge badge-info">' + tipo + '</span>';
     };
 
-    // Función auxiliar para obtener badge de estado
+    // Función auxiliar para obtener badge de estado (HTML para PDF; sin emojis)
     const getEstadoBadge = (estado) => {
       const estados = {
-        'pendiente': '<span class="status-badge status-pendiente">⏳ Pendiente</span>',
-        'en_revision': '<span class="status-badge status-revision">👁️ En Revisión</span>',
-        'aprobado': '<span class="status-badge status-aprobado">✅ Aprobado</span>',
-        'rechazado': '<span class="status-badge status-rechazado">❌ Rechazado</span>'
+        'pendiente': '<span class="status-badge status-pendiente">Pendiente</span>',
+        'en_revision': '<span class="status-badge status-revision">En Revisión</span>',
+        'aprobado': '<span class="status-badge status-aprobado">Aprobado</span>',
+        'rechazado': '<span class="status-badge status-rechazado">Rechazado</span>'
       };
       return estados[estado] || '<span class="status-badge status-pendiente">' + estado + '</span>';
     };
@@ -719,19 +716,19 @@ const Dashboard = () => {
       // Campos comunes
       infoFields += `
         <div class="info-item">
-          <div class="info-label">👤 Usuario</div>
+          <div class="info-label">Usuario</div>
           <div class="info-value">${report.nombre_usuario || 'N/A'}</div>
         </div>
         <div class="info-item">
-          <div class="info-label">🏢 Proyecto</div>
+          <div class="info-label">Proyecto</div>
           <div class="info-value">${report.proyecto_usuario || 'N/A'}</div>
         </div>
         <div class="info-item">
-          <div class="info-label">📅 Fecha del Evento</div>
+          <div class="info-label">Fecha del Evento</div>
           <div class="info-value">${report.fecha_evento || 'N/A'}</div>
         </div>
         <div class="info-item">
-          <div class="info-label">📝 Creado el</div>
+          <div class="info-label">Creado el</div>
           <div class="info-value">${new Date(report.creado_en).toLocaleDateString('es-ES')}</div>
         </div>
       `;
@@ -740,22 +737,22 @@ const Dashboard = () => {
       if (tipoReporte === 'hallazgos') {
         infoFields += `
           <div class="info-item">
-            <div class="info-label">📍 Lugar del Hallazgo</div>
+            <div class="info-label">Lugar del Hallazgo</div>
             <div class="info-value">${report.lugar_hallazgo || 'N/A'} ${report.lugar_hallazgo_otro ? '- ' + report.lugar_hallazgo_otro : ''}</div>
           </div>
           <div class="info-item">
-            <div class="info-label">🏷️ Tipo de Hallazgo</div>
+            <div class="info-label">Tipo de Hallazgo</div>
             <div class="info-value">${report.tipo_hallazgo || 'N/A'}</div>
           </div>
           <div class="info-item">
-            <div class="info-label">🚦 Estado Condición</div>
+            <div class="info-label">Estado Condición</div>
             <div class="info-value">${report.estado_condicion || 'N/A'}</div>
           </div>
         `;
       } else if (tipoReporte === 'incidentes') {
         infoFields += `
           <div class="info-item">
-            <div class="info-label">⚠️ Grado de Criticidad</div>
+            <div class="info-label">Grado de Criticidad</div>
             <div class="info-value">${report.grado_criticidad || 'N/A'}</div>
           </div>
           <div class="info-item">
@@ -778,26 +775,26 @@ const Dashboard = () => {
             <div class="info-value">${report.tipo_conversacion || 'N/A'}</div>
           </div>
           <div class="info-item">
-            <div class="info-label">📍 Sitio del Evento</div>
+            <div class="info-label">Sitio del Evento</div>
             <div class="info-value">${report.sitio_evento_conversacion || 'N/A'}</div>
           </div>
           <div class="info-item">
-            <div class="info-label">🏢 Lugar</div>
+            <div class="info-label">Lugar</div>
             <div class="info-value">${report.lugar_hallazgo_conversacion || 'N/A'} ${report.lugar_hallazgo_conversacion_otro ? '- ' + report.lugar_hallazgo_conversacion_otro : ''}</div>
           </div>
         `;
       } else if (tipoReporte === 'pqr') {
         infoFields += `
           <div class="info-item">
-            <div class="info-label">📋 Tipo de PQR</div>
+            <div class="info-label">Tipo de PQR</div>
             <div class="info-value">${report.tipo_pqr || 'N/A'}</div>
           </div>
           <div class="info-item">
-            <div class="info-label">📞 Teléfono</div>
+            <div class="info-label">Teléfono</div>
             <div class="info-value">${report.telefono_contacto || 'N/A'}</div>
           </div>
           <div class="info-item">
-            <div class="info-label">📧 Correo</div>
+            <div class="info-label">Correo</div>
             <div class="info-value">${report.correo_contacto || 'N/A'}</div>
           </div>
         `;
@@ -813,7 +810,7 @@ const Dashboard = () => {
       if (report.evidencias && report.evidencias.length > 0) {
         evidenciasHTML = `
           <div class="evidence-section">
-            <div class="evidence-title">📸 Evidencias Fotográficas</div>
+            <div class="evidence-title">Evidencias Fotográficas</div>
             <div class="evidence-grid">
               ${report.evidencias.map(ev => `
                 <div class="evidence-item">
@@ -842,20 +839,20 @@ const Dashboard = () => {
           </div>
 
           <div class="description-box">
-            <div class="description-title">📝 Descripción</div>
+            <div class="description-title">Descripción</div>
             <div class="description-text">${descripcion}</div>
           </div>
 
           ${recomendaciones ? `
             <div class="description-box" style="border-left-color: #10b981;">
-              <div class="description-title">💡 Recomendaciones</div>
+              <div class="description-title">Recomendaciones</div>
               <div class="description-text">${recomendaciones}</div>
             </div>
           ` : ''}
 
           ${comentarios ? `
             <div class="description-box" style="border-left-color: #3b82f6;">
-              <div class="description-title">💬 Comentarios de Revisión</div>
+              <div class="description-title">Comentarios de Revisión</div>
               <div class="description-text">${comentarios}</div>
               ${report.nombre_revisor ? `<p style="margin-top: 8px; font-size: 12px; color: #718096;"><strong>Revisado por:</strong> ${report.nombre_revisor} - ${new Date(report.fecha_revision).toLocaleDateString('es-ES')}</p>` : ''}
             </div>
@@ -877,14 +874,14 @@ const Dashboard = () => {
       <!doctype html><html><head><meta charset="utf-8"/>${estilos}</head>
       <body>
         <div class="no-print" style="text-align:right;margin-bottom:16px;">
-          <button onclick="window.print()" style="padding:12px 20px;border:none;border-radius:8px;background:linear-gradient(135deg, #3182ce 0%, #2c5282 100%);color:#fff;font-weight:600;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2);">📄 Imprimir / Guardar PDF</button>
+          <button onclick="window.print()" style="padding:12px 20px;border:none;border-radius:8px;background:linear-gradient(135deg, #3182ce 0%, #2c5282 100%);color:#fff;font-weight:600;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2);">Imprimir / Guardar PDF</button>
         </div>
         
         <h1>${title}</h1>
         
         <div class="header-info">
-          <p style="margin: 8px 0; font-size: 14px; color: #4a5568;"><strong>📅 Generado:</strong> ${generatedAt}</p>
-          <p style="margin: 8px 0; font-size: 14px; color: #4a5568;"><strong>📊 Total de Reportes:</strong> ${allReports.length}</p>
+          <p style="margin: 8px 0; font-size: 14px; color: #4a5568;"><strong>Generado:</strong> ${generatedAt}</p>
+          <p style="margin: 8px 0; font-size: 14px; color: #4a5568;"><strong>Total de Reportes:</strong> ${allReports.length}</p>
           <p style="margin: 8px 0; font-size: 13px; color: #718096;">Sistema de Gestión de Seguridad, Salud Ocupacional y Medio Ambiente - Meridian Colombia</p>
         </div>
 
@@ -1612,7 +1609,7 @@ const Dashboard = () => {
     };
     const labelCap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
     // Si es 'Todos', usar los datos del backend directamente si existen
-    if (selectedPeriod === 'all' && Array.isArray(stats?.distribucionTipo)) {
+    if (selectedPeriod === 'year' && Array.isArray(stats?.distribucionTipo)) {
       return stats.distribucionTipo.map(t => ({
         id: t.tipo_reporte,
         label: labelCap(t.tipo_reporte),
@@ -1812,7 +1809,7 @@ const Dashboard = () => {
           {/* Period Filter */}
           <div className="flex flex-col items-center mb-8">
             <div className="flex flex-wrap justify-center gap-3 mb-3">
-              {['all','month', 'quarter', 'year'].map((period) => (
+              {['month', 'quarter', 'year'].map((period) => (
                 <button
                   key={period}
                   onClick={() => {
@@ -1843,7 +1840,7 @@ const Dashboard = () => {
                       Cargando...
                     </>
                   ) : (
-                  period === 'all' ? 'Todos' : period === 'month' ? 'Mensual' : period === 'quarter' ? 'Trimestral' : 'Anual'
+                  period === 'month' ? 'Mensual' : period === 'quarter' ? 'Trimestral' : 'Anual'
                   )}
                 </button>
               ))}
@@ -1855,23 +1852,27 @@ const Dashboard = () => {
               }`}>
                 <div className="flex items-center gap-3">
                   <span className="font-semibold">Período activo: </span>
-                  <span className={`font-bold ${
-                    selectedPeriod === 'all' ? 'text-purple-300' :
+                  <span className={`inline-flex items-center gap-2 font-bold ${
                     selectedPeriod === 'month' ? 'text-blue-300' :
                     selectedPeriod === 'quarter' ? 'text-green-300' :
                     'text-orange-300'
                   }`}>
-                    {selectedPeriod === 'all' ? '📅 Todos los períodos' : 
-                     selectedPeriod === 'month' ? '📆 Mes actual' : 
-                     selectedPeriod === 'quarter' ? '📊 Trimestre actual' : 
-                     '📈 Año actual'}
+                    {selectedPeriod === 'month' ? <><Calendar className="w-4 h-4" /> Mes actual</> :
+                     selectedPeriod === 'quarter' ? <><BarChart2 className="w-4 h-4" /> Trimestre actual</> :
+                     <><TrendingUp className="w-4 h-4" /> Año actual</>}
                   </span>
                   {loading ? (
-                    <span className="ml-3 text-xs text-yellow-400 animate-pulse">🔄 Actualizando datos...</span>
+                    <span className="ml-3 inline-flex items-center gap-2 text-xs text-yellow-400 animate-pulse">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Actualizando datos...
+                    </span>
                   ) : stats ? (
                     <>
                       <span className="ml-3 text-xs text-gray-400">
                         | Total reportes: <span className="font-bold text-white">{stats?.kpis?.total_reportes || 0}</span>
+                      </span>
+                      <span className="ml-3 text-xs text-gray-400">
+                        | Pendientes: <span className="font-bold text-yellow-400">{stats?.kpis?.pendientes || 0}</span>
                       </span>
                       <span className="ml-3 text-xs text-gray-400">
                         | Cerrados: <span className="font-bold text-green-400">{stats?.kpis?.aprobados + stats?.kpis?.rechazados || 0}</span>
@@ -1893,12 +1894,20 @@ const Dashboard = () => {
                 className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300"
                 style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}
               >
-                <h3 className="text-2xl md:text-3xl font-bold mb-1" style={{ color: kpi.color }}>
-                  {kpi.value}
-                </h3>
+                <div className="flex items-center gap-2 mb-1">
+                  {kpi.Icon && <kpi.Icon className="w-5 h-5 flex-shrink-0" style={{ color: kpi.color }} />}
+                  <h3 className="text-2xl md:text-3xl font-bold" style={{ color: kpi.color }}>
+                    {kpi.value}
+                  </h3>
+                </div>
                 <p className="text-xs md:text-sm text-gray-400">
                   {kpi.title}
                 </p>
+                {kpi.subtitle && (
+                  <p className="text-xs text-gray-500 mt-1 truncate" title={kpi.subtitle}>
+                    {kpi.subtitle}
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -1941,7 +1950,7 @@ const Dashboard = () => {
                         </div>
                         <div>
                           <h3 className="text-lg md:text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                            Total de reportes por periodo
+                            Total de reportes por período ({periodLabel})
                           </h3>
                         </div>
                       </div>
@@ -1959,9 +1968,20 @@ const Dashboard = () => {
                       groupMode="grouped"
                       valueScale={{ type: 'linear' }}
                       indexScale={{ type: 'band', round: true }}
-                      colors={['#ef4444', '#eab308', '#3b82f6', '#a855f7']}
+                      colors={({ id }) => SERIES_COLOR[id] ?? '#6B7280'}
+                      tooltip={({ indexValue }) => {
+                        const row = incidentsByMonth.find(r => r.period === indexValue);
+                        const total = row
+                          ? (Number(row.incidentes) || 0) + (Number(row.hallazgos) || 0) + (Number(row.conversaciones) || 0) + (Number(row.pqr) || 0)
+                          : 0;
+                        return (
+                          <div style={{ padding: '8px 12px', background: '#1f2937', color: '#f9fafb', borderRadius: 8, fontSize: 13 }}>
+                            Periodo: <strong>{indexValue}</strong> · Total: <strong>{total}</strong>
+                          </div>
+                        );
+                      }}
                       borderRadius={4}
-                      enableGridY={false}
+                      enableGridY={true}
                       theme={{
                         background: 'transparent',
                         text: { fill: '#f3f4f6', fontSize: 12 },
@@ -1982,8 +2002,22 @@ const Dashboard = () => {
                           }
                         }
                       }}
-                      axisBottom={null}
-                      axisLeft={null}
+                      axisBottom={{
+                        tickSize: 5,
+                        tickPadding: 8,
+                        tickRotation: -25,
+                        legend: 'Periodo',
+                        legendPosition: 'middle',
+                        legendOffset: 55
+                      }}
+                      axisLeft={{
+                        tickSize: 5,
+                        tickPadding: 8,
+                        tickRotation: 0,
+                        legend: 'Cantidad de reportes',
+                        legendPosition: 'middle',
+                        legendOffset: -50
+                      }}
                       labelSkipHeight={14}
                       labelSkipWidth={10}
                       labelTextColor="#ffffff"
@@ -2402,7 +2436,7 @@ const Dashboard = () => {
             <div className="mb-6 pb-4 border-b border-gray-700/50">
               <div className="flex flex-col items-center justify-center text-center space-y-3">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--color-tertiary), var(--color-accent))' }}>
-                  <span className="text-3xl">📊</span>
+                  <BarChart2 className="w-7 h-7 text-white" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-white">Reportes y Exportación</h2>
@@ -2421,16 +2455,16 @@ const Dashboard = () => {
                   className="px-3 py-2 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 >
                   <option value="">Todos los Procesos</option>
-                  <option value="petroservicios">Gestión Proyecto - Petroservicios</option>
-                  <option value="administrativa">Gestión Administrativa</option>
-                  <option value="company-man">Gestión Proyecto - Company man</option>
-                  <option value="frontera">Gestión Proyecto Frontera</option>
-                  <option value="zircon">Gestión Proyecto ZIRCON</option>
+                  <option value="administrativa">Administrativo</option>
+                  <option value="company-man">Proyecto CW_Company Man</option>
+                  <option value="frontera">Proyecto Frontera</option>
+                  <option value="petroservicios">Proyecto Petroservicios</option>
+                  <option value="zircon">Proyecto ZIRCON</option>
                 </select>
               </div>
               {dashboardProceso && (
                 <div className="text-xs text-gray-400">
-                  Filtro aplicado a estadísticas, gráficos y tabla: <span className="text-blue-300 font-semibold">{dashboardProceso}</span>
+                  Filtro aplicado a estadísticas, gráficos y tabla: <span className="text-blue-300 font-semibold">{({ administrativa: 'Administrativo', 'company-man': 'Proyecto CW_Company Man', frontera: 'Proyecto Frontera', petroservicios: 'Proyecto Petroservicios', zircon: 'Proyecto ZIRCON' })[dashboardProceso] || dashboardProceso}</span>
                 </div>
               )}
             </div>
@@ -2439,7 +2473,9 @@ const Dashboard = () => {
                {/* Reporte Principal */}
                <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
                  <div className="text-center">
-                   <div className="text-4xl md:text-5xl mb-4 md:mb-6">📊</div>
+                   <div className="flex justify-center mb-4 md:mb-6">
+                     <BarChart2 className="w-12 h-12 md:w-14 md:h-14 text-white/90" />
+                   </div>
                    <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
                      Reportes Detallados PDF
                    </h3>
@@ -2492,7 +2528,9 @@ const Dashboard = () => {
                {/* Excel Todos los Reportes */}
                <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
                  <div className="text-center">
-                   <div className="text-4xl md:text-5xl mb-4 md:mb-6">📋</div>
+                   <div className="flex justify-center mb-4 md:mb-6">
+                     <FileSpreadsheet className="w-12 h-12 md:w-14 md:h-14 text-white/90" />
+                   </div>
                    <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
                      Excel Todos los Reportes
                    </h3>
@@ -2543,7 +2581,9 @@ const Dashboard = () => {
               {/* Excel con Filtros */}
                <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
                  <div className="text-center">
-                   <div className="text-4xl md:text-5xl mb-4 md:mb-6">🔍</div>
+                   <div className="flex justify-center mb-4 md:mb-6">
+                     <Search className="w-12 h-12 md:w-14 md:h-14 text-white/90" />
+                   </div>
                    <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
                      Excel CON Filtros
                    </h3>
@@ -2597,8 +2637,10 @@ const Dashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:col-span-2">
                 <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
                   <div className="text-center">
-                    <div className="flex items-center space-x-4">
-                      <div className="text-5xl">👤</div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex-shrink-0 flex items-center justify-center w-14 h-14 rounded-xl bg-gray-700/50">
+                        <User className="w-8 h-8 text-white/90" />
+                      </div>
                       <div className="flex-1 text-left">
                         <h3 className="text-xl md:text-2xl font-bold mb-1 text-white">Excel Reportes por Usuario</h3>
                         <p className="text-xs md:text-sm text-gray-300 mb-3">Total de reportes por usuario (quién reportó más), ordenado descendentemente</p>
@@ -2624,8 +2666,10 @@ const Dashboard = () => {
                   style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}
                 >
                   <div className="text-center">
-                    <div className="flex items-center space-x-4">
-                      <div className="text-5xl">👥</div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex-shrink-0 flex items-center justify-center w-14 h-14 rounded-xl bg-gray-700/50">
+                        <Users className="w-8 h-8 text-white/90" />
+                      </div>
                       <div className="flex-1 text-left">
                         <h3 className="text-xl md:text-2xl font-bold mb-1 text-white">Consolidados de reportes por usuario</h3>
                         <p className="text-xs md:text-sm text-gray-300 mb-3">Haz clic para abrir el panel y seleccionar Hallazgos, Conversaciones, Reflexiones o PQRs</p>
@@ -2668,7 +2712,9 @@ const Dashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
                   <div className="text-center">
-                    <div className="text-4xl md:text-5xl mb-4 md:mb-6">👥</div>
+                    <div className="flex justify-center mb-4 md:mb-6">
+                      <Users className="w-12 h-12 md:w-14 md:h-14 text-white/90" />
+                    </div>
                     <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
                       Administración de Usuarios
                     </h3>
@@ -2715,7 +2761,9 @@ const Dashboard = () => {
 
                 <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
                   <div className="text-center">
-                    <div className="text-4xl md:text-5xl mb-4 md:mb-6">➕</div>
+                    <div className="flex justify-center mb-4 md:mb-6">
+                      <Plus className="w-12 h-12 md:w-14 md:h-14 text-white/90" />
+                    </div>
                     <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">
                       Crear Nuevo Reporte
                     </h3>
@@ -2769,7 +2817,7 @@ const Dashboard = () => {
               <div className="mb-6 pb-4 border-b border-gray-700/50">
                 <div className="flex flex-col items-center justify-center text-center space-y-3">
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
-                    <span className="text-3xl">📋</span>
+                    <FileSpreadsheet className="w-7 h-7 text-white" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-white">Gestión Completa de Reportes</h2>
@@ -2787,8 +2835,7 @@ const Dashboard = () => {
                   containerClassName=""
                   useDarkTheme={true}
                   externalFilters={{ 
-                    proceso: dashboardProceso,
-                    ...periodDateFilters
+                    proceso: dashboardProceso || undefined
                   }}
                 />
               </div>
@@ -2804,8 +2851,8 @@ const Dashboard = () => {
               {/* Modal Header */}
               <div className="sticky top-0 bg-gray-800 border-b border-gray-700 p-6 flex justify-between items-center z-10">
                 <div>
-                  <h3 className="text-2xl font-bold text-white flex items-center">
-                    <span className="mr-3">🔍</span>
+                  <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <Search className="w-7 h-7 flex-shrink-0" />
                     Configurar Filtros de Excel
                   </h3>
                   <p className="text-sm text-gray-400 mt-1">Personaliza tu reporte según tus necesidades</p>
@@ -2878,11 +2925,11 @@ const Dashboard = () => {
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     >
                      <option value="">Todos los Procesos</option>
-                     <option value="petroservicios">Gestión Proyecto - Petroservicios</option>
-                     <option value="administrativa">Gestión Administrativa</option>
-                     <option value="company-man">Gestión Proyecto - Company man</option>
-                     <option value="frontera">Gestión Proyecto Frontera</option>
-                     <option value="zircon">Gestión Proyecto ZIRCON</option>
+                     <option value="administrativa">Administrativo</option>
+                     <option value="company-man">Proyecto CW_Company Man</option>
+                     <option value="frontera">Proyecto Frontera</option>
+                     <option value="petroservicios">Proyecto Petroservicios</option>
+                     <option value="zircon">Proyecto ZIRCON</option>
                     </select>
                   </div>
                   

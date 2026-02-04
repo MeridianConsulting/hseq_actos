@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getUser } from '../../utils/auth';
 import ReportService from '../../services/reportService';
 import ReportDetailsModal from '../ReportDetailsModal';
+import { Clock, ClipboardCheck, CircleCheck, CircleX } from 'lucide-react';
 
 const ReportHistory = () => {
   const [reports, setReports] = useState([]);
@@ -76,6 +77,16 @@ const ReportHistory = () => {
         return 'Rechazado';
       default:
         return status;
+    }
+  };
+
+  const StatusIcon = ({ status, className = 'w-4 h-4' }) => {
+    switch (status) {
+      case 'pendiente': return <Clock className={className} />;
+      case 'en_revision': return <ClipboardCheck className={className} />;
+      case 'aprobado': return <CircleCheck className={className} />;
+      case 'rechazado': return <CircleX className={className} />;
+      default: return <Clock className={className} />;
     }
   };
 
@@ -250,7 +261,8 @@ const ReportHistory = () => {
                       {getEventTypeIcon(report.tipo_reporte)}
                     </div>
                     <div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(report.estado)}`}>
+                      <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(report.estado)}`}>
+                        <StatusIcon status={report.estado} className="w-[14px] h-[14px] flex-shrink-0" />
                         {getStatusLabel(report.estado)}
                       </span>
                       <p className="text-white text-sm font-semibold mt-1">

@@ -5,6 +5,7 @@ import ApprovalModal from './ApprovalModal';
 import { buildApi, buildUploadsUrl } from '../config/api';
 import { gradosCriticidad, tiposAfectacion, reportTypes } from '../config/formOptions';
 import { reportService, userService } from '../services/api';
+import { Clock, ClipboardCheck, CircleCheck, CircleX, CheckCircle, ImageIcon, User } from 'lucide-react';
 
 // Función para formatear la fecha y hora del reporte correctamente
 const formatReportDateTime = (fechaEvento, creadoEn) => {
@@ -61,20 +62,25 @@ const formatReportDateTime = (fechaEvento, creadoEn) => {
   }
 };
 
-// Función para determinar a qué proceso (gestión) pertenece un proyecto
+// Nombres de proceso unificados (PDF pág. 2)
+// Mapeo tab → estados reales en BD (nunca usar "cerrado"/"cerrados")
+const TAB_TO_ESTADOS = {
+  pending: ['pendiente'],
+  in_review: ['en_revision'],
+  closed: ['aprobado', 'rechazado'],
+};
+
 const getProcesoFromProyecto = (proyecto) => {
   if (!proyecto || proyecto.trim() === '') {
-    return 'Gestión Administrativa';
+    return 'Administrativo';
   }
   
   const proyectoTrim = proyecto.trim();
   
-  // Gestión Proyecto - Petroservicios
   if (proyectoTrim === 'PETROSERVICIOS') {
-    return 'Gestión Proyecto - Petroservicios';
+    return 'Proyecto Petroservicios';
   }
   
-  // Gestión Administrativa
   const proyectosAdministrativos = [
     'ADMINISTRACION',
     'COMPANY MAN - ADMINISTRACION',
@@ -85,10 +91,9 @@ const getProcesoFromProyecto = (proyecto) => {
     'ADMINISTRACION COMPANY MAN'
   ];
   if (proyectosAdministrativos.includes(proyectoTrim)) {
-    return 'Gestión Administrativa';
+    return 'Administrativo';
   }
   
-  // Gestión Proyecto - Company man
   const proyectosCompanyMan = [
     '3047761-4',
     'COMPANY MAN - APIAY',
@@ -98,20 +103,17 @@ const getProcesoFromProyecto = (proyecto) => {
     'COMPANY MAN - CASTILLA'
   ];
   if (proyectosCompanyMan.includes(proyectoTrim)) {
-    return 'Gestión Proyecto - Company man';
+    return 'Proyecto CW_Company Man';
   }
   
-  // Gestión Proyecto Frontera
   if (proyectoTrim === 'FRONTERA') {
-    return 'Gestión Proyecto Frontera';
+    return 'Proyecto Frontera';
   }
   
-  // Gestión Proyecto ZIRCON
   if (proyectoTrim === 'ZIRCON') {
-    return 'Gestión Proyecto ZIRCON';
+    return 'Proyecto ZIRCON';
   }
   
-  // Si no coincide con ninguna gestión, retornar el proyecto original
   return proyectoTrim;
 };
 
@@ -186,9 +188,10 @@ const ReportsTable = ({
   containerClassName = "",
   title = "Reportes",
   useDarkTheme = true,
-  externalFilters = {}
+  externalFilters = {},
+  showOnlyPendientes = false
 }) => {
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState(showOnlyPendientes ? 'pending' : 'pending');
   const [reports, setReports] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -222,11 +225,21 @@ const ReportsTable = ({
   // Cargar estadísticas (todos los reportes)
   const loadStats = async () => {
     try {
-      const statsResult = await ReportService.getAllReports({
-        per_page: 1000, // Cargar muchos reportes para estadísticas
-        page: 1
-      });
-      
+      // Mismos filtros que la tabla (proceso/periodo) para que contadores y lista coincidan
+      const baseFilters = {
+        per_page: 1000,
+        page: 1,
+        ...externalFilters
+      };
+      if (baseFilters.proceso) {
+        if (baseFilters.proceso === 'petroservicios') baseFilters.proyecto = 'PETROSERVICIOS';
+        else if (baseFilters.proceso === 'administrativa') baseFilters.proyecto = 'ADMINISTRACION,COMPANY MAN - ADMINISTRACION,ADMINISTRACION - STAFF,FRONTERA - ADMINISTRACION,Administrativo,PETROSERVICIOS - ADMINISTRACION,ADMINISTRACION COMPANY MAN';
+        else if (baseFilters.proceso === 'company-man') baseFilters.proyecto = '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN - GGS,COMPANY MAN - CASTILLA';
+        else if (baseFilters.proceso === 'frontera') baseFilters.proyecto = 'FRONTERA';
+        else if (baseFilters.proceso === 'zircon') baseFilters.proyecto = 'ZIRCON';
+        delete baseFilters.proceso;
+      }
+      const statsResult = await ReportService.getAllReports(baseFilters);
       if (statsResult.success) {
         setAllReports(statsResult.reports || []);
       }
@@ -333,29 +346,46 @@ const ReportsTable = ({
         }
         delete apiFilters.proceso;
       }
-      
-      // Solo aplicar filtro de estado si no es 'closed' (que incluye aprobado y rechazado)
-      if (activeTab === 'pending') apiFilters.estado = 'pendiente';
-      else if (activeTab === 'in_review') apiFilters.estado = 'en_revision';
-      else if (activeTab === 'closed') {
-        // Para cerrados, cargar tanto aprobados como rechazados
-        delete apiFilters.estado;
+
+      // Estado SIEMPRE al final. Tab → estados reales (nunca "cerrado")
+      delete apiFilters.estado;
+      const estados = showOnlyPendientes ? ['pendiente'] : (TAB_TO_ESTADOS[activeTab] || []);
+      const isClosedTab = activeTab === 'closed';
+
+      let list = [];
+      let meta = null;
+
+      if (isClosedTab) {
+        // Cerrados = dos peticiones (aprobado + rechazado) y combinar; evita fallos con estado=aprobado,rechazado
+        const [resA, resR] = await Promise.all([
+          ReportService.getAllReports({ ...apiFilters, estado: 'aprobado', per_page: 500, page: 1 }),
+          ReportService.getAllReports({ ...apiFilters, estado: 'rechazado', per_page: 500, page: 1 })
+        ]);
+        const aprobados = resA?.reports ?? resA?.data ?? [];
+        const rechazados = resR?.reports ?? resR?.data ?? [];
+        list = [...aprobados, ...rechazados].sort((a, b) => {
+          const dA = new Date(a.creado_en || a.fecha_evento || 0);
+          const dB = new Date(b.creado_en || b.fecha_evento || 0);
+          return dB - dA;
+        });
+        meta = { total: list.length };
+      } else {
+        if (estados.length) apiFilters.estado = estados.join(',');
+        const result = await ReportService.getAllReports(apiFilters);
+        list = result?.reports ?? result?.data ?? [];
+        meta = result?.meta ?? null;
+        const filtered = estados.length ? list.filter(r => estados.includes(r.estado)) : list;
+        list = filtered;
       }
 
-      const result = await ReportService.getAllReports(apiFilters);
-      
-      if (result.success) {
-        setReports(result.reports || []);
-        setMeta(result.meta || null);
-      } else {
-        setMessage('Error al cargar reportes: ' + result.message);
-      }
+      setReports(list);
+      setMeta(meta);
     } catch (error) {
       setMessage('Error al cargar reportes: ' + error.message);
     } finally {
       setIsLoading(false);
     }
-  }, [filters, activeTab, externalFilters]);
+  }, [filters, activeTab, externalFilters, showOnlyPendientes]);
 
   useEffect(() => {
     // Cargar estadísticas, proyectos, responsables y reportes al inicializar
@@ -549,6 +579,26 @@ const ReportsTable = ({
     }
   };
 
+  const StatusIcon = ({ estado, className = 'w-4 h-4' }) => {
+    switch (estado) {
+      case 'pendiente': return <Clock className={className} />;
+      case 'en_revision': return <ClipboardCheck className={className} />;
+      case 'aprobado': return <CircleCheck className={className} />;
+      case 'rechazado': return <CircleX className={className} />;
+      default: return <Clock className={className} />;
+    }
+  };
+
+  const getStatusLabel = (estado) => {
+    switch (estado) {
+      case 'pendiente': return 'Pendiente';
+      case 'en_revision': return 'En revisión';
+      case 'aprobado': return 'Aprobado';
+      case 'rechazado': return 'Rechazado';
+      default: return estado || 'Pendiente';
+    }
+  };
+
   const getEventTypeLabel = (type) => {
     const labels = {
       'hallazgos': 'Hallazgos',
@@ -660,13 +710,11 @@ const ReportsTable = ({
                : 'bg-white/10 border-white/20'
            }`}
          >
-           <div className="flex items-center">
-             <div className="bg-yellow-500 p-2 sm:p-3 rounded-full">
-               <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-               </svg>
+           <div className="flex items-center gap-2">
+             <div className="bg-yellow-500 p-2 sm:p-3 rounded-full flex items-center justify-center">
+               <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
              </div>
-             <div className="ml-3 sm:ml-4">
+             <div>
                <p className={`text-xs sm:text-sm ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Pendientes</p>
                <p className={`text-xl sm:text-2xl font-bold drop-shadow ${useDarkTheme ? 'text-white' : 'text-white'}`}>{stats.pending}</p>
              </div>
@@ -680,13 +728,11 @@ const ReportsTable = ({
                : 'bg-white/10 border-white/20'
            }`}
          >
-           <div className="flex items-center">
-             <div className="bg-blue-500 p-2 sm:p-3 rounded-full">
-               <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-               </svg>
+           <div className="flex items-center gap-2">
+             <div className="bg-blue-500 p-2 sm:p-3 rounded-full flex items-center justify-center">
+               <ClipboardCheck className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
              </div>
-             <div className="ml-3 sm:ml-4">
+             <div>
                <p className={`text-xs sm:text-sm ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>En Revisión</p>
                <p className={`text-xl sm:text-2xl font-bold drop-shadow ${useDarkTheme ? 'text-white' : 'text-white'}`}>{stats.inReview}</p>
              </div>
@@ -700,13 +746,11 @@ const ReportsTable = ({
                : 'bg-white/10 border-white/20'
            }`}
          >
-           <div className="flex items-center">
-             <div className="bg-green-500 p-2 sm:p-3 rounded-full">
-               <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-               </svg>
+           <div className="flex items-center gap-2">
+             <div className="bg-green-500 p-2 sm:p-3 rounded-full flex items-center justify-center">
+               <CircleCheck className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
              </div>
-             <div className="ml-3 sm:ml-4">
+             <div>
                <p className={`text-xs sm:text-sm ${useDarkTheme ? 'text-gray-300' : 'text-white/70'}`}>Cerrados</p>
                <p className={`text-xl sm:text-2xl font-bold drop-shadow ${useDarkTheme ? 'text-white' : 'text-white'}`}>{stats.closed}</p>
              </div>
@@ -714,7 +758,8 @@ const ReportsTable = ({
          </div>
       </div>
 
-             {/* Navigation Tabs */}
+             {/* Navigation Tabs (ocultos si la tabla muestra solo pendientes) */}
+       {!showOnlyPendientes && (
        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-2 mb-8">
                  <button
            onClick={() => setActiveTab('pending')}
@@ -770,6 +815,7 @@ const ReportsTable = ({
           Refrescar
         </button>
       </div>
+      )}
 
              {/* Filter Bar */}
        <form onSubmit={handleSearch} className={`filter-bar backdrop-blur-md rounded-2xl p-4 mb-6 border ${
@@ -970,8 +1016,9 @@ const ReportsTable = ({
               }`}>
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-0 mb-4">
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(report.estado)} drop-shadow`}>
-                      {report.estado}
+                    <span className={`inline-flex items-center gap-2 px-2 sm:px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(report.estado)} drop-shadow`}>
+                      <StatusIcon estado={report.estado} className="w-[14px] h-[14px] sm:w-4 sm:h-4 flex-shrink-0" />
+                      {getStatusLabel(report.estado)}
                     </span>
                     <span className={`text-xs sm:text-sm ${
                       useDarkTheme ? 'text-gray-300' : 'text-white/80'
@@ -1036,9 +1083,7 @@ const ReportsTable = ({
                       <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                         useDarkTheme ? 'bg-blue-600' : 'bg-blue-500'
                       }`}>
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
+                        <User className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1">
                         <p className={`text-xs font-medium ${
@@ -1048,12 +1093,13 @@ const ReportsTable = ({
                           useDarkTheme ? 'text-white' : 'text-white'
                         }`}>{report.nombre_revisor}</p>
                       </div>
-                      <div className={`flex-shrink-0 px-2 py-1 rounded-full text-xs font-semibold ${
+                      <div className={`flex-shrink-0 inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-semibold ${
                         useDarkTheme 
                           ? 'bg-green-900/50 text-green-300 border border-green-700/50' 
                           : 'bg-green-500/30 text-green-100 border border-green-400/50'
                       }`}>
-                        ✓ Asignado
+                        <CheckCircle className="w-4 h-4" />
+                        Asignado
                       </div>
                     </div>
                   ) : report.estado !== 'pendiente' ? (
@@ -1065,9 +1111,7 @@ const ReportsTable = ({
                       <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                         useDarkTheme ? 'bg-gray-700' : 'bg-gray-500'
                       }`}>
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
+                        <User className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1">
                         <p className={`text-xs font-medium ${
@@ -1087,9 +1131,7 @@ const ReportsTable = ({
                       <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                         useDarkTheme ? 'bg-yellow-700' : 'bg-yellow-500'
                       }`}>
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <Clock className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1">
                         <p className={`text-xs font-medium ${
@@ -1099,12 +1141,13 @@ const ReportsTable = ({
                           useDarkTheme ? 'text-white' : 'text-white'
                         }`}>Esperando asignación</p>
                       </div>
-                      <div className={`flex-shrink-0 px-2 py-1 rounded-full text-xs font-semibold ${
+                      <div className={`flex-shrink-0 inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-semibold ${
                         useDarkTheme 
                           ? 'bg-yellow-900/50 text-yellow-300 border border-yellow-700/50' 
                           : 'bg-yellow-500/30 text-yellow-100 border border-yellow-400/50'
                       }`}>
-                        ⏳ Pendiente
+                        <Clock className="w-4 h-4" />
+                        Pendiente
                       </div>
                     </div>
                   )}
@@ -1112,12 +1155,10 @@ const ReportsTable = ({
                   {/* Mostrar primera imagen si existe */}
                   {report.evidencias && report.evidencias.length > 0 && (
                     <div className="mt-3">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <svg className={`w-4 h-4 ${
+                      <div className="flex items-center gap-2 mb-2">
+                        <ImageIcon className={`w-4 h-4 flex-shrink-0 ${
                           useDarkTheme ? 'text-gray-400' : 'text-white/60'
-                        }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
+                        }`} />
                         <span className={`text-xs ${
                           useDarkTheme ? 'text-gray-400' : 'text-white/60'
                         }`}>Evidencias: {report.evidencias.length}</span>
