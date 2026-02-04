@@ -2234,30 +2234,24 @@ const Dashboard = () => {
                   </div>
                   
                   {/* Chart Container */}
-                  <div className="relative" style={{ height: '400px' }}>
+                  <div className="relative" style={{ height: '420px' }}>
                     <ResponsiveBar
                       data={reportsByProcess}
                       keys={['total']}
                       indexBy="proceso"
                       layout="horizontal"
                       margin={{ top: 30, right: 120, bottom: 50, left: 180 }}
-                      padding={0.4}
+                      padding={0.68}
+                      innerPadding={6}
                       valueScale={{ type: 'linear' }}
                       indexScale={{ type: 'band', round: true }}
                       colors={(bar) => {
-                        const colors = [
-                          '#3b82f6', // Azul
-                          '#22c55e', // Verde
-                          '#f59e0b', // Amarillo/Naranja
-                          '#ef4444', // Rojo
-                          '#a855f7', // Púrpura
-                          '#06b6d4', // Cyan
-                          '#f97316', // Naranja
-                          '#84cc16'  // Lima
-                        ];
+                        const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4', '#f97316', '#84cc16'];
                         return colors[bar.index % colors.length];
                       }}
-                      borderRadius={6}
+                      borderRadius={10}
+                      borderWidth={1}
+                      borderColor={{ from: 'color', modifiers: [['darker', 0.6]] }}
                       enableGridX={true}
                       enableGridY={false}
                       theme={{
@@ -2300,8 +2294,8 @@ const Dashboard = () => {
                         legendOffset: -160
                       }}
                       labelSkipHeight={14}
-                      labelSkipWidth={10}
-                      labelTextColor="#ffffff"
+                      labelSkipWidth={16}
+                      labelTextColor={{ from: 'color', modifiers: [['darker', 3]] }}
                       label={d => d.value > 0 ? d.value : ''}
                       tooltip={({ id, value, indexValue }) => (
                         <div style={{
