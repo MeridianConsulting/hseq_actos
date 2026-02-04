@@ -196,12 +196,24 @@ a {
 
 .header-container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 var(--spacing-xl);
+  padding: 0 var(--spacing-lg) 0 var(--spacing-xl);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--spacing-md);
+  min-height: 72px;
+}
+.header-container .logo {
+  flex-shrink: 0;
+}
+.header-container nav {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
 }
 
 /* Logo */
@@ -254,30 +266,32 @@ a {
   margin: 0;
   padding: 0;
   transition: all var(--transition-normal);
-  padding-right: var(--spacing-md);
   align-items: center;
+  gap: 0.25rem;
+  flex-wrap: nowrap;
 }
 
 .nav-links li {
-  margin-left: var(--spacing-lg);
-  transition: margin var(--transition-normal);
+  margin: 0;
   position: relative;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .nav-links a {
   color: var(--color-primary-dark);
   font-weight: 500;
   position: relative;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: 1.05rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.95rem;
   letter-spacing: 0.02em;
   transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   border-radius: 6px;
+  white-space: nowrap;
 }
 
 .nav-links a:hover {
@@ -323,21 +337,26 @@ a {
 .user-menu {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  margin-left: var(--spacing-lg);
-  padding: var(--spacing-xs) var(--spacing-sm);
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+  padding: 0.35rem 0.6rem;
   border-radius: 8px;
   background-color: rgba(51, 97, 157, 0.1);
   border: 1px solid rgba(51, 97, 157, 0.2);
+  flex-shrink: 0;
 }
 
 .user-name {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   color: var(--color-primary-dark);
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-name i {
@@ -346,18 +365,19 @@ a {
 }
 
 .logout-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   background-color: var(--color-accent);
   color: var(--color-dark);
   border: none;
-  padding: var(--spacing-xs) var(--spacing-sm);
+  padding: 0.35rem 0.6rem;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
+  white-space: nowrap;
 }
 
 .logout-btn:hover {
@@ -473,12 +493,14 @@ a {
 
 .main-header .header-container {
   width: 100% !important;
-  max-width: 1200px !important;
+  max-width: 1400px !important;
   margin: 0 auto !important;
-  padding: 0 var(--spacing-xl) !important;
+  padding: 0 var(--spacing-lg) 0 var(--spacing-xl) !important;
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
+  gap: var(--spacing-md) !important;
+  min-height: 72px !important;
 }
 
 /* Ensure header stays visible and styled correctly */

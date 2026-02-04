@@ -7,6 +7,7 @@ import Login from './pages/login';
 import CollaboratorDashboard from './pages/CollaboratorDashboard';
 import SupportDashboard from './pages/SupportDashboard';
 import CreateReport from './pages/CreateReport';
+import MisReportes from './pages/MisReportes';
 import ReportsList from './admin/ReportsList';
 
 import { isAuthenticated, getUser, getRoleRoute } from './utils/auth';
@@ -76,6 +77,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard/mis-reportes" 
+              element={
+                <ProtectedRoute>
+                  <MisReportes />
                 </ProtectedRoute>
               } 
             />

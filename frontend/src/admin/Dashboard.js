@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { getUser, logout, getUserName, isAdmin } from '../utils/auth';
@@ -63,6 +63,11 @@ const formatProcesoTick = (v) => {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isMisReportesVista = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('vista') === 'mis-reportes';
+  }, [location.search]);
   const [selectedPeriod, setSelectedPeriod] = useState('year');
   
   const handlePeriodChange = useCallback((period) => {
@@ -2835,11 +2840,12 @@ const Dashboard = () => {
                 <ReportsTable 
                   user={user}
                   showStatusActions={true}
-                  title="Todos los Reportes"
+                  title={isMisReportesVista ? 'Mis Reportes' : 'Todos los Reportes'}
                   containerClassName=""
                   useDarkTheme={true}
                   externalFilters={{ 
-                    proceso: dashboardProceso || undefined
+                    proceso: dashboardProceso || undefined,
+                    ...(isMisReportesVista && user?.id ? { user_id: user.id } : {})
                   }}
                 />
               </div>

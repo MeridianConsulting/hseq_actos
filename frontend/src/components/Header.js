@@ -88,6 +88,12 @@ const Header = () => {
             </Link>
           </li>
           <li>
+            <Link to="/dashboard/mis-reportes" onClick={closeMenu} className={location.pathname === '/dashboard/mis-reportes' ? 'active' : ''}>
+              <i className="fas fa-clipboard-list"></i>
+              Mis Reportes
+            </Link>
+          </li>
+          <li>
             <Link to="/admin/users" onClick={closeMenu} className={location.pathname === '/admin/users' ? 'active' : ''}>
               <i className="fas fa-users"></i>
               Usuarios
@@ -145,12 +151,6 @@ const Header = () => {
     if (isCollaborator()) {
       return (
         <ul className={`nav-links ${menuOpen ? 'active' : ''}`}>
-          <li>
-            <Link to="/collaborator" onClick={closeMenu} className={location.pathname === '/collaborator' ? 'active' : ''}>
-              <i className="fas fa-clipboard-list"></i>
-              Mis Reportes
-            </Link>
-          </li>
           <li className="user-menu">
             <span className="user-name">
               <i className="fas fa-user-circle"></i>
