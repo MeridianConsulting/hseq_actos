@@ -9,13 +9,18 @@ import HallazgosForm from '../components/forms/HallazgosForm';
 import IncidentesForm from '../components/forms/IncidentesForm';
 import ConversacionesForm from '../components/forms/ConversacionesForm';
 import PQRForm from '../components/forms/PQRForm';
+import CollaboratorReportHistory from '../components/dashboard/CollaboratorReportHistory';
+import { ClipboardList, PlusCircle } from 'lucide-react';
 import '../assets/css/styles.css';
+
+const TAB_MIS_REPORTES = 'mis-reportes';
+const TAB_REPORTAR = 'reportar';
 
 const CollaboratorDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
-  // Vista simplificada: solo creación de reportes
+  const [activeTab, setActiveTab] = useState(TAB_MIS_REPORTES);
   const [selectedReportType, setSelectedReportType] = useState(null);
   const [reportData, setReportData] = useState({
     // Campos comunes para todos los tipos de reporte
@@ -249,26 +254,62 @@ const CollaboratorDashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className={`transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
-          {/* Welcome Card */}
-          <div className="bg-white bg-opacity-5 backdrop-blur-md rounded-3xl p-8 mb-8 shadow-2xl border border-white/10">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-white mb-2">¡Bienvenido{user?.nombre ? `, ${user.nombre}` : ''}!</h2>
-              <p className="text-white text-opacity-90 text-lg">
-                Reporta condiciones y actos inseguros para mantener nuestro ambiente de trabajo seguro
-              </p>
-              <div className="mt-4 flex justify-center gap-4 text-xs text-white/80">
-                <span className="bg-white/10 px-3 py-1 rounded-full border border-white/10">Rápido</span>
-                <span className="bg-white/10 px-3 py-1 rounded-full border border-white/10">Seguro</span>
-                <span className="bg-white/10 px-3 py-1 rounded-full border border-white/10">Eficiente</span>
-              </div>
-            </div>
+          {/* Tabs: Mis reportes (trazabilidad) | Reportar (nuevo reporte) */}
+          <div className="flex border-b border-white/20 mb-6">
+            <button
+              type="button"
+              onClick={() => setActiveTab(TAB_MIS_REPORTES)}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-t-lg transition-colors ${
+                activeTab === TAB_MIS_REPORTES
+                  ? 'bg-white/15 text-white border border-white/20 border-b-0'
+                  : 'text-white/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <ClipboardList className="w-4 h-4" />
+              Mis reportes
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab(TAB_REPORTAR)}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-t-lg transition-colors ${
+                activeTab === TAB_REPORTAR
+                  ? 'bg-white/15 text-white border border-white/20 border-b-0'
+                  : 'text-white/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <PlusCircle className="w-4 h-4" />
+              Reportar
+            </button>
           </div>
 
-          {/* Selección o formulario */}
-          {!selectedReportType && (
-            <ReportTypeSelector onSelect={handleReportTypeSelection} />
+          {activeTab === TAB_MIS_REPORTES && (
+            <CollaboratorReportHistory />
           )}
-          {selectedReportType && renderForm()}
+
+          {activeTab === TAB_REPORTAR && (
+            <>
+              {/* Welcome Card (solo en pestaña Reportar) */}
+              <div className="bg-white bg-opacity-5 backdrop-blur-md rounded-3xl p-8 mb-8 shadow-2xl border border-white/10">
+                <div className="text-center">
+                  <h2 className="text-3xl font-bold text-white mb-2">¡Bienvenido{user?.nombre ? `, ${user.nombre}` : ''}!</h2>
+                  <p className="text-white text-opacity-90 text-lg">
+                    Reporta condiciones y actos inseguros para mantener nuestro ambiente de trabajo seguro
+                  </p>
+                  <div className="mt-4 flex justify-center gap-4 text-xs text-white/80">
+                    <span className="bg-white/10 px-3 py-1 rounded-full border border-white/10">Rápido</span>
+                    <span className="bg-white/10 px-3 py-1 rounded-full border border-white/10">Seguro</span>
+                    <span className="bg-white/10 px-3 py-1 rounded-full border border-white/10">Eficiente</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Selección de tipo o formulario */}
+              {!selectedReportType && (
+                <ReportTypeSelector onSelect={handleReportTypeSelection} />
+              )}
+              {selectedReportType && renderForm()}
+            </>
+          )}
         </div>
       </main>
 
