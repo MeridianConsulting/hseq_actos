@@ -1570,9 +1570,15 @@ const Dashboard = () => {
     }));
   }, [reportsForProcessChart, stats?.reportesPorProceso, stats?.reportes_por_proceso]);
 
+  const processChartHeight = useMemo(() => {
+    const h = Math.max(260, reportsByProcess.length * 36);
+    return Math.min(h, 900);
+  }, [reportsByProcess.length]);
+
   const processLeftMargin = useMemo(() => {
-    const maxLen = Math.max(...(reportsByProcess.map(r => String(r.proceso || '').length)), 10);
-    return Math.min(340, 70 + maxLen * 7);
+    const lengths = reportsByProcess.map(r => String(r.proceso || '').length);
+    const maxLen = lengths.length === 0 ? 10 : Math.max(...lengths, 10);
+    return Math.min(260, 70 + maxLen * 6);
   }, [reportsByProcess]);
 
   // Pie: Efectividad de cierre (cerrados a tiempo ≤15 días vs no cerrados a tiempo >16 días)
@@ -1655,11 +1661,15 @@ const Dashboard = () => {
   return (
     <>
       <Header />
-      <div className="min-h-screen" style={{
-        background: 'linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 35%, var(--color-tertiary-dark) 100%)'
-      }}>
-        {/* Main Content Container */}
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-24 md:pt-28 transition-all duration-500" style={{ maxWidth: '1280px' }}>
+      <div
+        className="min-h-screen flex flex-col"
+        style={{
+          background: 'linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 35%, var(--color-tertiary-dark) 100%)',
+        }}
+      >
+        {/* Main content */}
+        <div className="flex-1">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-24 md:pt-28 transition-all duration-500" style={{ maxWidth: '1280px' }}>
 
           {/* Welcome Section */}
           {user && (
@@ -2179,127 +2189,122 @@ const Dashboard = () => {
             {error && <div className="text-center text-base text-red-500 col-span-full">{error}</div>}
             {!loading && !error && (
               <>
-                {/* Line Chart - Tendencias Mensuales */}
-                <div 
-                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-6"
+                {/* Cantidad de reportes por proceso - flex + scroll interno */}
+                <div
+                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-6 flex flex-col"
                   style={{
-                    height: '450px',
-                    position: 'relative',
+                    minHeight: '450px',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
                     overflow: 'hidden',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
                   }}
                 >
-                  {/* Decorative elements */}
-                  <div className="absolute bottom-0 right-0 w-28 h-28 opacity-5">
-                    <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-accent), var(--color-primary))' }}></div>
-                  </div>
-                  
-                  {/* Chart Header */}
-                  <div className="relative z-10 mb-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div 
-                          className="w-10 h-10 rounded-xl flex items-center justify-center"
-                          style={{ 
-                            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-                          }}
-                        >
-                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                            Cantidad de reportes por proceso
-                          </h3>
-                        </div>
+                  {/* Header */}
+                  <div className="mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center"
+                        style={{
+                          background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                        }}
+                      >
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 15l4-4 4 4M7 9h10" />
+                        </svg>
                       </div>
+                      <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                        Cantidad de reportes por proceso
+                      </h3>
                     </div>
                   </div>
-                  
-                  {/* Chart Container */}
-                  <div className="relative" style={{ height: '420px' }}>
-                    <ResponsiveBar
-                      data={reportsByProcess}
-                      keys={['total']}
-                      indexBy="proceso"
-                      layout="horizontal"
-                      margin={{ top: 30, right: 120, bottom: 50, left: processLeftMargin }}
-                      padding={0.68}
-                      innerPadding={6}
-                      valueScale={{ type: 'linear' }}
-                      indexScale={{ type: 'band', round: true }}
-                      colors={(bar) => {
-                        const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4', '#f97316', '#84cc16'];
-                        return colors[bar.index % colors.length];
-                      }}
-                      borderRadius={10}
-                      borderWidth={1}
-                      borderColor={{ from: 'color', modifiers: [['darker', 0.6]] }}
-                      enableGridX={true}
-                      enableGridY={false}
-                      theme={{
-                        background: 'transparent',
-                        text: { fill: '#f3f4f6', fontSize: 12 },
-                        axis: {
-                          ticks: { text: { fill: '#d1d5db', fontSize: 11 } },
-                          domain: { line: { stroke: 'rgba(255,255,255,0.15)' } },
-                          legend: { text: { fill: '#e5e7eb', fontWeight: 600, fontSize: 12 } }
-                        },
-                        grid: { line: { stroke: 'rgba(255,255,255,0.1)', strokeDasharray: '3 3' } },
-                        tooltip: {
-                          container: {
+
+                  {/* Body: scroll interno si crece */}
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-2">
+                    <div style={{ height: processChartHeight, minHeight: 260 }}>
+                      <ResponsiveBar
+                        data={reportsByProcess}
+                        keys={['total']}
+                        indexBy="proceso"
+                        layout="horizontal"
+                        margin={{ top: 10, right: 60, bottom: 50, left: processLeftMargin }}
+                        padding={0.55}
+                        innerPadding={6}
+                        valueScale={{ type: 'linear' }}
+                        indexScale={{ type: 'band', round: true }}
+                        colors={(bar) => {
+                          const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4', '#f97316', '#84cc16'];
+                          return colors[bar.index % colors.length];
+                        }}
+                        borderRadius={10}
+                        borderWidth={1}
+                        borderColor={{ from: 'color', modifiers: [['darker', 0.6]] }}
+                        enableGridX={true}
+                        enableGridY={false}
+                        theme={{
+                          background: 'transparent',
+                          text: { fill: '#f3f4f6', fontSize: 12 },
+                          axis: {
+                            ticks: { text: { fill: '#d1d5db', fontSize: 11 } },
+                            domain: { line: { stroke: 'rgba(255,255,255,0.15)' } },
+                            legend: { text: { fill: '#e5e7eb', fontWeight: 600, fontSize: 12 } },
+                          },
+                          grid: { line: { stroke: 'rgba(255,255,255,0.1)', strokeDasharray: '3 3' } },
+                          tooltip: {
+                            container: {
+                              background: '#1f2937',
+                              color: '#f9fafb',
+                              fontSize: 13,
+                              borderRadius: 8,
+                              padding: '10px 14px',
+                              boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
+                              border: '1px solid rgba(255,255,255,0.1)',
+                            },
+                          },
+                        }}
+                        axisTop={null}
+                        axisRight={null}
+                        axisBottom={{
+                          tickSize: 5,
+                          tickPadding: 8,
+                          tickRotation: 0,
+                          legend: 'Cantidad de reportes',
+                          legendPosition: 'middle',
+                          legendOffset: 40,
+                        }}
+                        axisLeft={{
+                          tickSize: 5,
+                          tickPadding: 8,
+                          tickRotation: 0,
+                          format: formatProcesoTick,
+                          legend: '',
+                          legendPosition: 'middle',
+                          legendOffset: -160,
+                        }}
+                        labelSkipHeight={14}
+                        labelSkipWidth={16}
+                        labelTextColor={{ from: 'color', modifiers: [['darker', 3]] }}
+                        label={d => (d.value >= 2 ? d.value : '')}
+                        tooltip={({ value, indexValue }) => (
+                          <div style={{
                             background: '#1f2937',
                             color: '#f9fafb',
-                            fontSize: 13,
-                            borderRadius: 8,
                             padding: '10px 14px',
-                            boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
-                            border: '1px solid rgba(255,255,255,0.1)'
-                          }
-                        }
-                      }}
-                      axisTop={null}
-                      axisRight={null}
-                      axisBottom={{
-                        tickSize: 5,
-                        tickPadding: 8,
-                        tickRotation: 0,
-                        legend: 'Cantidad de reportes',
-                        legendPosition: 'middle',
-                        legendOffset: 40
-                      }}
-                      axisLeft={{
-                        tickSize: 5,
-                        tickPadding: 8,
-                        tickRotation: 0,
-                        format: formatProcesoTick,
-                        legend: '',
-                        legendPosition: 'middle',
-                        legendOffset: -160
-                      }}
-                      labelSkipHeight={14}
-                      labelSkipWidth={16}
-                      labelTextColor={{ from: 'color', modifiers: [['darker', 3]] }}
-                      label={d => (d.value >= 2 ? d.value : '')}
-                      tooltip={({ id, value, indexValue }) => (
-                        <div style={{
-                          background: '#1f2937',
-                          color: '#f9fafb',
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          boxShadow: '0 6px 20px rgba(0,0,0,0.4)'
-                        }}>
-                          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{indexValue}</div>
-                          <div style={{ fontSize: '14px' }}>
-                            <strong>{value}</strong> reporte{value !== 1 ? 's' : ''}
+                            borderRadius: '8px',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            boxShadow: '0 6px 20px rgba(0,0,0,0.4)'
+                          }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{indexValue}</div>
+                            <div style={{ fontSize: '14px' }}>
+                              <strong>{value}</strong> reporte{value !== 1 ? 's' : ''}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    />
+                        )}
+                      />
+                    </div>
                   </div>
+
+                  {/* Leyenda */}
+                  <LegendRow items={[{ label: 'Total', color: '#3b82f6' }]} />
                 </div>
 
                 {/* Pie Chart - Efectividad de cierre */}
@@ -3211,8 +3216,9 @@ const Dashboard = () => {
             </button>
           )}
         </div>
-      
-      <Footer />
+
+        <Footer />
+      </div>
     </>
   );
 };
