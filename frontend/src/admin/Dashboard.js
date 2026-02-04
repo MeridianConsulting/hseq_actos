@@ -24,7 +24,7 @@ const getProcesoFromProyecto = (proyecto) => {
     return 'Administrativo';
   }
   const proyectoTrim = proyecto.trim();
-  if (proyectoTrim === 'PETROSERVICIOS') return 'Proyecto Petroservicios';
+  if (proyectoTrim === 'PETROSERVICIOS') return 'Petroservicios';
   const proyectosAdministrativos = [
     'ADMINISTRACION', 'COMPANY MAN - ADMINISTRACION', 'ADMINISTRACION - STAFF',
     'FRONTERA - ADMINISTRACION', 'Administrativo', 'PETROSERVICIOS - ADMINISTRACION', 'ADMINISTRACION COMPANY MAN'
@@ -33,9 +33,9 @@ const getProcesoFromProyecto = (proyecto) => {
   const proyectosCompanyMan = [
     '3047761-4', 'COMPANY MAN - APIAY', 'COMPANY MAN', 'COMPANY MAN - CPO09', 'COMPANY MAN - GGS', 'COMPANY MAN - CASTILLA'
   ];
-  if (proyectosCompanyMan.includes(proyectoTrim)) return 'Proyecto CW_Company Man';
-  if (proyectoTrim === 'FRONTERA') return 'Proyecto Frontera';
-  if (proyectoTrim === 'ZIRCON') return 'Proyecto ZIRCON';
+  if (proyectosCompanyMan.includes(proyectoTrim)) return 'CW_Company Man';
+  if (proyectoTrim === 'FRONTERA') return 'Frontera';
+  if (proyectoTrim === 'ZIRCON') return 'ZIRCON';
   return proyectoTrim;
 };
 
@@ -1578,7 +1578,7 @@ const Dashboard = () => {
   const processLeftMargin = useMemo(() => {
     const lengths = reportsByProcess.map(r => String(r.proceso || '').length);
     const maxLen = lengths.length === 0 ? 10 : Math.max(...lengths, 10);
-    return Math.min(260, 70 + maxLen * 6);
+    return Math.min(200, 70 + maxLen * 5);
   }, [reportsByProcess]);
 
   // Pie: Efectividad de cierre (cerrados a tiempo ≤15 días vs no cerrados a tiempo >16 días)
@@ -2218,17 +2218,17 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  {/* Body: scroll interno si crece */}
+                  {/* Body: alto fijo visible, scroll solo si hay muchos procesos */}
                   <div className="flex-1 min-h-0 overflow-y-auto pr-2">
-                    <div style={{ height: processChartHeight, minHeight: 260 }}>
+                    <div style={{ minHeight: 260, height: Math.min(processChartHeight, 320), width: '100%' }}>
                       <ResponsiveBar
                         data={reportsByProcess}
                         keys={['total']}
                         indexBy="proceso"
                         layout="horizontal"
                         margin={{ top: 10, right: 60, bottom: 50, left: processLeftMargin }}
-                        padding={0.55}
-                        innerPadding={6}
+                        padding={0.35}
+                        innerPadding={2}
                         valueScale={{ type: 'linear' }}
                         indexScale={{ type: 'band', round: true }}
                         colors={(bar) => {
