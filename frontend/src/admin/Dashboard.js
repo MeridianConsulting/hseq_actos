@@ -460,50 +460,49 @@ const Dashboard = () => {
     }
   }, [reportService, userService]);
 
-  // Cargar reportes para gráfica de procesos (cerrados y en revisión) - filtrados por período
+  // Cargar reportes para gráfica de procesos (cerrados y en revisión) - filtrados por período Y por Proceso
   const loadReportsForProcessChart = useCallback(async () => {
     try {
-      // Construir filtros según el período seleccionado
       const filters = { per_page: 10000, page: 1 };
-      
+
+      // Aplicar filtro de proceso (mismo mapping del dashboardStats)
+      Object.assign(filters, dashboardFilters);
+
       // Agregar filtro de fecha según el período seleccionado
       if (selectedPeriod !== 'all') {
         const now = new Date();
         let dateFrom, dateTo;
-        
+
         if (selectedPeriod === 'month') {
-          // Mes actual
           dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
           dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
         } else if (selectedPeriod === 'quarter') {
-          // Trimestre actual (Q1: 0-2, Q2: 3-5, Q3: 6-8, Q4: 9-11)
           const currentQuarter = Math.floor(now.getMonth() / 3);
           dateFrom = new Date(now.getFullYear(), currentQuarter * 3, 1);
           dateTo = new Date(now.getFullYear(), (currentQuarter + 1) * 3, 0, 23, 59, 59, 999);
         } else if (selectedPeriod === 'year') {
-          // Año actual
           dateFrom = new Date(now.getFullYear(), 0, 1);
           dateTo = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
         }
-        
+
         if (dateFrom && dateTo) {
           filters.date_from = dateFrom.toISOString().split('T')[0];
           filters.date_to = dateTo.toISOString().split('T')[0];
         }
       }
-      
-      // Obtener reportes con filtros aplicados
+
       const resp = await reportService.getAllReports(filters);
-      
+
       let allReports = [];
       let closedOnlyReports = [];
+
       if (resp?.success && Array.isArray(resp.reports)) {
-        // Filtrar por fecha adicional si el backend no lo hizo correctamente
         let filteredReports = resp.reports;
+
         if (selectedPeriod !== 'all') {
           const now = new Date();
           let dateFrom, dateTo;
-          
+
           if (selectedPeriod === 'month') {
             dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
             dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -515,7 +514,7 @@ const Dashboard = () => {
             dateFrom = new Date(now.getFullYear(), 0, 1);
             dateTo = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
           }
-          
+
           if (dateFrom && dateTo) {
             filteredReports = resp.reports.filter(r => {
               const fechaReporte = r.fecha_evento || r.creado_en;
@@ -525,17 +524,16 @@ const Dashboard = () => {
             });
           }
         }
-        
-        // Filtrar solo los cerrados (aprobados y rechazados) y en revisión
-        allReports = filteredReports.filter(r => 
+
+        allReports = filteredReports.filter(r =>
           r.estado === 'aprobado' || r.estado === 'rechazado' || r.estado === 'en_revision'
         );
-        // Solo cerrados para efectividad de cierre
-        closedOnlyReports = filteredReports.filter(r => 
+
+        closedOnlyReports = filteredReports.filter(r =>
           r.estado === 'aprobado' || r.estado === 'rechazado'
         );
       }
-      
+
       setReportsForProcessChart(allReports);
       setClosedReports(closedOnlyReports);
     } catch (e) {
@@ -543,7 +541,7 @@ const Dashboard = () => {
       setReportsForProcessChart([]);
       setClosedReports([]);
     }
-  }, [selectedPeriod]);
+  }, [selectedPeriod, dashboardFilters]);
 
   useEffect(() => {
     const userData = getUser();
@@ -561,10 +559,10 @@ const Dashboard = () => {
     loadReportsForProcessChart();
   }, [loadAssignmentData, loadProyectos, loadResponsables, loadReportsForProcessChart]);
 
-  // Recargar reportes cuando cambie el período
+  // Recargar reportes cuando cambie el período o el filtro de proceso
   useEffect(() => {
     loadReportsForProcessChart();
-  }, [selectedPeriod, loadReportsForProcessChart]);
+  }, [selectedPeriod, dashboardProceso, loadReportsForProcessChart]);
 
   const handleAssignToSupport = useCallback(async (reportId, supportUserId) => {
     if (!supportUserId) return;
@@ -1552,10 +1550,12 @@ const Dashboard = () => {
 
   // Pie: Efectividad de cierre (cerrados a tiempo ≤15 días vs no cerrados a tiempo >16 días)
   const closureEffectiveness = useMemo(() => {
+    const mk = (label, value, color) => ({ id: label, label, value, color });
+
     if (!Array.isArray(closedReports) || closedReports.length === 0) {
       return [
-        { id: 'cerrados_a_tiempo', label: 'Cerrados a tiempo (≤15 días)', value: 0, color: '#22c55e' },
-        { id: 'no_cerrados_a_tiempo', label: 'No cerrados a tiempo (>16 días)', value: 0, color: '#ef4444' }
+        mk('Cerrados a tiempo (≤15 días)', 0, '#22c55e'),
+        mk('No cerrados a tiempo (>16 días)', 0, '#ef4444'),
       ];
     }
 
@@ -1563,39 +1563,21 @@ const Dashboard = () => {
     let noCerradosATiempo = 0;
 
     closedReports.forEach(report => {
-      // Obtener fecha de creación y fecha de cierre
       const fechaCreacion = report.creado_en ? new Date(report.creado_en) : null;
-      // La fecha de cierre puede ser actualizado_en cuando cambió a aprobado/rechazado, o fecha_cierre
-      const fechaCierre = report.fecha_cierre 
-        ? new Date(report.fecha_cierre) 
+      const fechaCierre = report.fecha_cierre
+        ? new Date(report.fecha_cierre)
         : (report.actualizado_en ? new Date(report.actualizado_en) : null);
 
       if (fechaCreacion && fechaCierre && !isNaN(fechaCreacion.getTime()) && !isNaN(fechaCierre.getTime())) {
-        // Calcular diferencia en días
-        const diffTime = fechaCierre.getTime() - fechaCreacion.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays <= 15) {
-          cerradosATiempo++;
-        } else {
-          noCerradosATiempo++;
-        }
+        const diffDays = Math.ceil((fechaCierre - fechaCreacion) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 15) cerradosATiempo++;
+        else noCerradosATiempo++;
       }
     });
 
     return [
-      { 
-        id: 'cerrados_a_tiempo', 
-        label: 'Cerrados a tiempo (≤15 días)', 
-        value: cerradosATiempo, 
-        color: '#22c55e' 
-      },
-      { 
-        id: 'no_cerrados_a_tiempo', 
-        label: 'No cerrados a tiempo (>16 días)', 
-        value: noCerradosATiempo, 
-        color: '#ef4444' 
-      }
+      mk('Cerrados a tiempo (≤15 días)', cerradosATiempo, '#22c55e'),
+      mk('No cerrados a tiempo (>16 días)', noCerradosATiempo, '#ef4444'),
     ];
   }, [closedReports]);
 
