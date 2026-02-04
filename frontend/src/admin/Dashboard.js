@@ -39,6 +39,28 @@ const getProcesoFromProyecto = (proyecto) => {
   return proyectoTrim;
 };
 
+// Leyenda HTML reutilizable (fuera del SVG para evitar solapamientos)
+const LegendRow = ({ items }) => (
+  <div className="flex flex-wrap gap-x-5 gap-y-2 mt-3 text-xs text-gray-200">
+    {items.map(it => (
+      <div key={it.label} className="flex items-center gap-2">
+        <span className="w-3 h-3 rounded-full" style={{ background: it.color }} />
+        <span className="whitespace-nowrap">{it.label}</span>
+      </div>
+    ))}
+  </div>
+);
+
+const formatPeriodTick = (v) => {
+  const s = String(v);
+  return s.length > 10 ? s.slice(0, 10) + '…' : s;
+};
+
+const formatProcesoTick = (v) => {
+  const s = String(v);
+  return s.length > 22 ? s.slice(0, 22) + '…' : s;
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedPeriod, setSelectedPeriod] = useState('year');
@@ -1548,6 +1570,11 @@ const Dashboard = () => {
     }));
   }, [reportsForProcessChart, stats?.reportesPorProceso, stats?.reportes_por_proceso]);
 
+  const processLeftMargin = useMemo(() => {
+    const maxLen = Math.max(...(reportsByProcess.map(r => String(r.proceso || '').length)), 10);
+    return Math.min(340, 70 + maxLen * 7);
+  }, [reportsByProcess]);
+
   // Pie: Efectividad de cierre (cerrados a tiempo ≤15 días vs no cerrados a tiempo >16 días)
   const closureEffectiveness = useMemo(() => {
     const mk = (label, value, color) => ({ id: label, label, value, color });
@@ -1945,7 +1972,7 @@ const Dashboard = () => {
                       data={incidentsByMonth}
                       keys={['incidentes', 'hallazgos', 'conversaciones', 'pqr']}
                       indexBy="period"
-                      margin={{ top: 30, right: 40, bottom: 110, left: 60 }}
+                      margin={{ top: 30, right: 40, bottom: 95, left: 60 }}
                       padding={0.3}
                       groupMode="grouped"
                       valueScale={{ type: 'linear' }}
@@ -1987,10 +2014,11 @@ const Dashboard = () => {
                       axisBottom={{
                         tickSize: 5,
                         tickPadding: 8,
-                        tickRotation: -25,
+                        tickRotation: -35,
+                        format: formatPeriodTick,
                         legend: 'Periodo',
                         legendPosition: 'middle',
-                        legendOffset: 55
+                        legendOffset: 60
                       }}
                       axisLeft={{
                         tickSize: 5,
@@ -2001,34 +2029,18 @@ const Dashboard = () => {
                         legendOffset: -50
                       }}
                       labelSkipHeight={14}
-                      labelSkipWidth={10}
+                      labelSkipWidth={16}
                       labelTextColor="#ffffff"
-                      label={d => d.value > 0 ? d.value : ''}
-                      legends={[
-                        {
-                          dataFrom: 'keys',
-                          anchor: 'bottom',
-                          direction: 'row',
-                          justify: false,
-                          translateX: 0,
-                          translateY: 70,
-                          itemWidth: 80,
-                          itemHeight: 18,
-                          itemsSpacing: 16,
-                          itemDirection: 'left-to-right',
-                          itemTextColor: '#f3f4f6',
-                          symbolSize: 12,
-                          symbolShape: 'circle',
-                          effects: [
-                            {
-                              on: 'hover',
-                              style: { itemTextColor: '#ffffff' }
-                            }
-                          ]
-                        }
-                      ]}
+                      label={d => (d.value >= 2 ? d.value : '')}
+                      legends={[]}
                     />
                   </div>
+                  <LegendRow items={[
+                    { label: 'Incidentes', color: SERIES_COLOR.incidentes },
+                    { label: 'Hallazgos', color: SERIES_COLOR.hallazgos },
+                    { label: 'Conversaciones', color: SERIES_COLOR.conversaciones },
+                    { label: 'PQR', color: SERIES_COLOR.pqr },
+                  ]} />
                 </div>
 
                 {/* Resumen de gestión - Barras por estado y criticidad */}
@@ -2082,7 +2094,7 @@ const Dashboard = () => {
                       data={reportesResumenChart}
                       keys={['Pendientes', 'En Revisión', 'Aprobados', 'Rechazados']}
                       indexBy="estado"
-                      margin={{ top: 30, right: 150, bottom: 50, left: 60 }}
+                      margin={{ top: 30, right: 30, bottom: 50, left: 60 }}
                       padding={0.15}
                       groupMode="grouped"
                       valueScale={{ type: 'linear' }}
@@ -2110,32 +2122,11 @@ const Dashboard = () => {
                       labelTextColor="#ffffff"
                       labelSkipHeight={16}
                       labelSkipWidth={12}
-                      label={d => d.value > 0 ? d.value : ''}
+                      label={d => (d.value >= 2 ? d.value : '')}
                       animate={true}
                       motionConfig="gentle"
                       enableGridY={true}
-                      legends={[
-                        {
-                          dataFrom: 'keys',
-                          anchor: 'bottom-right',
-                          direction: 'column',
-                          translateX: 140,
-                          itemWidth: 120,
-                          itemHeight: 22,
-                          itemTextColor: '#e5e7eb',
-                          symbolSize: 14,
-                          symbolShape: 'circle',
-                          effects: [
-                            {
-                              on: 'hover',
-                              style: {
-                                itemTextColor: '#ffffff',
-                                itemOpacity: 1
-                              }
-                            }
-                          ]
-                        }
-                      ]}
+                      legends={[]}
                       tooltip={({ id, value, color }) => (
                         <div
                           style={{
@@ -2163,6 +2154,12 @@ const Dashboard = () => {
                       )}
                     />
                   </div>
+                  <LegendRow items={[
+                    { label: 'Pendientes', color: '#fbbf24' },
+                    { label: 'En Revisión', color: '#3b82f6' },
+                    { label: 'Aprobados', color: '#22c55e' },
+                    { label: 'Rechazados', color: '#ef4444' },
+                  ]} />
                 </div>
               </>
             )}
@@ -2222,7 +2219,7 @@ const Dashboard = () => {
                       keys={['total']}
                       indexBy="proceso"
                       layout="horizontal"
-                      margin={{ top: 30, right: 120, bottom: 50, left: 180 }}
+                      margin={{ top: 30, right: 120, bottom: 50, left: processLeftMargin }}
                       padding={0.68}
                       innerPadding={6}
                       valueScale={{ type: 'linear' }}
@@ -2271,6 +2268,7 @@ const Dashboard = () => {
                         tickSize: 5,
                         tickPadding: 8,
                         tickRotation: 0,
+                        format: formatProcesoTick,
                         legend: '',
                         legendPosition: 'middle',
                         legendOffset: -160
@@ -2278,7 +2276,7 @@ const Dashboard = () => {
                       labelSkipHeight={14}
                       labelSkipWidth={16}
                       labelTextColor={{ from: 'color', modifiers: [['darker', 3]] }}
-                      label={d => d.value > 0 ? d.value : ''}
+                      label={d => (d.value >= 2 ? d.value : '')}
                       tooltip={({ id, value, indexValue }) => (
                         <div style={{
                           background: '#1f2937',
@@ -2298,13 +2296,13 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Pie Chart - Incidentes por Tipo */}
+                {/* Pie Chart - Efectividad de cierre */}
                 <div 
                   className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-6"
                   style={{
                     height: '450px',
                     position: 'relative',
-                    overflow: 'hidden',
+                    overflow: 'visible',
                     boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
                   }}
                 >
@@ -2358,13 +2356,12 @@ const Dashboard = () => {
                         background: 'transparent',
                         text: { fill: '#fcf7ff' }
                       }}
-                      arcLinkLabelsSkipAngle={10}
+                      arcLinkLabelsSkipAngle={12}
                       arcLinkLabelsTextColor="#fcf7ff"
                       arcLinkLabelsThickness={2}
                       arcLinkLabelsColor={{ from: 'color' }}
-                      arcLabelsSkipAngle={10}
-                      arcLabelsTextColor="#ffffff"
-                      arcLabelsTextOffset={5}
+                      arcLabelsSkipAngle={999}
+                      enableArcLabels={false}
                       tooltip={({ id, value, label }) => {
                         const total = closureEffectiveness.reduce((acc, d) => acc + (Number(d.value) || 0), 0);
                         return (
@@ -2388,20 +2385,13 @@ const Dashboard = () => {
                           </div>
                         );
                       }}
-                      legends={[
-                        {
-                          anchor: 'bottom',
-                          direction: 'row',
-                          translateY: 56,
-                          itemWidth: 200,
-                          itemHeight: 18,
-                          itemTextColor: '#fcf7ff',
-                          symbolSize: 18,
-                          symbolShape: 'circle'
-                        }
-                      ]}
+                      legends={[]}
                     />
                   </div>
+                  <LegendRow items={[
+                    { label: 'Cerrados a tiempo (≤15 días)', color: '#22c55e' },
+                    { label: 'No cerrados a tiempo (>16 días)', color: '#ef4444' },
+                  ]} />
                 </div>
               </>
             )}
