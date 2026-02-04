@@ -1900,7 +1900,7 @@ const Dashboard = () => {
                         | Pendientes: <span className="font-bold text-yellow-400">{stats?.kpis?.pendientes || 0}</span>
                       </span>
                       <span className="ml-3 text-xs text-gray-400">
-                        | Cerrados: <span className="font-bold text-green-400">{stats?.kpis?.aprobados + stats?.kpis?.rechazados || 0}</span>
+                        | Cerrados: <span className="font-bold text-green-400">{totalCerrados}</span>
                       </span>
                     </>
                   ) : null}
