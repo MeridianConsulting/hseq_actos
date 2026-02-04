@@ -1608,6 +1608,12 @@ const Dashboard = () => {
     ];
   }, [closedReports]);
 
+  const closureEffectivenessPercent = useMemo(() => {
+    const total = closureEffectiveness.reduce((acc, d) => acc + (Number(d.value) || 0), 0);
+    const cerradosATiempo = Number(closureEffectiveness[0]?.value) || 0;
+    return total > 0 ? Math.round((cerradosATiempo / total) * 100) : 0;
+  }, [closureEffectiveness]);
+
   // Pie: Distribución por tipo filtrada por periodo
   const incidentsByType = useMemo(() => {
     const colors = {
@@ -2342,7 +2348,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                   
-                  {/* Chart Container */}
+                  {/* Chart Container: donut con porcentaje de efectividad en el centro */}
                   <div className="relative" style={{ height: '320px' }}>
                     <ResponsivePie
                       data={closureEffectiveness}
@@ -2387,6 +2393,33 @@ const Dashboard = () => {
                       }}
                       legends={[]}
                     />
+                    {/* Porcentaje de efectividad en el centro del donut */}
+                    <div
+                      className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+                      style={{ margin: '40px 80px 80px 80px' }}
+                    >
+                      <div
+                        className="flex flex-col items-center justify-center rounded-full border border-gray-600/50 shadow-inner"
+                        style={{
+                          width: '100px',
+                          height: '100px',
+                          background: 'linear-gradient(180deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.98) 100%)',
+                          boxShadow: '0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 2px rgba(0,0,0,0.2)'
+                        }}
+                      >
+                        <span
+                          className="text-3xl font-bold tabular-nums tracking-tight leading-none"
+                          style={{
+                            color: closureEffectivenessPercent >= 70 ? '#22c55e' : closureEffectivenessPercent >= 50 ? '#eab308' : '#f3f4f6'
+                          }}
+                        >
+                          {closureEffectivenessPercent}%
+                        </span>
+                        <span className="text-[10px] uppercase tracking-wider mt-1.5 font-semibold" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>
+                          A tiempo
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   <LegendRow items={[
                     { label: 'Cerrados a tiempo (≤15 días)', color: '#22c55e' },
