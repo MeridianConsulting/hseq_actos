@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReportService from '../services/reportService';
 import ReportDetailsModal from './ReportDetailsModal';
 import ApprovalModal from './ApprovalModal';
@@ -6,6 +6,36 @@ import { buildApi, buildUploadsUrl } from '../config/api';
 import { gradosCriticidad, tiposAfectacion, reportTypes } from '../config/formOptions';
 import { reportService, userService } from '../services/api';
 import { Clock, ClipboardCheck, CircleCheck, CircleX, CheckCircle, ImageIcon, User } from 'lucide-react';
+
+// Skeleton de carga para la lista (evita layout shift y mejora UX)
+const ReportsListSkeleton = ({ count = 5, useDarkTheme }) => (
+  <div className="space-y-4 w-full max-w-4xl mx-auto" aria-hidden="true">
+    {Array.from({ length: count }).map((_, i) => (
+      <div
+        key={i}
+        className={`rounded-xl p-4 sm:p-6 border animate-pulse ${
+          useDarkTheme ? 'bg-gray-800/90 border-gray-700' : 'bg-white/20 border-white/30'
+        }`}
+      >
+        <div className="flex flex-wrap gap-2 mb-4">
+          <div className="h-6 w-24 rounded-full bg-gray-600/50" />
+          <div className="h-6 w-16 rounded-full bg-gray-600/50" />
+          <div className="h-6 w-32 rounded-full bg-gray-600/50" />
+        </div>
+        <div className="h-4 w-full rounded bg-gray-600/40 mb-2" />
+        <div className="h-4 w-3/4 rounded bg-gray-600/30 mb-4" />
+        <div className="flex justify-between">
+          <div className="h-4 w-32 rounded bg-gray-600/30" />
+          <div className="h-4 w-24 rounded bg-gray-600/30" />
+        </div>
+        <div className="flex gap-2 mt-4 justify-end">
+          <div className="h-9 w-24 rounded-lg bg-gray-600/40" />
+          <div className="h-9 w-28 rounded-lg bg-gray-600/40" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
 // Función para formatear la fecha y hora del reporte correctamente
 const formatReportDateTime = (fechaEvento, creadoEn) => {
@@ -315,90 +345,60 @@ const ReportsTable = ({
     }
   };
 
+  // Una sola fuente de verdad para carga: evita doble fetch al montar y re-renders innecesarios
   const loadReports = useCallback(async () => {
     setIsLoading(true);
+    setMessage('');
     try {
-      // Cargar reportes con filtros aplicados pero sin filtrar por estado
-      // Los filtros externos (como fecha del período) tienen prioridad sobre los filtros locales
-      // pero los filtros locales pueden sobrescribir otros campos si el usuario los modifica
-      const apiFilters = { 
-        ...filters,
-        ...externalFilters  // Los filtros externos (fecha del período) sobrescriben los locales
-      };
-      
-      // Mapear 'proceso' a 'proyecto' para el backend (mapeo de Gestiones a Proyectos)
+      const apiFilters = { ...filters, ...externalFilters };
       if (apiFilters.proceso) {
-        if (apiFilters.proceso === 'petroservicios') {
-          // Gestión Proyecto - Petroservicios
-          apiFilters.proyecto = 'PETROSERVICIOS';
-        } else if (apiFilters.proceso === 'administrativa') {
-          // Gestión Administrativa
-          apiFilters.proyecto = 'ADMINISTRACION,COMPANY MAN - ADMINISTRACION,ADMINISTRACION - STAFF,FRONTERA - ADMINISTRACION,Administrativo,PETROSERVICIOS - ADMINISTRACION,ADMINISTRACION COMPANY MAN';
-        } else if (apiFilters.proceso === 'company-man') {
-          // Gestión Proyecto - Company man
-          apiFilters.proyecto = '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN - GGS,COMPANY MAN - CASTILLA';
-        } else if (apiFilters.proceso === 'frontera') {
-          // Gestión Proyecto Frontera
-          apiFilters.proyecto = 'FRONTERA';
-        } else if (apiFilters.proceso === 'zircon') {
-          // Gestión Proyecto ZIRCON
-          apiFilters.proyecto = 'ZIRCON';
-        }
+        if (apiFilters.proceso === 'petroservicios') apiFilters.proyecto = 'PETROSERVICIOS';
+        else if (apiFilters.proceso === 'administrativa') apiFilters.proyecto = 'ADMINISTRACION,COMPANY MAN - ADMINISTRACION,ADMINISTRACION - STAFF,FRONTERA - ADMINISTRACION,Administrativo,PETROSERVICIOS - ADMINISTRACION,ADMINISTRACION COMPANY MAN';
+        else if (apiFilters.proceso === 'company-man') apiFilters.proyecto = '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN - GGS,COMPANY MAN - CASTILLA';
+        else if (apiFilters.proceso === 'frontera') apiFilters.proyecto = 'FRONTERA';
+        else if (apiFilters.proceso === 'zircon') apiFilters.proyecto = 'ZIRCON';
         delete apiFilters.proceso;
       }
-
-      // Estado SIEMPRE al final. Tab → estados reales (nunca "cerrado")
       delete apiFilters.estado;
       const estados = showOnlyPendientes ? ['pendiente'] : (TAB_TO_ESTADOS[activeTab] || []);
       const isClosedTab = activeTab === 'closed';
 
-      let list = [];
-      let meta = null;
+      // Paginación en backend: 10 por página. Tab "closed" usa estado=aprobado,rechazado (backend soporta IN)
+      const perPage = Math.min(Math.max(1, parseInt(apiFilters.per_page, 10) || 10), 100);
+      const page = Math.max(1, parseInt(apiFilters.page, 10) || 1);
+      apiFilters.per_page = perPage;
+      apiFilters.page = page;
 
       if (isClosedTab) {
-        // Cerrados = dos peticiones (aprobado + rechazado) y combinar; evita fallos con estado=aprobado,rechazado
-        const [resA, resR] = await Promise.all([
-          ReportService.getAllReports({ ...apiFilters, estado: 'aprobado', per_page: 500, page: 1 }),
-          ReportService.getAllReports({ ...apiFilters, estado: 'rechazado', per_page: 500, page: 1 })
-        ]);
-        const aprobados = resA?.reports ?? resA?.data ?? [];
-        const rechazados = resR?.reports ?? resR?.data ?? [];
-        list = [...aprobados, ...rechazados].sort((a, b) => {
-          const dA = new Date(a.creado_en || a.fecha_evento || 0);
-          const dB = new Date(b.creado_en || b.fecha_evento || 0);
-          return dB - dA;
-        });
-        meta = { total: list.length };
-      } else {
-        if (estados.length) apiFilters.estado = estados.join(',');
-        const result = await ReportService.getAllReports(apiFilters);
-        list = result?.reports ?? result?.data ?? [];
-        meta = result?.meta ?? null;
-        const filtered = estados.length ? list.filter(r => estados.includes(r.estado)) : list;
-        list = filtered;
+        apiFilters.estado = 'aprobado,rechazado';
+      } else if (estados.length) {
+        apiFilters.estado = estados.join(',');
       }
 
-      setReports(list);
+      const result = await ReportService.getAllReports(apiFilters);
+      const list = result?.reports ?? result?.data ?? [];
+      const meta = result?.meta ?? null;
+      setReports(Array.isArray(list) ? list : []);
       setMeta(meta);
     } catch (error) {
-      setMessage('Error al cargar reportes: ' + error.message);
+      setMessage('Error al cargar reportes: ' + (error?.message || 'Error de conexión'));
     } finally {
       setIsLoading(false);
     }
   }, [filters, activeTab, externalFilters, showOnlyPendientes]);
 
+  // Carga inicial: solo stats, proyectos y responsables (una vez). Reportes se cargan en el efecto siguiente
   useEffect(() => {
-    // Cargar estadísticas, proyectos, responsables y reportes al inicializar
     loadStats();
     loadProyectos();
     loadResponsables();
-    loadReports();
-  }, [loadReports]);
+  }, []);
 
-  // Recargar cuando cambie pestaña o paginación básica
+  // Un solo efecto para cargar reportes: evita doble llamada al montar. No incluir loadReports en deps para no recargar en cada cambio de filtro (solo página/tab/sort).
   useEffect(() => {
     loadReports();
-  }, [activeTab, filters.page, filters.per_page, filters.sort_by, filters.sort_dir, loadReports]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, filters.page, filters.per_page, filters.sort_by, filters.sort_dir, externalFilters, showOnlyPendientes]);
 
   const handleStatusChange = async (reportId, newStatus) => {
     try {
@@ -641,63 +641,39 @@ const ReportsTable = ({
     }
   };
 
-  // Filtrar reportes por la pestaña activa y filtros adicionales
-  const filteredReports = reports.filter(report => {
-    // Filtro por pestaña activa
-    let matchesTab = false;
-    switch (activeTab) {
-      case 'pending':
-        matchesTab = report.estado === 'pendiente';
-        break;
-      case 'in_review':
-        matchesTab = report.estado === 'en_revision';
-        break;
-      case 'closed':
-        matchesTab = report.estado === 'aprobado' || report.estado === 'rechazado';
-        break;
-      default:
-        matchesTab = true;
-    }
-    
-    if (!matchesTab) return false;
-    
-    // Filtro por responsable (usuario que creó el reporte)
-    if (filters.revisado_por) {
-      const responsableId = parseInt(filters.revisado_por);
-      const reportUserId = parseInt(report.id_usuario);
-      if (reportUserId !== responsableId) return false;
-    }
-    
-    // Filtro por efectividad de cierre
-    if (filters.efectividad_cierre) {
-      const timeStatus = getTimeStatus(report.fecha_evento, report.creado_en, report.estado, report.fecha_revision);
-      const daysElapsed = timeStatus.days;
-      
-      switch (filters.efectividad_cierre) {
-        case 'a_tiempo':
-          if (daysElapsed > 15) return false;
-          break;
-        case 'vencido':
-          if (daysElapsed <= 15) return false;
-          break;
-        case 'cerrado_rapido':
-          if (daysElapsed > 7) return false;
-          break;
-        case 'cerrado_normal':
-          if (daysElapsed <= 7 || daysElapsed > 15) return false;
-          break;
+  // Memo: evita recalcular en cada render; la API ya filtra por tab, esto solo aplica filtros extra (revisado_por, efectividad)
+  const filteredReports = useMemo(() => {
+    return reports.filter(report => {
+      let matchesTab = false;
+      switch (activeTab) {
+        case 'pending': matchesTab = report.estado === 'pendiente'; break;
+        case 'in_review': matchesTab = report.estado === 'en_revision'; break;
+        case 'closed': matchesTab = report.estado === 'aprobado' || report.estado === 'rechazado'; break;
+        default: matchesTab = true;
       }
-    }
-    
-    return true;
-  });
+      if (!matchesTab) return false;
+      if (filters.revisado_por) {
+        if (parseInt(report.id_usuario, 10) !== parseInt(filters.revisado_por, 10)) return false;
+      }
+      if (filters.efectividad_cierre) {
+        const timeStatus = getTimeStatus(report.fecha_evento, report.creado_en, report.estado, report.fecha_revision);
+        const days = timeStatus.days;
+        switch (filters.efectividad_cierre) {
+          case 'a_tiempo': if (days > 15) return false; break;
+          case 'vencido': if (days <= 15) return false; break;
+          case 'cerrado_rapido': if (days > 7) return false; break;
+          case 'cerrado_normal': if (days <= 7 || days > 15) return false; break;
+        }
+      }
+      return true;
+    });
+  }, [reports, activeTab, filters.revisado_por, filters.efectividad_cierre]);
 
-  // Calcular estadísticas basadas en todos los reportes
-  const stats = {
+  const stats = useMemo(() => ({
     pending: allReports.filter(r => r.estado === 'pendiente').length,
     inReview: allReports.filter(r => r.estado === 'en_revision').length,
     closed: allReports.filter(r => r.estado === 'aprobado' || r.estado === 'rechazado').length
-  };
+  }), [allReports]);
 
   return (
     <div className={containerClassName}>
@@ -981,23 +957,33 @@ const ReportsTable = ({
         }`}>
           {title} {activeTab === 'pending' ? 'Pendientes' : activeTab === 'in_review' ? 'En Revisión' : 'Cerrados'}
         </h3>
-        
-        {isLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
-            <p className="text-white text-opacity-70 mt-4">Cargando reportes...</p>
-          </div>
-        ) : filteredReports.length === 0 ? (
-          <div className="text-center py-12">
-            <svg className="w-16 h-16 mx-auto text-white text-opacity-50 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            <p className="text-white text-opacity-70 text-lg">
-              No hay reportes en esta categoría
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
+
+        {/* Área de contenido: min-height evita layout shift; loading/empty centrados en este bloque */}
+        <div className="min-h-[360px] sm:min-h-[400px] flex flex-col w-full">
+          {isLoading ? (
+            <div className="flex-1 flex items-center justify-center w-full py-12" aria-live="polite" aria-busy="true">
+              <div className="flex flex-col items-center justify-center gap-5 text-center max-w-sm">
+                <div className="relative">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                </div>
+                <p className={`text-base sm:text-lg ${useDarkTheme ? 'text-gray-300' : 'text-white/90'}`}>
+                  Cargando reportes…
+                </p>
+              </div>
+            </div>
+          ) : filteredReports.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center w-full py-12">
+              <div className="text-center">
+                <svg className="w-16 h-16 mx-auto text-white text-opacity-50 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p className="text-white text-opacity-70 text-lg">
+                  No hay reportes en esta categoría
+                </p>
+              </div>
+            </div>
+          ) : (
+          <div className="space-y-4 w-full">
             {filteredReports.map(report => {
               const timeStatus = getTimeStatus(report.fecha_evento, report.creado_en, report.estado, report.fecha_revision);
               return (
@@ -1274,7 +1260,8 @@ const ReportsTable = ({
               );
             })}
           </div>
-        )}
+          )}
+        </div>
         
         {/* Paginación */}
         {meta && meta.total_pages > 1 && (

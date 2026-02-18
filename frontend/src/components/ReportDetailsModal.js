@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import ReportService from '../services/reportService';
 import { evidenceService } from '../services/api';
 import { buildApi, buildUploadsUrl } from '../config/api';
@@ -516,6 +517,14 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       loadReportDetails();
     }
   }, [isOpen, reportId]);
+
+  // Cerrar con tecla ESC
+  useEffect(() => {
+    if (!isOpen) return;
+    const onEscape = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [isOpen, onClose]);
 
   // Cargar blobs de evidencias y crear URLs temporales con autorización
   const prefetchEvidenceBlobs = async (evidencias) => {
@@ -1744,9 +1753,19 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2 sm:p-4 backdrop-blur-sm">
-      <div className="report-details-modal bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl sm:rounded-3xl max-w-5xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
+  // Renderizar en document.body para que quede centrado en pantalla y no dentro del contenedor de la lista (evita overflow/position del padre)
+  const modalContent = (
+    <div
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-2 sm:p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="report-details-title"
+      onClick={onClose}
+    >
+      <div
+        className="report-details-modal bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl sm:rounded-3xl w-[95%] sm:w-[75%] md:w-[70%] max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-gray-900 to-gray-800 rounded-t-2xl sm:rounded-t-3xl p-4 sm:p-6 border-b border-gray-700">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 sm:gap-0">
@@ -1757,7 +1776,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                 </div>
               )}
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-white">
+                <h2 id="report-details-title" className="text-xl sm:text-2xl font-bold text-white">
                   Detalles del Reporte
                 </h2>
                 {report && (
@@ -2037,6 +2056,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       </div>
     </div>
   );
+  return createPortal(modalContent, document.body);
 };
 
 export default ReportDetailsModal; 
