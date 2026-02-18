@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: localhost:3306
--- Tiempo de generación: 04-02-2026 a las 13:05:52
+-- Tiempo de generación: 18-02-2026 a las 09:04:54
 -- Versión del servidor: 10.6.24-MariaDB-cll-lve
 -- Versión de PHP: 8.3.29
 
@@ -35,6 +35,18 @@ CREATE TABLE `evidencias` (
   `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
   `cdn_url` varchar(500) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `evidencias`
+--
+
+INSERT INTO `evidencias` (`id`, `id_reporte`, `tipo_archivo`, `url_archivo`, `creado_en`, `cdn_url`) VALUES
+(74, 158, 'application/pdf', 'evidencia_158_1770393581_69860fed83e32.pdf', '2026-02-06 15:59:41', NULL),
+(75, 163, 'application/pdf', 'evidencia_163_1770395083_698615cb5268b.pdf', '2026-02-06 16:24:43', NULL),
+(76, 170, 'image/jpeg', 'evidencia_170_1770404019_698638b364b7c.jpg', '2026-02-06 18:53:39', NULL),
+(77, 177, 'image/jpeg', 'evidencia_177_1770845194_698cf40a1e793.jpg', '2026-02-11 21:26:34', NULL),
+(78, 178, 'image/jpeg', 'evidencia_178_1770998645_698f4b75d4222.jpg', '2026-02-13 16:04:05', NULL),
+(79, 179, 'image/jpeg', 'evidencia_179_1770998818_698f4c22624dc.jpg', '2026-02-13 16:06:58', NULL);
 
 -- --------------------------------------------------------
 
@@ -144,7 +156,82 @@ INSERT INTO `notificaciones` (`id`, `id_reporte`, `destinatario`, `medio`, `envi
 (374, 144, 'yorguinp@hotmail.com', 'correo', '2026-02-03 15:58:57'),
 (375, 142, 'yorguinp@hotmail.com', 'correo', '2026-02-03 15:59:13'),
 (376, 141, 'yorguinp@hotmail.com', 'correo', '2026-02-03 15:59:32'),
-(377, 140, 'yorguinp@hotmail.com', 'correo', '2026-02-03 15:59:48');
+(377, 140, 'yorguinp@hotmail.com', 'correo', '2026-02-03 15:59:48'),
+(378, 157, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 15:59:15'),
+(379, 158, 'soportehseq@meridian.com.co', 'correo', '2026-02-06 15:59:41'),
+(380, 159, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 16:02:33'),
+(381, 160, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 16:17:02'),
+(382, 161, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 16:19:40'),
+(383, 162, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 16:21:48'),
+(384, 163, 'soportehseq@meridian.com.co', 'correo', '2026-02-06 16:24:43'),
+(385, 164, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 16:25:23'),
+(386, 164, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 16:27:20'),
+(387, 163, 'soportehseq@meridian.com.co', 'correo', '2026-02-06 16:27:28'),
+(388, 158, 'soportehseq@meridian.com.co', 'correo', '2026-02-06 16:27:43'),
+(389, 164, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 16:28:12'),
+(390, 163, 'soportehseq@meridian.com.co', 'correo', '2026-02-06 16:28:54'),
+(391, 165, 'esteban.garcia@meridianecp.com', 'correo', '2026-02-06 16:29:50'),
+(392, 163, 'soportehseq@meridian.com.co', 'correo', '2026-02-06 16:30:16'),
+(393, 166, 'esteban.garcia@meridianecp.com', 'correo', '2026-02-06 16:32:25'),
+(394, 164, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 16:33:45'),
+(395, 167, 'yorguinp@hotmail.com', 'correo', '2026-02-06 17:01:35'),
+(396, 168, 'yorguinp@hotmail.com', 'correo', '2026-02-06 17:03:39'),
+(397, 169, 'yorguinp@hotmail.com', 'correo', '2026-02-06 17:04:28'),
+(398, 164, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 17:06:36'),
+(399, 169, 'yorguinp@hotmail.com', 'correo', '2026-02-06 17:07:15'),
+(400, 168, 'yorguinp@hotmail.com', 'correo', '2026-02-06 17:07:20'),
+(401, 167, 'yorguinp@hotmail.com', 'correo', '2026-02-06 17:07:24'),
+(402, 166, 'esteban.garcia@meridianecp.com', 'correo', '2026-02-06 17:07:27'),
+(403, 165, 'esteban.garcia@meridianecp.com', 'correo', '2026-02-06 17:07:30'),
+(404, 162, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 17:07:34'),
+(405, 161, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 17:07:37'),
+(406, 160, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 17:07:47'),
+(407, 160, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 17:07:48'),
+(408, 159, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 17:07:53'),
+(409, 157, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 17:07:55'),
+(410, 169, 'yorguinp@hotmail.com', 'correo', '2026-02-06 17:09:24'),
+(411, 168, 'yorguinp@hotmail.com', 'correo', '2026-02-06 17:09:47'),
+(412, 167, 'yorguinp@hotmail.com', 'correo', '2026-02-06 17:10:22'),
+(413, 166, 'esteban.garcia@meridianecp.com', 'correo', '2026-02-06 17:10:40'),
+(414, 165, 'esteban.garcia@meridianecp.com', 'correo', '2026-02-06 17:11:02'),
+(415, 163, 'soportehseq@meridian.com.co', 'correo', '2026-02-06 17:11:14'),
+(416, 162, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 17:11:27'),
+(417, 161, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 17:11:39'),
+(418, 160, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 17:11:57'),
+(419, 159, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 17:12:11'),
+(420, 157, 'julio.romero@ecopetrol.com.co', 'correo', '2026-02-06 17:12:54'),
+(421, 158, 'soportehseq@meridian.com.co', 'correo', '2026-02-06 17:19:13'),
+(422, 163, 'soportehseq@meridian.com.co', 'correo', '2026-02-06 17:20:11'),
+(423, 163, 'soportehseq@meridian.com.co', 'correo', '2026-02-06 17:22:46'),
+(424, 170, 'asistenteadministrativo1@meridian.com.co', 'correo', '2026-02-06 18:53:39'),
+(425, 171, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-09 12:49:00'),
+(426, 172, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-09 12:51:55'),
+(427, 173, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-09 12:54:27'),
+(428, 174, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-09 12:56:39'),
+(429, 175, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-09 12:58:21'),
+(430, 175, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-09 12:59:31'),
+(431, 174, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-09 12:59:41'),
+(432, 173, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-09 12:59:44'),
+(433, 172, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-09 12:59:47'),
+(434, 171, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-09 12:59:49'),
+(435, 175, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-11 13:48:34'),
+(436, 174, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-11 13:48:53'),
+(437, 173, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-11 13:49:22'),
+(438, 172, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-11 13:49:39'),
+(439, 171, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-11 13:50:23'),
+(440, 176, 'juanseb89@hotmail.com', 'correo', '2026-02-11 15:54:08'),
+(441, 176, 'juanseb89@hotmail.com', 'correo', '2026-02-11 16:06:40'),
+(442, 177, 'juanseb89@hotmail.com', 'correo', '2026-02-11 21:26:33'),
+(443, 177, 'juanseb89@hotmail.com', 'correo', '2026-02-12 15:13:49'),
+(444, 177, 'juanseb89@hotmail.com', 'correo', '2026-02-12 15:13:50'),
+(445, 177, 'juanseb89@hotmail.com', 'correo', '2026-02-12 15:13:50'),
+(446, 170, 'asistenteadministrativo1@meridian.com.co', 'correo', '2026-02-12 15:13:51'),
+(447, 170, 'asistenteadministrativo1@meridian.com.co', 'correo', '2026-02-12 15:14:54'),
+(448, 178, 'lamarcela1289@gmail.com', 'correo', '2026-02-13 16:04:05'),
+(449, 179, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-13 16:06:58'),
+(450, 179, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-13 16:12:37'),
+(451, 178, 'lamarcela1289@gmail.com', 'correo', '2026-02-13 16:12:40'),
+(452, 179, 'ricardocorreacerro@gmail.com', 'correo', '2026-02-16 17:10:59');
 
 -- --------------------------------------------------------
 
@@ -219,7 +306,30 @@ INSERT INTO `reportes` (`id`, `id_usuario`, `telefono_contacto`, `correo_contact
 (153, 106, NULL, NULL, 'conversaciones', NULL, 'Momento de Seguridad HSE, Tema: Evento: Fuego incipiente de estabilizador deenergía en oficina', NULL, '2026-01-22', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'conversacion', 'Rig Independence 225', 'pozos', '', 'Momento de Seguridad HSE, Tema: Evento: Fuego incipiente de estabilizador de energía en oficina', 'Momento de Seguridad HSE, Tema: Evento: Fuego incipiente de estabilizador deenergía en oficina', 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como conversación ', '2026-02-03 08:55:44', '2026-01-23 15:42:58', '2026-02-03 15:55:44'),
 (154, 34, NULL, NULL, 'hallazgos', NULL, 'Hallazgo', NULL, '2026-01-12', 'pozos', '', 'acto_inseguro', 'Se observa camioneta reversando a velocidad inadecuada', 'Se comenta con el conductor y este es consiente del peligro en que incurre ajustando su trabajo', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como Hallazgo', '2026-02-03 08:53:36', '2026-01-26 12:02:17', '2026-02-03 15:53:36'),
 (155, 34, NULL, NULL, 'hallazgos', NULL, 'Hallazgo', NULL, '2026-01-12', 'pozos', '', 'acto_inseguro', 'Se observa camioneta en vía a pozo a alta velocidad.', 'se comunica con el aliado que la contrató y posteriormente con el conductor dejando claro los limites de velocidad y la conciencia del manejo defensivo', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como Hallazgo', '2026-02-03 08:53:01', '2026-01-26 12:03:54', '2026-02-03 15:53:01'),
-(156, 34, NULL, NULL, 'hallazgos', NULL, 'Hallazgo', NULL, '2026-01-14', 'pozos', '', 'acto_inseguro', 'Se observa zona de operación delimitada con cinta pero sin los avisos completos faltando el de cable en tensión', 'se comunica con la cuadrilla y reajustan el trabajo colocando el letreo apropiado para la labor', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como Hallazgo', '2026-02-03 08:52:42', '2026-01-26 12:06:36', '2026-02-03 15:52:42');
+(156, 34, NULL, NULL, 'hallazgos', NULL, 'Hallazgo', NULL, '2026-01-14', 'pozos', '', 'acto_inseguro', 'Se observa zona de operación delimitada con cinta pero sin los avisos completos faltando el de cable en tensión', 'se comunica con la cuadrilla y reajustan el trabajo colocando el letreo apropiado para la labor', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como Hallazgo', '2026-02-03 08:52:42', '2026-01-26 12:06:36', '2026-02-03 15:52:42'),
+(157, 34, NULL, NULL, 'hallazgos', NULL, 'Rejilla perimetral de contrapozo un poco alta con el potencial de provocar tropiezos y caida', NULL, '2026-01-15', 'pozos', '', 'condicion_insegura', 'Se observa rejilla perimetral de contrapozo un poco alta con el potencial de provocar tropiezos y caidas', 'Se comenta con el personal aliado y se reajusta de manera correcta haciendo el trabajo mas seguro para todos.', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como hallazgo ', '2026-02-06 10:12:53', '2026-02-06 15:59:14', '2026-02-06 17:12:53'),
+(158, 56, NULL, NULL, 'hallazgos', NULL, 'Inspeccion puesto de trabajo / Contador Junior', NULL, '2026-02-06', 'otras', 'Puesto de trabajo Yiseth Chaparro', 'condicion_insegura', 'Durante la inspección del puesto de trabajo se evidenció que el trabajador no cuenta con reposapiés, lo que impide mantener los pies completamente apoyados y una postura ergonómicamente adecuada durante la jornada laboral. Esta condición puede generar sobrecarga en miembros inferiores y afectar la comodidad y la salud musculoesquelética del trabajador.', 'Gestionar la adquisición e instalación de un reposapiés ergonómico en el puesto de trabajo, con el fin de garantizar el adecuado apoyo de los pies y favorecer una postura correcta durante la jornada laboral.', 'abierta', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 56, 'Caso aprobado por Diana Marcela Jacobo Mancera. Motivo: Se realiza la entrega del elemento apoyapiés, código No. 480871, al colaborador Yiseth Chaparro.', '2026-02-06 10:19:12', '2026-02-06 15:59:40', '2026-02-06 17:19:12'),
+(159, 34, NULL, NULL, 'hallazgos', NULL, 'Se observa persona sin casco en carpa de equipo de presión', NULL, '2026-01-15', 'pozos', '', 'acto_inseguro', 'Se observa persona sin casco en carpa de equipo de presión', 'Se reflexiona sobre el autocuidado a pesar que esta en una carpa se debe utilizar todos los EPP, la persona reacomoda su trabajo.', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como hallazgos ', '2026-02-06 10:12:10', '2026-02-06 16:02:27', '2026-02-06 17:12:10'),
+(160, 34, NULL, NULL, 'hallazgos', NULL, 'Perrito comiendo restos de almuerzo en zona operativa', NULL, '2026-01-15', 'pozos', '', 'condicion_insegura', 'Se observa perrito comiendo restos de almuerzo en zona operativa', 'Se comenta con el personal que si desean alimentar los animales lo hagan fuera del área de operaciones ya que dichos animales pueden sufrir o causar un accidente, las personas comprenden la relevancia del asunto.', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como conversación ', '2026-02-06 10:11:50', '2026-02-06 16:17:01', '2026-02-06 17:11:50'),
+(161, 34, NULL, NULL, 'conversaciones', NULL, 'Reflexion al observar video', NULL, '2026-01-15', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'reflexion', 'Cusiana T27', 'pozos', '', 'Se realiza reflexión al observar video de accidente de persona que pierde la vida al estar debajo de una carga que se cae cuando estaba suspendida por una grúa y se conversa con el personal sobre lo observado, reflexionando sobre sl autocuidado y el cuidado de los demás en nuestras operaciones día a día, se reflexiona sobre como sufrirían nuestras familias ante una situación de estas y que es posible evitarlas si estamos atentos y cuidándonos.', 'Reflexion al observar video', 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como conversación ', '2026-02-06 10:11:38', '2026-02-06 16:19:39', '2026-02-06 17:11:38'),
+(162, 34, NULL, NULL, 'conversaciones', NULL, 'Reflexiona sobre la alerta de seguridad', NULL, '2026-01-17', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'reflexion', 'Cusiana T27', 'pozos', '', 'Se reflexiona sobre la alerta de seguridad &quot;Fatalidad Inducción de trabajador durante retiro de bajante (jumper) en actividades de bahía de línea&quot; y se reflexiona sobre la fragilidad del ser humano, podemos perder la vida en un instante y que pasaría con nuestras familias si llegamos a faltar.', 'Reflexiona sobre la alerta de seguridad', 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como conversación ', '2026-02-06 10:11:26', '2026-02-06 16:21:47', '2026-02-06 17:11:26'),
+(163, 56, NULL, NULL, 'hallazgos', NULL, 'Inspeccion puesto de trabajo / Asistente Contable I', NULL, '2026-02-06', 'otras', 'Puesto de trabajo Lady Aguirre', 'condicion_insegura', 'Durante la inspección del puesto de trabajo, el trabajador manifestó requerir la implementación de un reposapiés por motivos de salud, específicamente debido a una condición de várices. Se evidenció que el puesto no cuenta actualmente con este elemento, lo cual limita la posibilidad de elevar y apoyar adecuadamente los miembros inferiores durante la jornada laboral, pudiendo generar mayor incomodidad y afectar su bienestar.', 'Gestionar la adquisición e implementación de un reposapiés ergonómico en el puesto de trabajo, como medida de control para favorecer la elevación y el adecuado apoyo de los miembros inferiores, teniendo en cuenta la condición de salud del trabajador (várices).', 'abierta', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 56, 'Caso aprobado por Diana Marcela Jacobo Mancera. Motivo: Se realiza la entrega del elemento apoyapiés, código N.° 237, a la colaboradora Lady Aguirre.', '2026-02-06 10:22:45', '2026-02-06 16:24:42', '2026-02-06 17:22:45'),
+(164, 34, NULL, NULL, 'conversaciones', NULL, 'Reflexión sobre la importancia de nuestro trabajo para nuestras familias', NULL, '2026-01-17', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'reflexion', 'CUS TA 27', 'pozos', '', 'Se realiza reflexión sobre la importancia de nuestro trabajo para nuestras familias y del esfuerzo que realizamos estando lejos en días festivos y fechas especiales, animándonos a seguir haciendo las cosas bien para ellos.', 'Reflexión sobre la importancia de nuestro trabajo para nuestras familias', 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como reflexión ', '2026-02-06 10:06:35', '2026-02-06 16:25:21', '2026-02-06 17:06:35'),
+(165, 32, NULL, NULL, 'conversaciones', NULL, 'Verificación de Grúa de 80 ton', NULL, '2026-01-15', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'reflexion', 'Cupiagua T32', 'pozos', '', 'Verificó ubicación de grúa de 80 ton y unidad de SlickLine para evitar interferencias en los movimientos debido al poste pararrayos que está en la vecindad del pozo', 'Verificación de Grúa de 80 ton', 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como conversación ', '2026-02-06 10:11:01', '2026-02-06 16:29:42', '2026-02-06 17:11:01'),
+(166, 32, NULL, NULL, 'conversaciones', NULL, 'Verificó elementos de protección personal', NULL, '2025-01-15', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'reflexion', 'Cupiagua T32', 'pozos', '', 'Verificó elementos de protección personal de toda la cuadrilla garantizando el uso adecuados', 'Verificó elementos de protección personal', 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como conversación ', '2026-02-06 10:10:39', '2026-02-06 16:32:24', '2026-02-06 17:10:39'),
+(167, 295, NULL, NULL, 'conversaciones', NULL, 'Se realiza reunión preoperacional', NULL, '2026-01-27', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'conversacion', 'Pozo SANTOS 168 / Rig IND-225', 'pozos', '', 'Se realiza reunión preoperacional y de seguridad para la operación de corrida de diseño de gas lift en paralelo con sencillo 2-3/8&quot;, socializa AR asociado y asigna roles y responsabilidades.', 'Se realiza reunión preoperacional', 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como conversación ', '2026-02-06 10:10:20', '2026-02-06 17:01:34', '2026-02-06 17:10:20'),
+(168, 295, NULL, NULL, 'conversaciones', NULL, 'Reunión preoperacional', NULL, '2026-12-28', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'conversacion', 'Pozo SANTOS 168 / Rig IND-225', 'pozos', '', 'Se realiza reunión preoperacional y de seguridad para la operación de prueba de integridadfinal de sarta de producción de 2-3/8&quot; e instalación de empaque hidráulico, socializa AR y asignar roles y responsabilidades.', 'Reunión preoperacional', 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como conversación', '2026-02-06 10:09:46', '2026-02-06 17:03:37', '2026-02-06 17:09:46'),
+(169, 295, NULL, NULL, 'conversaciones', NULL, 'Divulgación preoperacional', NULL, '2026-01-30', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'conversacion', 'Pozo SANTOS 168 / Rig IND-225', 'pozos', '', 'Se realiza reunión preoperacional y de seguridad para la operación de pesca de StandingValve con unidad de Slickline de la compañía Innergy, socializa AR y asigna roles y responsabilidades.', 'Divulgación preoperacional', 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como conversación ', '2026-02-06 10:09:23', '2026-02-06 17:04:27', '2026-02-06 17:09:23'),
+(170, 50, NULL, NULL, 'hallazgos', NULL, 'Bombillo dañado en una oficina', NULL, '2025-02-06', 'otras', 'falta de iluminacion', 'acto_inseguro', 'Se evidencia un bombillo dañado en la oficina en la  area gestion de administrativa ,  se encuentra un bombillo apagado', 'cambiar bombillo por falta de iluminacion', 'abierta', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Se realizo el cambio de las bombillas que no estaban funcionando en el area de adm y contabilidad', '2026-02-12 08:14:53', '2026-02-06 18:53:38', '2026-02-12 15:14:53'),
+(171, 296, NULL, NULL, 'conversaciones', NULL, 'Alerta HSE: Descenso de bloque y golpe a tubería DP en pozo - Otra operación', NULL, '2026-01-18', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'conversacion', 'Suerte 50/ Rig IND-225', 'pozos', '', 'Durante la actividad de trabajos de pozos, al izar carga con bloque viajero es posible que trabajadores se pasen por la línea de peligro, se habla con las cuadrillas y se le hace caer en cuenta de esta clase de actos inseguros - Ojo con los obreros de patio. Se les recuerda que nadie debe estar debajo de la parrilla de trabajo mientras se esté trabajando. Se les hace la observación y se sensibilizó sobre el autocuidado y coordinación necesarias cuando hay operaciones en curso. Cumplimiento de normas y controles.', 'Alerta HSE: Descenso de bloque y golpe a tubería DP en pozo - Otra operación', 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como conversaciones ', '2026-02-11 06:50:22', '2026-02-09 12:48:58', '2026-02-11 13:50:22'),
+(172, 296, NULL, NULL, 'hallazgos', NULL, 'Conductor camina por área operativa sin casco de seguridad', NULL, '2026-01-14', 'pozos', '', 'acto_inseguro', 'Se observa al nuevo conductor del vehículo al servicio de la empresa contratista, reemplazo de vacaciones, caminando hacia los campamentos, por fuera del área demarcada como segura', 'Se llama y se le hace la observación, Se sensibilizó a la persona sobre el autocuidado cuando se está laborando dentro de la operación y la necesidad del cumplimiento de las Normas al respecto', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como hallazgos ', '2026-02-11 06:49:38', '2026-02-09 12:51:54', '2026-02-11 13:49:38'),
+(173, 296, NULL, NULL, 'conversaciones', NULL, 'Conversación sobre Fundamentales de Seguridad de Procesos', NULL, '2026-01-17', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'conversacion', 'Suerte 50/ Rig IND-225', 'pozos', '', 'Durante la actividad de servicios a pozos, al armar y desarmar los equipos y herramientas, es posible que trabajadores por el afán de hacer las cosas puedan pisar pisos resbalosos, húmedos o superficies con huecos o que no estén compactados, se habla con las cuadrillas y se le hace caer en cuenta de esta clase de actos inseguros. Se les recuerda que deben laborar con cuidado y sin afanes que puedan generar incidentes. Se les hace la observación y se sensibilizó sobre el autocuidado y la coordinación necesaria cuando se debe trabajar en equipo, se debe tener en cuenta la época actual de lluvias esporádicas', 'Conversación sobre Fundamentales de Seguridad de Procesos', 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como conversación ', '2026-02-11 06:49:12', '2026-02-09 12:54:26', '2026-02-11 13:49:12'),
+(174, 296, NULL, NULL, 'hallazgos', NULL, 'Trabajador ayudando en trabajos sin usar EPP', NULL, '2026-01-25', 'pozos', '', 'acto_inseguro', 'Durante el trabajo de colgar para bajar sarta de cañoneo en el pozo, por el afán de hacer las cosas rápido, el encuellador toma herramientas manuales para empujar y reasegurar la instalación y buena colocación de la herramienta, sin el uso de guantes', 'Se le hace la observación y caer en cuenta de estos actos inseguros. Se les recuerda que deben laborar con cuidado y sin afanes que puedan generar incidentes. Se sensibilizó sobre el autocuidado y coordinaciones cuando se debe trabajar en equipo. Cumplimiento de normas y controles', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como hallazgo ', '2026-02-11 06:48:51', '2026-02-09 12:56:38', '2026-02-11 13:48:51'),
+(175, 296, NULL, NULL, 'hallazgos', NULL, 'Transitar en moto por área operativa mientras se trabaja en locación', NULL, '2026-02-27', 'pozos', '', 'acto_inseguro', 'Se observa una persona, ajena a la operación; conductor de una moto, conduciendo y atravesando por la locación, áreas operativas, por fuera del área demarcada como segura; la locación tiene 2 sitios de entrada-salida. Se llama, se indaga y el señor informa que es el que trae las comidas y esta esta de urgencia por regresar', 'Se le hace la observación y se sensibilizó a la persona sobre el autocuidado y la necesidad del cumplimiento de Normas al respecto. Se les recordó a los indicadores viales de informar oportunamente cualquier anomalía que se les presente en la entrada.', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Cargar como Hallazgo ', '2026-02-11 06:48:33', '2026-02-09 12:58:20', '2026-02-11 13:48:33'),
+(176, 270, '3128352851', 'JUANSEB89@HOTMAIL.COM', 'pqr', 'peticion', 'solicitud cambio de overoles y otros', NULL, NULL, NULL, NULL, NULL, 'solicito apoyo con el cambio de overoles debido a que se encuentran deteriorados visualmente (envejecimiento prematuro) botones caídos y se requiere uso continuo para operaciones en campo adicional que seria muy importante que se entregaran con una periocidad mayor al menos cada 4 meses por la exposición del cargo junto con los demás epp gafas y al menos 1 capuchón por el sol excesivo en la zona y debido a las visitas a campo se expone uno mucho', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'en_revision', 51, 'Estado cambiado a en_revision por Michael Stiven Ruiz Caro', '2026-02-11 09:06:39', '2026-02-11 15:54:07', '2026-02-11 16:06:39'),
+(177, 270, NULL, NULL, 'hallazgos', NULL, 'Calidad de Overoles', NULL, '2026-02-11', 'epp', '', 'accion_mejoramiento', 'solicito apoyo con el cambio de overoles debido a que se encuentran deteriorados visualmente (envejecimiento prematuro) botones caídos y se requiere uso continuo para operaciones en campo adicional que seria muy importante que se entregaran con una periocidad mayor al menos cada 4 meses', 'Entrega de overoles de calidad', 'abierta', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'en_revision', 51, 'Estado cambiado a en_revision por Michael Stiven Ruiz Caro', '2026-02-12 08:13:48', '2026-02-11 21:26:25', '2026-02-12 15:13:48'),
+(178, 261, NULL, NULL, 'hallazgos', NULL, 'Calidad de Overoles y Ajuste de overoles', NULL, '2026-02-11', 'epp', '', 'accion_mejoramiento', 'Lo overoles suministrados son de mala calidad y muy grande a pesar de ser la talla mas pequeña', 'Ajustar y cambiar la calidad de los overoles', 'abierta', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'en_revision', 51, 'Estado cambiado a en_revision por Michael Stiven Ruiz Caro', '2026-02-13 09:12:38', '2026-02-13 16:03:56', '2026-02-13 16:12:38'),
+(179, 296, NULL, NULL, 'hallazgos', NULL, 'Calidad de Overoles', NULL, '2025-12-02', 'epp', '', 'accion_mejoramiento', 'buenos días. Creo que deben revisar la calidad de los overoles suministrados, ya este está “sacando la mano”..', 'Cambio de proveedor o de tela', 'cerrada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'aprobado', 51, 'Caso aprobado por Michael Stiven Ruiz Caro. Motivo: Entregado ', '2026-02-16 10:10:58', '2026-02-13 16:06:57', '2026-02-16 17:10:58');
 
 -- --------------------------------------------------------
 
@@ -263,7 +373,7 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (54, 'Sandra Milena Florez Prado', '1014180459', 'asistenteadministrativo2@meridian.com.co', '$2y$10$0YmqZO44j55pBJDG7B.i.Ok4IDwVV5Gah9pnt3ZEyWZ/3fbmu/pDO', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (55, 'Eloy Gabriel Gomez Reyes', '1020733194', 'coordinaciongestionhumana@meridian.com.co', '1020733194', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (56, 'Diana Marcela Jacobo Mancera', '1031145571', 'soportehseq@meridian.com.co', '$2y$10$GycAgoorOM/FMtnzdG.PPOWGBaXAzKtYFO3QDbo1j6LNeQFWVJ1qS', 'admin', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
-(57, 'Laura Daniela Segura Morera', '1121936876', 'profesionalhseq@meridian.com.co', '$2y$10$g3o7koJ5TD5qp6SwRTrHP.a7ILFvKO6kzlaMzoZqtOVupns6hDm7a', 'admin', 'COMPANY MAN - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
+(57, 'Laura Daniela Segura Morera', '1121936876', 'profesionalhseq@meridian.com.co', '$2y$10$g3o7koJ5TD5qp6SwRTrHP.a7ILFvKO6kzlaMzoZqtOVupns6hDm7a', 'admin', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (59, 'Andres Camilo Cardenas Reyes', '1007627524', 'soporteit.nivel1@meridian.com.co', '$2y$10$HBrTd8Dn5fydKYtWpIKZk.YEdbcwtjg.zIv4SwmPl9xa4booG5wyS', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (61, 'Wendy Zamanda Fonseca Hurtado', '1026267917', 'zamandafh1988@gmail.com', '1026267917', 'colaborador', 'FRONTERA', 1, '2025-08-19 15:08:27'),
 (62, 'Sonia Stephania Fonseca Lopez', '1007647736', 'asistentegestionhumana2@meridian.com.co', '1007647736', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
@@ -271,7 +381,6 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (65, 'Eymer Santiago Méndez Herrera', '1031649053', 'santiagom202418@gmail.com', '1031649053', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (81, 'Eliana Iveth Alarcon Rondon', '1032446831', 'proyectos6@meridian.com.co', '$2y$10$aATlzerjoHVHcL.dbCYpZuO46rpuQco1P4Agy6sk0NKrYwgmOdKVq', 'colaborador', 'PETROSERVICIOS - ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (83, 'Camila Fernanda Medina Sandoval', '1100954344', 'camila.medina@meridianecp.com', '1100954344', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
-(88, 'Luis Guillermo Mercado Rico', '80100600', 'luis.guillermo.mercado@gmail.com', '$2y$10$bhvPSe6R2Mocdp5athAY9uCR0X4g0mQjtLk6TFJBRXMhabz6Zroqe', 'colaborador', 'COMPANY MAN  - GGS', 1, '2025-08-19 15:08:27'),
 (95, 'Angy Yolima Salcedo Amado', '1053611893', 'angysalcedo0810@hotmail.com', '1053611893', 'colaborador', 'COMPANY MAN - GGS', 1, '2025-08-19 15:08:27'),
 (97, 'Karen Julieth Carranza Rodriguez', '1000931984', 'analistacontable@meridian.com.co', '$2y$10$fDJA.U9ZFKFyV9S9cpcg1uznh9PP5ULcXYtEM491quaSu20zVKjDa', 'colaborador', 'ADMINISTRACION', 1, '2025-08-19 15:08:27'),
 (98, 'Aura Maria Traslaviña Prada', '1095786398', 'aura.traslavina@meridianecp.com', '$2y$10$xe2.jKVvJCQhjxKsh5dH..HwnkfaK/Ppz9JdUHmLwKW/VaUgu7gs2', 'colaborador', 'PETROSERVICIOS', 1, '2025-08-19 15:08:27'),
@@ -419,7 +528,7 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (267, 'Maryluz Santamaria Becerra ', '63501053', 'maryluzsantamaria@hotmail.com', '$2y$10$M201tJmurdcY60eN/H26teuQlzw32BTjRNBZOwU2HuXeGtUQEgGpC', 'colaborador', 'COMPANY MAN GRM', 1, '2025-09-02 14:39:35'),
 (268, 'Edgar Mauricio Alvarez Franco ', '88278069', 'genioalv@gmail.com', '88278069', 'colaborador', 'COMPANY MAN GRM', 1, '2025-09-02 14:39:59'),
 (269, 'Yojan Gil Gonzales ', '1042212691', 'yojan35@hotmail.com', '$2y$10$q.BFbew66yIKz2j629icuu3ULM9Ap1aOMJ5QKo2gsVPrBrmzBZd9a', 'colaborador', 'COMPANY MAN GRM', 1, '2025-09-02 14:40:21'),
-(270, 'Juan Sebastian Valencia Ortega', '1020427784', 'juanseb89@hotmail.com', '1020427784', 'colaborador', 'COMPANY MAN GRM', 1, '2025-09-02 14:40:40'),
+(270, 'Juan Sebastian Valencia Ortega', '1020427784', 'juanseb89@hotmail.com', '$2y$10$/fHnPMwkcWilr.tCRGJQvuu3rEmRenUW2ehTW2UKi7LTQ6Ujk.CMC', 'colaborador', 'COMPANY MAN GRM', 1, '2025-09-02 14:40:40'),
 (271, 'Perla Melissa Pinzon Agudelo', '1098727333', 'perlameli_92@hotmail.com', '$2y$10$N0VGHqQSuZtRDF2xl04WCupfi7L6r0ofVMDGP6ARSyjrmlYjOuW8C', 'colaborador', 'COMPANY MAN GRM', 1, '2025-09-02 14:40:59'),
 (272, 'Andres Mauricio Gonzales Herrera', '1014181943', 'amaogh@gmail.com', '$2y$10$obC.8yeoUgPzESs44Hg3Gef89VfAYCzUcn7escVHQTnZ6zzv1uHpK', 'colaborador', 'COMPANY MAN GRM', 1, '2025-09-02 14:41:19'),
 (273, 'Edgar Kellyn Ordoñez', '1022348859', 'ekobogota@hotmail.com', '1022348859', 'colaborador', 'COMPANY MAN GRM', 1, '2025-09-02 14:41:35'),
@@ -430,9 +539,16 @@ INSERT INTO `usuarios` (`id`, `nombre`, `cedula`, `correo`, `contrasena`, `rol`,
 (288, 'Miguel Angel Riaño Molina', '1015475289', 'miguelmolinave@gmail.com', '1015475289', 'colaborador', 'COMPANY MAN GGS', 1, '2025-09-02 14:49:49'),
 (289, 'Alex Jhoan González Mora', '80076686', 'ing.alexgonzalez@hotmail.com', '80076686', 'colaborador', 'COMPANY MAN GRM', 1, '2025-09-02 14:51:22'),
 (295, 'Yorguin Daniel Peña Lugo ', '7317575', 'yorguinp@hotmail.com', '$2y$10$PgQkbcUqX7Dq/JSxFCZ8Zuc.Mu0qq2GAAthLcjn9JMrUcGl6G8O/i', 'colaborador', 'COMPANY MAN - GGS', 1, '2025-09-02 14:53:51'),
-(296, 'Ricardo Jose Correa Cerro ', '18760161', 'ricardocorreacerro@gmail.com', '$2y$10$Q8tsULm13.yHAo6i0PYymuMFyaFb9foJv7m5S/DJbo/unBYk.1Yuu', 'colaborador', 'COMPANY MAN  - GGS', 1, '2025-09-02 14:54:15'),
+(296, 'Ricardo Jose Correa Cerro ', '18760161', 'ricardocorreacerro@gmail.com', '$2y$10$Q8tsULm13.yHAo6i0PYymuMFyaFb9foJv7m5S/DJbo/unBYk.1Yuu', 'colaborador', 'CW_Company Man', 1, '2025-09-02 14:54:15'),
 (302, 'Joshua Mena', '1091966621', 'jomevarss@gmail.com', '$2y$10$mr6JlymOHmZt.rFfq6.0meAkFGxpPWuv5KB5/ZaYQBXIqmIH9s/.i', 'admin', 'Administrativo', 1, '2025-10-24 13:12:51'),
-(304, 'Diego Francisco Leal Roncancio ', '86055003', 'diegoflealr@gmail.com', '$2y$10$Stk7AR44swb8ukP1ELMLpus6a2n.iDItWRc5VdS8/JpuC4KK.pFgS', 'colaborador', 'COMPANY MAN - GGS', 0, '2025-12-29 13:04:58');
+(305, 'Ximena Alejandra Rodriguez Florez', '1075242729', 'ximena.rodriguez@meridianecp.com', '$2y$10$.hM7qNOg2qsC8Fv/5wDv6.XlO64cZsTlvcshysPM0hGWSkwOjicf.', 'colaborador', 'PETROSERVICIOS', 1, '2026-02-16 20:57:24'),
+(306, 'Andres Fabian Amaya Hernandez ', '1098709932', 'andres.amaya@meridianecp.com', '$2y$10$M5tYkJrc.0Jix4RNc8Qt0.WOwOhX4smxvQHiC05hEZBzLq/KRu/LK', 'colaborador', 'PETROSERVICIOS', 1, '2026-02-16 20:58:41'),
+(307, 'Maria Himelda Murillo Lopez', '37546080', 'maria.murillo@meridianecp.com', '$2y$10$6xogu9Nh3z/fXOwL1sTkQ.NCi270MXhu3j2QCZ.Aro6UWJBuhe7A2', 'colaborador', 'PETROSERVICIOS', 1, '2026-02-16 20:59:42'),
+(308, 'Oscar Iván Jimenez Barragán ', '1098719174', 'oscar.jimenez@meridianecp.com', '$2y$10$nGAZ/3KN1uFF3bRe7Z8RlOjD49VMu6G3pqcM6A6jZBbZvbS..EQn6', 'colaborador', 'PETROSERVICIOS', 1, '2026-02-16 21:00:29'),
+(309, 'Javier Enrique Guerrero Arrieta', '1081820719', 'javier.guerrero@meridianecp.com', '$2y$10$TrN5cOEN8KBbQYLeCilSNeWQsbD7n4u6pwrAyrUwoXWvhVCbqY6JC', 'colaborador', 'PETROSERVICIOS', 1, '2026-02-16 21:01:17'),
+(310, 'Liliana Martinez Uribe', '24332450', 'liliana.martinez@meridianecp.com', '$2y$10$yZHGrlQAJkiCJfPrph6nZOoyd2dgDOXL90osXUHNpIi41sNh12pp6', 'colaborador', 'PETROSERVICIOS', 1, '2026-02-16 21:01:55'),
+(311, 'Melina Andrea Rivera Manrique', '1075215815', 'melina.rivera@meridianecp.com', '$2y$10$wgEryiqVWkeKmB/7diW3kOn3IIpqDfzHY1t.E.GGTHpzNqmBbKshG', 'colaborador', 'PETROSERVICIOS', 1, '2026-02-16 21:02:37'),
+(312, 'Alison Vanesa Gonzalez Orozco', '1105465424', 'auxiliarit@meridian.com.co', '$2y$10$NSgSCDsEre7di8x25UpFLO2ntOZM0pNCZhWwSAvnAH4KPyxfLewlq', 'admin', 'ADMINISTRACION', 1, '2026-02-18 14:36:58');
 
 --
 -- Índices para tablas volcadas
@@ -481,25 +597,25 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de la tabla `evidencias`
 --
 ALTER TABLE `evidencias`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=80;
 
 --
 -- AUTO_INCREMENT de la tabla `notificaciones`
 --
 ALTER TABLE `notificaciones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=378;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=453;
 
 --
 -- AUTO_INCREMENT de la tabla `reportes`
 --
 ALTER TABLE `reportes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=157;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=180;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=305;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=313;
 
 --
 -- Restricciones para tablas volcadas
