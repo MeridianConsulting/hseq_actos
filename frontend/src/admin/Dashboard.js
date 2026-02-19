@@ -71,7 +71,6 @@ const Dashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('year');
   
   const handlePeriodChange = useCallback((period) => {
-    console.log('handlePeriodChange llamado con:', period);
     setSelectedPeriod(period);
     // Los datos se recargarán automáticamente porque effectivePeriod cambia
     // y el hook useDashboardStats se ejecutará de nuevo
@@ -265,10 +264,6 @@ const Dashboard = () => {
   
   // Debug: Log cuando cambie el período seleccionado
   useEffect(() => {
-    console.log('Período seleccionado:', selectedPeriod, 'Effective period enviado al backend:', effectivePeriod);
-    console.log('Filtros de fecha para reportes:', periodDateFilters);
-    console.log('Filtros combinados para dashboard stats:', dashboardStatsFilters);
-    console.log('Stats actuales:', stats);
   }, [selectedPeriod, effectivePeriod, periodDateFilters, dashboardStatsFilters, stats]);
 
   // Utilidades para agrupar por periodo (mes/trimestre/año)
@@ -932,7 +927,6 @@ const Dashboard = () => {
      // Obtener todos los reportes con información completa y filtros aplicados
      let reportesDetallados = [];
      try {
-       console.log('Obteniendo reportes con filtros:', customFilters);
        
        // Combinar filtros personalizados con configuración de paginación
        const queryParams = {
@@ -942,7 +936,6 @@ const Dashboard = () => {
        };
        
        const resp = await reportService.getAllReports(queryParams);
-       console.log('Respuesta del servidor:', resp);
        
        // Manejar diferentes estructuras de respuesta
        let reports = [];
@@ -956,7 +949,6 @@ const Dashboard = () => {
          reports = resp.reports;
        }
        
-       console.log('Reportes procesados:', reports.length);
        
        if (reports.length > 0) {
          reportesDetallados = reports.map((r) => {
@@ -1047,7 +1039,6 @@ const Dashboard = () => {
            }
          });
        } else {
-         console.log('No se encontraron reportes');
          alert('No se encontraron reportes para generar el Excel');
          return;
        }
@@ -1842,8 +1833,7 @@ const Dashboard = () => {
               {['month', 'quarter', 'year'].map((period) => (
                 <button
                   key={period}
-                  onClick={() => {
-                    console.log('Click en período:', period);
+                    onClick={() => {
                     handlePeriodChange(period);
                   }}
                   disabled={loading}
