@@ -17,7 +17,6 @@ export const useDashboardStats = (period, filters = {}) => {
       setLoading(true);
       setError(null);
       const currentFilters = filtersRef.current;
-      console.log('Fetching dashboard stats with period:', period, 'filters:', currentFilters);
       const response = await reportService.fetchDashboardStats(period, currentFilters);
       
       if (response.success) {

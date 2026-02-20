@@ -38,6 +38,10 @@ class PdfController {
      */
     public function downloadReportPDF($reportId) {
         try {
+            // Limpiar buffers de salida para evitar corrupción del PDF
+            while (ob_get_level() > 0) {
+                @ob_end_clean();
+            }
             // Log para debugging
             error_log("Iniciando generación de PDF para reporte ID: $reportId");
             

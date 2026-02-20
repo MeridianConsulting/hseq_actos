@@ -743,8 +743,7 @@ function handleRequest($method, $path){
 
             if (empty($recipients)) {
                 echo json_encode(['success'=>false,'message'=>'No hay destinatarios HSEQ activos']);
-                return;
-            }
+               }
 
             // Si no nos pasaron HTML, construir un HTML básico como respaldo
             if ($html === null) {
@@ -1044,10 +1043,10 @@ function handleRequest($method, $path){
     if(preg_match('/^(?:api\/)?reports\/(\d+)\/pdf$/', $path, $matches) && $method === "GET"){
         try {
             $reportId = $matches[1];
-            
-            // Limpiar cualquier output previo para PDF
-            if (ob_get_length()) ob_clean();
-            
+            // Limpiar todos los buffers de salida para evitar BOM/espacios que corrompen el PDF
+            while (ob_get_level() > 0) {
+                @ob_end_clean();
+            }
             // Incluir el controlador PDF si no está incluido
             if (!class_exists('PdfController')) {
                 require_once __DIR__ . '/controllers/pdfController.php';

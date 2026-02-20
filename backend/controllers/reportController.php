@@ -255,10 +255,15 @@ class ReportController {
     private function validateReportFields($data, $tipoReporte) {
         $errors = [];
         
-        // Validar fecha_evento (formato YYYY-MM-DD)
+        // Validar fecha_evento (formato YYYY-MM-DD y no futura)
         if (isset($data['fecha_evento']) && !empty($data['fecha_evento'])) {
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data['fecha_evento'])) {
                 $errors[] = "Formato de fecha inválido. Use YYYY-MM-DD";
+            } else {
+                $hoy = date('Y-m-d');
+                if ($data['fecha_evento'] > $hoy) {
+                    $errors[] = "No se permiten fechas futuras";
+                }
             }
         }
         
@@ -1160,6 +1165,23 @@ class ReportController {
                 }
                 $dateWhereClause = "WHERE COALESCE(fecha_evento, creado_en) >= DATE_SUB(CURDATE(), INTERVAL $intervalNum MONTH)";
             }
+
+            // Join y filtro por proyecto (lista separada por comas) — mismo criterio que resto del dashboard
+            $joinClause = "";
+            $proyectoAndClause = "";
+            if (!empty($_GET['proyecto'])) {
+                $proyectosRaw = explode(',', (string) $_GET['proyecto']);
+                $proyectos = array_filter(array_map('trim', $proyectosRaw));
+                if (!empty($proyectos)) {
+                    $escaped = array_map(function ($p) {
+                        return "'" . $this->conn->real_escape_string($p) . "'";
+                    }, $proyectos);
+                    $joinClause = " JOIN usuarios u ON reportes.id_usuario = u.id ";
+                    $proyectoAndClause = " AND u.Proyecto IN (" . implode(',', $escaped) . ") ";
+                }
+            }
+            $effectiveWhere = $dateWhereClause ?: "WHERE 1=1";
+            $effectiveWhere = $effectiveWhere . $proyectoAndClause;
             
             // 1. Incidentes por mes con formato mejorado (dinámico según período)
             $sqlIncidentesPorMes = "
@@ -1172,7 +1194,8 @@ class ReportController {
                     COUNT(CASE WHEN tipo_reporte = 'pqr' THEN 1 END) as pqr,
                     COUNT(*) as total_reportes
                 FROM reportes 
-                $dateWhereClause
+                $joinClause
+                $effectiveWhere
                 GROUP BY DATE_FORMAT(COALESCE(fecha_evento, creado_en), '%Y-%m'), DATE_FORMAT(COALESCE(fecha_evento, creado_en), '%b')
                 ORDER BY mes ASC
             ";
@@ -1188,9 +1211,10 @@ class ReportController {
                 SELECT 
                     tipo_reporte,
                     COUNT(*) as cantidad,
-                    ROUND((COUNT(*) * 100.0) / (SELECT COUNT(*) FROM reportes $dateWhereClause), 2) as porcentaje
+                    ROUND((COUNT(*) * 100.0) / (SELECT COUNT(*) FROM reportes $joinClause $effectiveWhere), 2) as porcentaje
                 FROM reportes 
-                $dateWhereClause
+                $joinClause
+                $effectiveWhere
                 GROUP BY tipo_reporte
                 ORDER BY cantidad DESC
             ";
@@ -1214,7 +1238,8 @@ class ReportController {
                     COUNT(CASE WHEN tipo_reporte = 'conversaciones' THEN 1 END) as conversaciones,
                     COUNT(CASE WHEN tipo_reporte = 'pqr' THEN 1 END) as pqr
                 FROM reportes 
-                $dateWhereClause
+                $joinClause
+                $effectiveWhere
                 GROUP BY DATE_FORMAT(COALESCE(fecha_evento, creado_en), '%Y-%m'), DATE_FORMAT(COALESCE(fecha_evento, creado_en), '%b')
                 ORDER BY mes ASC
             ";
@@ -1238,25 +1263,21 @@ class ReportController {
                     COUNT(CASE WHEN estado = 'en_revision' THEN 1 END) as en_revision,
                     ROUND((COUNT(CASE WHEN estado = 'aprobado' THEN 1 END) * 100.0) / COUNT(*), 2) as tasa_aprobacion
                 FROM reportes
-                $dateWhereClause
+                $joinClause
+                $effectiveWhere
             ";
             $resultKPIs = $this->conn->query($sqlKPIs);
             $kpis = $resultKPIs->fetch_assoc();
 
             // 5. Días sin accidentes (último incidente)
-            $incidentesWhereClause = "";
-            if (!empty($dateWhereClause)) {
-                // Agregar condición de tipo_reporte a la cláusula WHERE existente
-                $incidentesWhereClause = $dateWhereClause . " AND tipo_reporte = 'incidentes'";
-            } else {
-                $incidentesWhereClause = "WHERE tipo_reporte = 'incidentes'";
-            }
+            $incidentesWhere = $effectiveWhere . " AND tipo_reporte = 'incidentes'";
             $sqlUltimoIncidente = "
                 SELECT 
                     COALESCE(DATEDIFF(CURDATE(), MAX(COALESCE(fecha_evento, creado_en))), 0) as dias_sin_accidentes,
                     MAX(COALESCE(fecha_evento, creado_en)) as ultimo_incidente
                 FROM reportes 
-                $incidentesWhereClause
+                $joinClause
+                $incidentesWhere
             ";
             $resultUltimoIncidente = $this->conn->query($sqlUltimoIncidente);
             $ultimoIncidente = $resultUltimoIncidente->fetch_assoc();
@@ -1271,7 +1292,8 @@ class ReportController {
                     ROUND((COUNT(CASE WHEN estado = 'en_revision' THEN 1 END) * 100.0) / COUNT(*), 0) as procedimientos,
                     ROUND((COUNT(CASE WHEN estado = 'aprobado' THEN 1 END) * 100.0) / COUNT(*), 0) as auditorias
                 FROM reportes
-                $dateWhereClause
+                $joinClause
+                $effectiveWhere
             ";
             $resultMetricasSeguridad = $this->conn->query($sqlMetricasSeguridad);
             $metricasSeguridad = $resultMetricasSeguridad->fetch_assoc();
@@ -1282,7 +1304,8 @@ class ReportController {
                     COALESCE(grado_criticidad, 'No especificada') as criticidad,
                     COUNT(*) as cantidad
                 FROM reportes 
-                $dateWhereClause
+                $joinClause
+                $effectiveWhere
                 GROUP BY grado_criticidad
                 ORDER BY cantidad DESC
             ";
@@ -1291,6 +1314,26 @@ class ReportController {
             while ($row = $resultCriticidad->fetch_assoc()) {
                 $criticidad[] = $row;
             }
+
+            // 8. Efectividad de cierre: cerrados a tiempo (≤15 días) vs no cerrados a tiempo (>15 días)
+            // Cerrado = aprobado/rechazado; fecha cierre = COALESCE(fecha_revision, actualizado_en); filtros date + proyecto
+            $closureWhere = $effectiveWhere . " AND estado IN ('aprobado', 'rechazado')";
+            $sqlClosureEffectiveness = "
+                SELECT
+                    COUNT(CASE WHEN DATEDIFF(COALESCE(fecha_revision, actualizado_en), creado_en) <= 15 THEN 1 END) AS closedOnTimeCount,
+                    COUNT(CASE WHEN DATEDIFF(COALESCE(fecha_revision, actualizado_en), creado_en) > 15 THEN 1 END) AS closedLateCount
+                FROM reportes
+                $joinClause
+                $closureWhere
+            ";
+            $closedOnTimeCount = 0;
+            $closedLateCount = 0;
+            $resultClosure = $this->conn->query($sqlClosureEffectiveness);
+            if ($resultClosure && $rowClosure = $resultClosure->fetch_assoc()) {
+                $closedOnTimeCount = (int) ($rowClosure['closedOnTimeCount'] ?? 0);
+                $closedLateCount = (int) ($rowClosure['closedLateCount'] ?? 0);
+            }
+            $totalClosedCount = $closedOnTimeCount + $closedLateCount;
 
             return [
                 'success' => true,
@@ -1302,7 +1345,10 @@ class ReportController {
                     'diasSinAccidentes' => $ultimoIncidente['dias_sin_accidentes'] ?? 0,
                     'ultimoIncidente' => $ultimoIncidente['ultimo_incidente'] ?? null,
                     'metricasSeguridad' => $metricasSeguridad,
-                    'criticidad' => $criticidad
+                    'criticidad' => $criticidad,
+                    'closedOnTimeCount' => $closedOnTimeCount,
+                    'closedLateCount' => $closedLateCount,
+                    'totalClosedCount' => $totalClosedCount
                 ]
             ];
         } catch (Exception $e) {
