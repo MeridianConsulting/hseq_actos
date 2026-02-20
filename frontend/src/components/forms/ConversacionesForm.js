@@ -65,6 +65,7 @@ const ConversacionesForm = ({
           onChange={onInputChange}
           label="Fecha del evento"
           required
+          maxToday
         />
 
         <TextInput

@@ -28,6 +28,15 @@ export const TextInput = ({
   </div>
 );
 
+// Fecha de hoy en zona local YYYY-MM-DD (para max en inputs de fecha del evento)
+export const getTodayLocal = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 // Componente para inputs de fecha
 export const DateInput = ({ 
   name, 
@@ -35,7 +44,8 @@ export const DateInput = ({
   onChange, 
   label, 
   required = false,
-  helper
+  helper,
+  maxToday = false
 }) => (
   <div>
     <label className="block text-white text-opacity-90 font-semibold mb-2">
@@ -47,6 +57,7 @@ export const DateInput = ({
       name={name}
       value={value}
       onChange={onChange}
+      max={maxToday ? getTodayLocal() : undefined}
       className="w-full px-4 py-3 bg-gray-900/60 border border-white/10 rounded-xl text-white placeholder-gray-300 shadow-inner focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all duration-200 hover:border-white/20 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
       required={required}
     />

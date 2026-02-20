@@ -55,6 +55,7 @@ const IncidentesForm = ({
           onChange={onInputChange}
           label="Fecha del evento"
           required
+          maxToday
         />
 
         <SelectInput

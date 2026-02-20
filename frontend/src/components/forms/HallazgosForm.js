@@ -78,6 +78,7 @@ const HallazgosForm = ({
           label="Fecha del evento"
           helper="Indica la fecha en que observaste el hallazgo"
           required
+          maxToday
         />
 
         <SelectInput

@@ -16,7 +16,7 @@ import { userService } from '../services/api';
 import { buildApi, buildUploadsUrl } from '../config/api';
 import ReportsTable from '../components/ReportsTable';
 import { reportTypes, gradosCriticidad } from '../config/formOptions';
-import { AlertCircle, Clock, CircleCheck, Calendar, BarChart2, TrendingUp, Loader2, FileSpreadsheet, Search, X, User, Users, Plus } from 'lucide-react';
+import { AlertCircle, Clock, CircleCheck, Calendar, BarChart2, TrendingUp, FileSpreadsheet, Search, X, User, Users, Plus, ClipboardCheck } from 'lucide-react';
 
 // Nombres de proceso unificados (PDF pág. 2)
 const getProcesoFromProyecto = (proyecto) => {
@@ -261,7 +261,7 @@ const Dashboard = () => {
       ...periodDateFilters
     };
   }, [dashboardFilters, periodDateFilters]);
-  const { stats, loading, error } = useDashboardStats(effectivePeriod, dashboardStatsFilters);
+  const { stats, loading, error, refreshStats } = useDashboardStats(effectivePeriod, dashboardStatsFilters);
   
   // Debug: Log cuando cambie el período seleccionado
   useEffect(() => {
@@ -356,10 +356,92 @@ const Dashboard = () => {
   };
 
   // Bar chart: Reportes por periodo (dinámico por selectedPeriod)
+  // Rellenar todos los periodos del año: mensual (12 meses), trimestral (4 trimestres), anual (últimos 3 años)
   const incidentsByMonth = useMemo(() => {
     const data = stats?.incidentesPorMes || [];
     if (!Array.isArray(data)) return [];
     const periodType = selectedPeriod;
+    const currentYear = new Date().getFullYear();
+
+    if (periodType === 'month') {
+      const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const byMonth = MONTH_LABELS.map(period => ({
+        period,
+        incidentes: 0,
+        hallazgos: 0,
+        conversaciones: 0,
+        pqr: 0
+      }));
+      data.forEach(m => {
+        let y = parseYear(m);
+        let mi = parseMonthIndex(m);
+        const mesStr = (m.mes || '').toString().trim();
+        if (/^\d{4}-\d{2}$/.test(mesStr)) {
+          const [yStr, mStr] = mesStr.split('-');
+          y = parseInt(yStr, 10);
+          mi = parseInt(mStr, 10) - 1;
+        }
+        if (y !== currentYear || mi == null || mi < 0 || mi > 11) return;
+        byMonth[mi].incidentes += Number(m.incidentes) || 0;
+        byMonth[mi].hallazgos += Number(m.hallazgos) || 0;
+        byMonth[mi].conversaciones += Number(m.conversaciones) || 0;
+        byMonth[mi].pqr += Number(m.pqr || 0) || 0;
+      });
+      return byMonth;
+    }
+
+    if (periodType === 'quarter') {
+      const QUARTER_LABELS = ['T1', 'T2', 'T3', 'T4'];
+      const byQuarter = QUARTER_LABELS.map(period => ({
+        period,
+        incidentes: 0,
+        hallazgos: 0,
+        conversaciones: 0,
+        pqr: 0
+      }));
+      data.forEach(m => {
+        let y = parseYear(m);
+        let mi = parseMonthIndex(m);
+        const mesStr = (m.mes || '').toString().trim();
+        if (/^\d{4}-\d{2}$/.test(mesStr)) {
+          const [yStr, mStr] = mesStr.split('-');
+          y = parseInt(yStr, 10);
+          mi = parseInt(mStr, 10) - 1;
+        }
+        if (y !== currentYear || mi == null || mi < 0 || mi > 11) return;
+        const q = Math.floor(mi / 3) + 1;
+        const idx = q - 1;
+        byQuarter[idx].incidentes += Number(m.incidentes) || 0;
+        byQuarter[idx].hallazgos += Number(m.hallazgos) || 0;
+        byQuarter[idx].conversaciones += Number(m.conversaciones) || 0;
+        byQuarter[idx].pqr += Number(m.pqr || 0) || 0;
+      });
+      return byQuarter;
+    }
+
+    if (periodType === 'year') {
+      const years = [currentYear - 2, currentYear - 1, currentYear];
+      const byYear = years.map(y => ({
+        period: String(y),
+        incidentes: 0,
+        hallazgos: 0,
+        conversaciones: 0,
+        pqr: 0
+      }));
+      data.forEach(m => {
+        let y = parseYear(m);
+        const mesStr = (m.mes || '').toString().trim();
+        if (/^\d{4}-\d{2}$/.test(mesStr)) y = parseInt(mesStr.split('-')[0], 10);
+        const idx = years.indexOf(y);
+        if (idx === -1) return;
+        byYear[idx].incidentes += Number(m.incidentes) || 0;
+        byYear[idx].hallazgos += Number(m.hallazgos) || 0;
+        byYear[idx].conversaciones += Number(m.conversaciones) || 0;
+        byYear[idx].pqr += Number(m.pqr || 0) || 0;
+      });
+      return byYear;
+    }
+
     return aggregateByPeriod(data, periodType);
   }, [stats?.incidentesPorMes, selectedPeriod]);
 
@@ -384,6 +466,7 @@ const Dashboard = () => {
     const rechazados = Number(stats?.kpis?.rechazados) || 0;
     return aprobados + rechazados;
   }, [stats?.kpis?.total_cerrados, stats?.kpis?.aprobados, stats?.kpis?.rechazados]);
+  const enRevision = useMemo(() => Number(stats?.kpis?.en_revision) || 0, [stats?.kpis?.en_revision]);
   const totalAbiertosCalc = useMemo(() => Math.max(totalReportes - totalCerrados, 0), [totalReportes, totalCerrados]);
   const totalAbiertos = useMemo(() => Number(stats?.kpis?.total_abiertos) || totalAbiertosCalc, [stats?.kpis?.total_abiertos, totalAbiertosCalc]);
 
@@ -407,8 +490,9 @@ const Dashboard = () => {
       subtitle: periodRangeFormatted ? `${periodLabel} · ${periodRangeFormatted}` : periodLabel
     },
     { title: 'Pendientes', value: pendientes ?? '-', color: '#fbbf24', Icon: Clock },
+    { title: 'En revisión', value: enRevision ?? '-', color: '#3b82f6', Icon: ClipboardCheck },
     { title: 'Cerrados', value: totalCerrados ?? '-', color: '#22c55e', Icon: CircleCheck }
-  ], [totalReportes, pendientes, totalCerrados, periodLabel, periodRangeFormatted]);
+  ], [totalReportes, pendientes, enRevision, totalCerrados, periodLabel, periodRangeFormatted]);
 
   // Cargar proyectos únicos
   const loadProyectos = useCallback(async () => {
@@ -1367,6 +1451,7 @@ const Dashboard = () => {
        document.body.appendChild(link);
        link.click();
        document.body.removeChild(link);
+       setTimeout(() => { try { URL.revokeObjectURL(link.href); } catch (_) {} }, 1000);
        
        // Mostrar mensaje de éxito con estadísticas
        const totalEvidencias = reportesDetallados.reduce((acc, r) => acc + (r._evidencias?.length || 0), 0);
@@ -1429,6 +1514,7 @@ const Dashboard = () => {
          document.body.appendChild(link);
          link.click();
          document.body.removeChild(link);
+         setTimeout(() => { try { URL.revokeObjectURL(link.href); } catch (_) {} }, 1000);
        }
      }
   }, [stats, selectedPeriod, reportService, userService]);
@@ -1586,38 +1672,35 @@ const Dashboard = () => {
     return Math.min(200, 70 + maxLen * 5);
   }, [reportsByProcess]);
 
-  // Pie: Efectividad de cierre (cerrados a tiempo ≤15 días vs no cerrados a tiempo >16 días)
+  // Pie: Efectividad de cierre — backend (closedOnTimeCount/closedLateCount o snake_case); fallback desde closedReports
   const closureEffectiveness = useMemo(() => {
-    const mk = (label, value, color) => ({ id: label, label, value, color });
-
-    if (!Array.isArray(closedReports) || closedReports.length === 0) {
-      return [
-        mk('Cerrados a tiempo (≤15 días)', 0, '#22c55e'),
-        mk('No cerrados a tiempo (>16 días)', 0, '#ef4444'),
-      ];
+    const mk = (label, value, color) => ({ id: label, label, value: Number(value) || 0, color });
+    // Priorizar camelCase, aceptar snake_case por compatibilidad
+    let onTime = Number(stats?.closedOnTimeCount ?? stats?.closed_on_time_count) || 0;
+    let late = Number(stats?.closedLateCount ?? stats?.closed_late_count) || 0;
+    // Fallback: si el backend no trae conteos (o vienen 0) y hay reportes cerrados cargados, calcular en cliente
+    if (onTime === 0 && late === 0 && Array.isArray(closedReports) && closedReports.length > 0) {
+      let cerradosATiempo = 0;
+      let noCerradosATiempo = 0;
+      closedReports.forEach((report) => {
+        const creadoEn = report.creado_en ? new Date(report.creado_en) : null;
+        const fechaCierre = report.fecha_revision
+          ? new Date(report.fecha_revision)
+          : (report.actualizado_en ? new Date(report.actualizado_en) : report.updated_at ? new Date(report.updated_at) : null);
+        if (creadoEn && fechaCierre && !isNaN(creadoEn.getTime()) && !isNaN(fechaCierre.getTime())) {
+          const diffDays = Math.floor((fechaCierre - creadoEn) / 86400000);
+          if (diffDays <= 15) cerradosATiempo++;
+          else noCerradosATiempo++;
+        }
+      });
+      onTime = cerradosATiempo;
+      late = noCerradosATiempo;
     }
-
-    let cerradosATiempo = 0;
-    let noCerradosATiempo = 0;
-
-    closedReports.forEach(report => {
-      const fechaCreacion = report.creado_en ? new Date(report.creado_en) : null;
-      const fechaCierre = report.fecha_cierre
-        ? new Date(report.fecha_cierre)
-        : (report.actualizado_en ? new Date(report.actualizado_en) : null);
-
-      if (fechaCreacion && fechaCierre && !isNaN(fechaCreacion.getTime()) && !isNaN(fechaCierre.getTime())) {
-        const diffDays = Math.ceil((fechaCierre - fechaCreacion) / (1000 * 60 * 60 * 24));
-        if (diffDays <= 15) cerradosATiempo++;
-        else noCerradosATiempo++;
-      }
-    });
-
     return [
-      mk('Cerrados a tiempo (≤15 días)', cerradosATiempo, '#22c55e'),
-      mk('No cerrados a tiempo (>16 días)', noCerradosATiempo, '#ef4444'),
+      mk('Cerrados a tiempo (≤15 días)', onTime, '#22c55e'),
+      mk('No cerrados a tiempo (>16 días)', late, '#ef4444'),
     ];
-  }, [closedReports]);
+  }, [stats?.closedOnTimeCount, stats?.closedLateCount, stats?.closed_on_time_count, stats?.closed_late_count, closedReports]);
 
   const closureEffectivenessPercent = useMemo(() => {
     const total = closureEffectiveness.reduce((acc, d) => acc + (Number(d.value) || 0), 0);
@@ -1662,6 +1745,14 @@ const Dashboard = () => {
     const rechazados = Number(stats?.kpis?.rechazados) || 0;
     return [{ estado: 'Reportes', Pendientes: pendientes, 'En Revisión': enRevision, Aprobados: aprobados, Rechazados: rechazados }];
   }, [stats?.kpis, selectedPeriod]);
+
+  // Loading reutilizado (igual al de gráficos) - aplica a anual/trimestral/mensual
+  const dashboardLoadingContent = (
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
+      <p className="text-base text-gray-300 mt-4">Cargando...</p>
+    </div>
+  );
 
   return (
     <>
@@ -1877,46 +1968,53 @@ const Dashboard = () => {
             </div>
             {/* Indicador visual del período activo */}
             {selectedPeriod && (
-              <div className={`text-sm text-gray-300 bg-gray-800/50 px-4 py-2 rounded-lg border transition-all duration-300 ${
-                loading ? 'border-yellow-500 animate-pulse' : 'border-gray-700'
-              }`}>
-                <div className="flex items-center gap-3">
-                  <span className="font-semibold">Período activo: </span>
-                  <span className={`inline-flex items-center gap-2 font-bold ${
-                    selectedPeriod === 'month' ? 'text-blue-300' :
-                    selectedPeriod === 'quarter' ? 'text-green-300' :
-                    'text-orange-300'
-                  }`}>
-                    {selectedPeriod === 'month' ? <><Calendar className="w-4 h-4" /> Mes actual</> :
-                     selectedPeriod === 'quarter' ? <><BarChart2 className="w-4 h-4" /> Trimestre actual</> :
-                     <><TrendingUp className="w-4 h-4" /> Año actual</>}
-                  </span>
-                  {loading ? (
-                    <span className="ml-3 inline-flex items-center gap-2 text-xs text-yellow-400 animate-pulse">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Actualizando datos...
+              <div style={loading ? { display: 'flex', justifyContent: 'center', width: '100%', marginTop: '16px' } : undefined}>
+                <div className={`text-sm text-gray-300 bg-gray-800/50 px-4 py-2 rounded-lg border transition-all duration-300 ${
+                  loading ? 'border-yellow-500 animate-pulse' : 'border-gray-700'
+                }`}>
+                  <div className={`flex items-center gap-3 ${loading ? 'justify-center' : ''}`}>
+                    <span className="font-semibold">Período activo: </span>
+                    <span className={`inline-flex items-center gap-2 font-bold ${
+                      selectedPeriod === 'month' ? 'text-blue-300' :
+                      selectedPeriod === 'quarter' ? 'text-green-300' :
+                      'text-orange-300'
+                    }`}>
+                      {selectedPeriod === 'month' ? <><Calendar className="w-4 h-4" /> Mes actual</> :
+                       selectedPeriod === 'quarter' ? <><BarChart2 className="w-4 h-4" /> Trimestre actual</> :
+                       <><TrendingUp className="w-4 h-4" /> Año actual</>}
                     </span>
-                  ) : stats ? (
-                    <>
-                      <span className="ml-3 text-xs text-gray-400">
-                        | Total reportes: <span className="font-bold text-white">{stats?.kpis?.total_reportes || 0}</span>
-                      </span>
-                      <span className="ml-3 text-xs text-gray-400">
-                        | Pendientes: <span className="font-bold text-yellow-400">{stats?.kpis?.pendientes || 0}</span>
-                      </span>
-                      <span className="ml-3 text-xs text-gray-400">
-                        | Cerrados: <span className="font-bold text-green-400">{totalCerrados}</span>
-                      </span>
-                    </>
-                  ) : null}
+                    {!loading && stats ? (
+                      <>
+                        <span className="ml-3 text-xs text-gray-400">
+                          | Total reportes: <span className="font-bold text-white">{stats?.kpis?.total_reportes || 0}</span>
+                        </span>
+                        <span className="ml-3 text-xs text-gray-400">
+                          | Pendientes: <span className="font-bold text-yellow-400">{stats?.kpis?.pendientes || 0}</span>
+                        </span>
+                        <span className="ml-3 text-xs text-gray-400">
+                          | En revisión: <span className="font-bold text-blue-400">{enRevision}</span>
+                        </span>
+                        <span className="ml-3 text-xs text-gray-400">
+                          | Cerrados: <span className="font-bold text-green-400">{totalCerrados}</span>
+                        </span>
+                      </>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {loading && <div className="text-center text-base text-gray-300 col-span-full">Cargando KPIs...</div>}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {loading && (
+              <div
+                className="col-span-full"
+                style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '200px' }}
+              >
+                {dashboardLoadingContent}
+              </div>
+            )}
             {error && <div className="text-center text-base text-red-500 col-span-full">{error}</div>}
             {!loading && !error && kpis.map((kpi, index) => (
               <div 
@@ -1944,7 +2042,14 @@ const Dashboard = () => {
 
           {/* Charts Grid - Enhanced */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-            {loading && <div className="text-center text-base text-gray-300 col-span-full">Cargando gráficos...</div>}
+            {loading && (
+              <div
+                className="col-span-full"
+                style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '450px' }}
+              >
+                {dashboardLoadingContent}
+              </div>
+            )}
             {error && <div className="text-center text-base text-red-500 col-span-full">{error}</div>}
             {!loading && !error && (
               <>
@@ -2190,7 +2295,14 @@ const Dashboard = () => {
 
           {/* Second Row Charts - Enhanced */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-            {loading && <div className="text-center text-base text-gray-300 col-span-full">Cargando gráficos...</div>}
+            {loading && (
+              <div
+                className="col-span-full"
+                style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '450px' }}
+              >
+                {dashboardLoadingContent}
+              </div>
+            )}
             {error && <div className="text-center text-base text-red-500 col-span-full">{error}</div>}
             {!loading && !error && (
               <>
@@ -2378,8 +2490,9 @@ const Dashboard = () => {
                       arcLinkLabelsColor={{ from: 'color' }}
                       arcLabelsSkipAngle={999}
                       enableArcLabels={false}
-                      tooltip={({ id, value, label }) => {
-                        const total = closureEffectiveness.reduce((acc, d) => acc + (Number(d.value) || 0), 0);
+                      tooltip={({ datum }) => {
+                        const casos = Number(datum?.value) ?? 0;
+                        const label = datum?.label ?? datum?.id ?? '';
                         return (
                           <div style={{
                             background: '#1f2937',
@@ -2391,13 +2504,8 @@ const Dashboard = () => {
                           }}>
                             <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{label}</div>
                             <div style={{ fontSize: '14px' }}>
-                              <strong>{value}</strong> caso{value !== 1 ? 's' : ''}
+                              Casos: {casos}
                             </div>
-                            {total > 0 && (
-                              <div style={{ fontSize: '12px', marginTop: '4px', color: '#d1d5db' }}>
-                                {Math.round((value / total) * 100)}% del total
-                              </div>
-                            )}
                           </div>
                         );
                       }}
@@ -2843,6 +2951,7 @@ const Dashboard = () => {
                   title={isMisReportesVista ? 'Mis Reportes' : 'Todos los Reportes'}
                   containerClassName=""
                   useDarkTheme={true}
+                  onStatusChange={refreshStats}
                   externalFilters={{ 
                     proceso: dashboardProceso || undefined,
                     ...(isMisReportesVista && user?.id ? { user_id: user.id } : {})

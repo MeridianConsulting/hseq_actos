@@ -1,6 +1,7 @@
 // Cliente HTTP único usando axios
 import http from './http';
 import { apiBaseUrl } from '../config/api';
+import { getHeader } from '../utils/downloadHelper';
 
 // Función helper para manejar respuestas de axios
 const handleResponse = (response) => response.data;
@@ -295,38 +296,59 @@ export const evidenceService = {
     getEvidenceBlob: (() => {
         const cache = new Map(); // evidenceId -> { blob, contentType, fileName, ts }
         const ttlMs = 5 * 60 * 1000;
+        const DOWNLOAD_TIMEOUT_MS = 60000;
+        const MAX_RETRIES = 2;
+        const RETRY_DELAY_MS = 600;
+        const doRequest = async (evidenceId, token) => {
+            const q = token ? `?token=${encodeURIComponent(token)}` : '';
+            return http.get(`evidencias/${evidenceId}${q}`, {
+                responseType: 'blob',
+                timeout: DOWNLOAD_TIMEOUT_MS,
+            });
+        };
         return async (evidenceId) => {
             const now = Date.now();
             const cached = cache.get(evidenceId);
             if (cached && (now - cached.ts) < ttlMs) {
                 return { blob: cached.blob, contentType: cached.contentType, fileName: cached.fileName };
             }
-            try {
-                const token = localStorage.getItem('token');
-                const q = token ? `?token=${encodeURIComponent(token)}` : '';
-                const response = await http.get(`evidencias/${evidenceId}${q}`, { responseType: 'blob' });
-                const disp = response.headers.get('content-disposition') || '';
-                let fileName;
-                const match = /filename="?([^";]+)"?/i.exec(disp);
-                if (match && match[1]) fileName = match[1];
-                let contentType = response.headers.get('content-type') || 'application/octet-stream';
-                const isUseful = contentType === 'application/pdf' || contentType.startsWith('image/') || contentType.startsWith('video/');
-                if (!isUseful) {
-                    const ext = (fileName || '').split('.').pop()?.toLowerCase();
-                    const map = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', pdf: 'application/pdf', mp4: 'video/mp4', webm: 'video/webm', ogg: 'video/ogg', mov: 'video/quicktime' };
-                    if (ext && map[ext]) {
-                        contentType = map[ext];
+            const token = localStorage.getItem('token');
+            let response;
+            let lastErr;
+            for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+                try {
+                    response = await doRequest(evidenceId, token);
+                    break;
+                } catch (error) {
+                    lastErr = error;
+                    const status = error.response?.status;
+                    const isRetryable = status >= 500 || error.code === 'ECONNABORTED' || error.message === 'Network Error';
+                    if (!isRetryable || attempt === MAX_RETRIES) {
+                        throw new Error(error.response?.data instanceof Blob ? 'No se pudo descargar la evidencia' : (error.response?.data?.message || 'No se pudo descargar la evidencia'));
                     }
+                    await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
                 }
-                const blob = (contentType && contentType !== 'application/octet-stream')
-                    ? new Blob([response.data], { type: contentType })
-                    : response.data;
-                const value = { blob, contentType, fileName, ts: now };
-                cache.set(evidenceId, value);
-                return { blob, contentType, fileName };
-            } catch (error) {
-                throw new Error(error.response?.data?.message || 'No se pudo descargar la evidencia');
             }
+            if (!response) throw new Error(lastErr?.response?.data?.message || 'No se pudo descargar la evidencia');
+            const disp = getHeader(response.headers, 'content-disposition') || '';
+            let fileName;
+            const match = /filename="?([^";]+)"?/i.exec(disp);
+            if (match && match[1]) fileName = match[1];
+            let contentType = getHeader(response.headers, 'content-type') || 'application/octet-stream';
+            const isUseful = contentType === 'application/pdf' || contentType.startsWith('image/') || contentType.startsWith('video/');
+            if (!isUseful) {
+                const ext = (fileName || '').split('.').pop()?.toLowerCase();
+                const map = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', pdf: 'application/pdf', mp4: 'video/mp4', webm: 'video/webm', ogg: 'video/ogg', mov: 'video/quicktime' };
+                if (ext && map[ext]) {
+                    contentType = map[ext];
+                }
+            }
+            const blob = (contentType && contentType !== 'application/octet-stream')
+                ? new Blob([response.data], { type: contentType })
+                : response.data;
+            const value = { blob, contentType, fileName, ts: now };
+            cache.set(evidenceId, value);
+            return { blob, contentType, fileName };
         };
     })(),
 

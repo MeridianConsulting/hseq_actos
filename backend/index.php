@@ -295,6 +295,15 @@ function handleRequest($method, $path){
         if (ob_get_length()) { ob_clean(); }
         // Limpiar cabeceras que interfieren con contenido binario
         foreach (['Content-Type','Content-Security-Policy','X-Frame-Options','Cache-Control','Pragma'] as $h) { @header_remove($h); }
+        // CORS explícito para respuesta binaria (fetch desde frontend localhost/producción)
+        $reqOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
+        $allowedOrigins = ['http://localhost:3000', 'https://hseq.meridianltda.com', 'http://hseq.meridianltda.com'];
+        if ($reqOrigin && in_array($reqOrigin, $allowedOrigins)) {
+            header('Access-Control-Allow-Origin: ' . $reqOrigin);
+        } else {
+            header('Access-Control-Allow-Origin: https://hseq.meridianltda.com');
+        }
+        header('Access-Control-Expose-Headers: Content-Disposition, Content-Type, Content-Length');
         // Establecer cabeceras correctas para entrega binaria
         header('Content-Type: ' . $contentType);
         header('Content-Disposition: inline; filename="' . basename($row['url_archivo']) . '"');
@@ -1287,6 +1296,15 @@ function handleRequest($method, $path){
             
             $contentType = $mimeTypes[$extension] ?? 'application/octet-stream';
             
+            // CORS explícito para que el frontend (localhost:3000 o producción) pueda hacer fetch de la imagen
+            $reqOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
+            $allowedOrigins = ['http://localhost:3000', 'https://hseq.meridianltda.com', 'http://hseq.meridianltda.com'];
+            if ($reqOrigin && in_array($reqOrigin, $allowedOrigins)) {
+                header('Access-Control-Allow-Origin: ' . $reqOrigin);
+            } else {
+                header('Access-Control-Allow-Origin: https://hseq.meridianltda.com');
+            }
+            header('Access-Control-Expose-Headers: Content-Disposition, Content-Type, Content-Length');
             // Servir el archivo
             header('Content-Type: ' . $contentType);
             header('Content-Length: ' . filesize($filePath));

@@ -263,10 +263,8 @@ class PdfController {
                     color: #666;
                 }
                 .evidencias-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                    gap: 15px;
-                    margin-top: 15px;
+                    display: block;
+                    margin-top: 10px;
                 }
                 .evidencia-item {
                     border: 1px solid #ddd;
@@ -274,10 +272,21 @@ class PdfController {
                     overflow: hidden;
                 }
                 .evidencia-imagen {
-                    width: 100%;
-                    max-height: 150px;
-                    object-fit: cover;
-                    border-bottom: 1px solid #ddd;
+                    max-width: 12cm;
+                    max-height: 9.5cm;
+                    width: auto;
+                    height: auto;
+                    object-fit: contain;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 4px;
+                    margin: 8px 0;
+                    display: block;
+                }
+                .evidencia-caption {
+                    font-size: 10px;
+                    color: #666;
+                    margin-top: 4px;
+                    font-style: italic;
                 }
                 .evidencia-info {
                     padding: 10px;
@@ -378,20 +387,21 @@ class PdfController {
             $html .= '</div></div>';
         }
 
-        // Evidencias
-        if (!empty($evidencias)) {
-            $html .= '
+        // Evidencia fotográfica (siempre mostrar la sección)
+        $html .= '
             <div class="section">
-                <h3>EVIDENCIAS ADJUNTAS</h3>
-                <div class="section-content">
-                    <div class="evidencias-grid">';
-            
+                <h3>EVIDENCIA FOTOGRÁFICA</h3>
+                <div class="section-content">';
+        if (empty($evidencias)) {
+            $html .= '<p style="text-align:center;color:#999;font-style:italic;">Sin evidencia fotográfica</p>';
+        } else {
+            $html .= '<div class="evidencias-grid">';
             foreach ($evidencias as $evidencia) {
                 $html .= $this->generateEvidenciaHTML($evidencia);
             }
-            
-            $html .= '</div></div></div>';
+            $html .= '</div>';
         }
+        $html .= '</div></div>';
 
         // Información adicional
         $html .= '
@@ -497,25 +507,76 @@ class PdfController {
     }
     
     /**
-     * Genera HTML para una evidencia individual (SIN imágenes para evitar errores)
+     * Obtiene la ruta local del archivo de evidencia (segura, solo dentro de uploads)
+     */
+    private function getEvidenceFilePath($evidencia) {
+        $fileName = trim((string)($evidencia['url_archivo'] ?? ''));
+        $fileName = basename($fileName);
+        if ($fileName === '') return null;
+        $uploadsDir = realpath(__DIR__ . '/../uploads');
+        if (!$uploadsDir || !is_dir($uploadsDir)) return null;
+        $filePath = $uploadsDir . DIRECTORY_SEPARATOR . $fileName;
+        if (is_file($filePath)) return $filePath;
+        $base = pathinfo($fileName, PATHINFO_FILENAME);
+        if ($base) {
+            $glob = glob($uploadsDir . DIRECTORY_SEPARATOR . $base . '.*');
+            if (!empty($glob)) return $glob[0];
+        }
+        return null;
+    }
+    
+    /**
+     * Indica si la evidencia es una imagen por tipo MIME o extensión
+     */
+    private function isImageEvidence($evidencia) {
+        $tipo = strtolower(trim((string)($evidencia['tipo_archivo'] ?? '')));
+        if (strpos($tipo, 'image/') === 0) return true;
+        $name = strtolower($evidencia['url_archivo'] ?? '');
+        return (bool)preg_match('/\.(jpe?g|png|gif|webp|bmp)$/', $name);
+    }
+    
+    /**
+     * Lee el archivo de imagen y lo devuelve como data URI (base64) o null
+     */
+    private function getEvidenceImageDataUri($evidencia) {
+        if (!$this->isImageEvidence($evidencia)) return null;
+        $filePath = $this->getEvidenceFilePath($evidencia);
+        if (!$filePath || !is_readable($filePath)) return null;
+        $size = @filesize($filePath);
+        if ($size === false || $size > 8 * 1024 * 1024) return null; // máx 8MB
+        $bin = @file_get_contents($filePath);
+        if ($bin === false) return null;
+        $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        $mime = 'image/jpeg';
+        if (in_array($ext, ['png'], true)) $mime = 'image/png';
+        elseif (in_array($ext, ['gif'], true)) $mime = 'image/gif';
+        elseif (in_array($ext, ['webp'], true)) $mime = 'image/webp';
+        elseif (in_array($ext, ['bmp'], true)) $mime = 'image/bmp';
+        return 'data:' . $mime . ';base64,' . base64_encode($bin);
+    }
+    
+    /**
+     * Genera HTML para una evidencia individual; incrusta imagen en base64 si es imagen
      */
     private function generateEvidenciaHTML($evidencia) {
         $fileName = basename($evidencia['url_archivo'] ?? 'archivo');
         $fileType = $evidencia['tipo_archivo'] ?? 'desconocido';
         
-        // Simplificado: Solo mostrar información de la evidencia sin intentar incrustar imágenes
-        $html = '<div class="evidencia-item" style="border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-bottom: 10px;">';
-        
-        // Icono placeholder
+        $html = '<div class="evidencia-item" style="border: 1px solid #e0e0e0; border-radius: 5px; padding: 12px; margin-bottom: 15px;">';
         $html .= '<div class="evidencia-info">';
-        $html .= '<div style="margin-bottom: 5px;"><strong>📎 Evidencia Adjunta</strong></div>';
-        $html .= '<div style="margin-bottom: 3px;"><strong>Archivo:</strong> ' . htmlspecialchars($fileName) . '</div>';
-        $html .= '<div style="margin-bottom: 3px;"><strong>Tipo:</strong> ' . htmlspecialchars($fileType) . '</div>';
-        $html .= '<div><strong>Fecha:</strong> ' . $this->formatDate($evidencia['creado_en']) . '</div>';
-        $html .= '<div style="margin-top: 5px; color: #666; font-size: 11px;"><em>Nota: Las imágenes están disponibles en el sistema web</em></div>';
-        $html .= '</div>';
-        $html .= '</div>';
+        $html .= '<div style="margin-bottom: 5px;"><strong>Evidencia: ' . htmlspecialchars($fileName) . '</strong></div>';
         
+        $dataUri = $this->getEvidenceImageDataUri($evidencia);
+        if ($dataUri !== null) {
+            $html .= '<img class="evidencia-imagen" src="' . $dataUri . '" alt="Evidencia" />';
+            $html .= '<div class="evidencia-caption">Fecha: ' . $this->formatDate($evidencia['creado_en'] ?? '') . '</div>';
+        } else {
+            $html .= '<div style="margin-bottom: 3px;"><strong>Tipo:</strong> ' . htmlspecialchars($fileType) . '</div>';
+            $html .= '<div><strong>Fecha:</strong> ' . $this->formatDate($evidencia['creado_en']) . '</div>';
+            $html .= '<p style="color:#999;font-style:italic;margin-top:6px;">[Imagen no disponible]</p>';
+        }
+        
+        $html .= '</div></div>';
         return $html;
     }
     

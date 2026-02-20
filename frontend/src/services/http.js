@@ -4,6 +4,7 @@ import { apiBaseUrl } from '../config/api';
 const http = axios.create({
   baseURL: apiBaseUrl, // p.ej. '/backend/api'
   withCredentials: false,
+  timeout: 30000, // 30s por defecto; descargas usan timeout mayor en la petición
 });
 
 // Interceptor para agregar token de autenticación a todas las peticiones

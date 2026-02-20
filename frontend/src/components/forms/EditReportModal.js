@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReportService from '../../services/reportService';
 import SuccessAnimation from '../SuccessAnimation';
+import { getTodayLocal } from './FormInputs';
 
 const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
   const [formData, setFormData] = useState({});
@@ -209,6 +210,7 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
                     value={formData.fecha_evento || ''}
                     onChange={handleInputChange}
                     required
+                    max={getTodayLocal()}
                     className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   />
                 </div>
@@ -384,6 +386,7 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
                     value={formData.fecha_evento || ''}
                     onChange={handleInputChange}
                     required
+                    max={getTodayLocal()}
                     className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   />
                 </div>
@@ -526,6 +529,7 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
                     value={formData.fecha_evento || ''}
                     onChange={handleInputChange}
                     required
+                    max={getTodayLocal()}
                     className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   />
                 </div>

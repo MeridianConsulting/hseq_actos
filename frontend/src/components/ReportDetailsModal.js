@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import ReportService from '../services/reportService';
 import { evidenceService } from '../services/api';
 import { buildApi, buildUploadsUrl } from '../config/api';
+import { downloadBlob, downloadFileWithRetry } from '../utils/downloadHelper';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 import { Document, Page, Text, View, StyleSheet, pdf, Image } from '@react-pdf/renderer';
@@ -67,27 +68,42 @@ const pdfStyles = StyleSheet.create({
     marginTop: 20,
   },
   evidenceItem: {
-    marginBottom: 15,
-    padding: 10,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 5,
+    marginBottom: 20,
+    padding: 12,
+    backgroundColor: '#fafafa',
+    borderRadius: 4,
+    border: '1px solid #e0e0e0',
+  },
+  evidenceImageWrap: {
+    marginTop: 8,
+    marginBottom: 8,
+    alignItems: 'center',
   },
   evidenceImage: {
-    width: '100%',
-    maxWidth: 400,
-    height: 'auto',
-    marginTop: 10,
-    marginBottom: 10,
+    maxWidth: 340,
+    maxHeight: 255,
+    objectFit: 'contain',
+  },
+  evidenceCaption: {
+    fontSize: 9,
+    color: '#666',
+    marginTop: 6,
+    fontStyle: 'italic',
   },
   evidenceName: {
     fontSize: 11,
-    color: '#666',
-    marginBottom: 5,
+    color: '#333',
+    marginBottom: 4,
+    fontWeight: 'bold',
   },
   noImageText: {
     fontSize: 10,
     color: '#999',
     fontStyle: 'italic',
+  },
+  noEvidenceSection: {
+    padding: 12,
+    textAlign: 'center',
   },
 });
 
@@ -260,32 +276,49 @@ const HseqReportDocument = ({ report, evidencias = [] }) => (
         </View>
       </View>
 
-      {evidencias && evidencias.length > 0 && (
-        <View style={pdfStyles.section}>
-          <View style={pdfStyles.sectionHeader}>
-            <Text>EVIDENCIAS ({evidencias.length})</Text>
-          </View>
-          <View style={pdfStyles.sectionContent}>
-            {evidencias.map((evidencia, index) => (
+      <View style={pdfStyles.section}>
+        <View style={pdfStyles.sectionHeader}>
+          <Text>EVIDENCIA FOTOGRÁFICA</Text>
+        </View>
+        <View style={pdfStyles.sectionContent}>
+          {(!evidencias || evidencias.length === 0) ? (
+            <View style={pdfStyles.noEvidenceSection}>
+              <Text style={pdfStyles.noImageText}>Sin evidencia fotográfica</Text>
+            </View>
+          ) : (
+            evidencias.map((evidencia, index) => (
               <View key={index} style={pdfStyles.evidenceItem}>
                 <Text style={pdfStyles.evidenceName}>
                   Evidencia {index + 1}: {evidencia.nombre_archivo || 'Sin nombre'}
                 </Text>
                 {evidencia.imageDataUrl ? (
-                  <Image 
-                    src={evidencia.imageDataUrl} 
-                    style={pdfStyles.evidenceImage}
-                  />
+                  <View style={pdfStyles.evidenceImageWrap}>
+                    <Image
+                      src={evidencia.imageDataUrl}
+                      style={[
+                        pdfStyles.evidenceImage,
+                        evidencia.imageWidth && evidencia.imageHeight
+                          ? { width: evidencia.imageWidth, height: evidencia.imageHeight }
+                          : {},
+                      ]}
+                    />
+                    <Text style={pdfStyles.evidenceCaption}>
+                      {evidencia.creado_en
+                        ? new Date(evidencia.creado_en).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                        : ''}
+                      {(evidencia.descripcion && String(evidencia.descripcion).trim())
+                        ? ` — ${String(evidencia.descripcion).trim().slice(0, 60)}${String(evidencia.descripcion).length > 60 ? '…' : ''}`
+                        : ''}
+                    </Text>
+                  </View>
                 ) : (
-                  <Text style={pdfStyles.noImageText}>
-                    [Imagen no disponible]
-                  </Text>
+                  <Text style={pdfStyles.noImageText}>[Imagen no disponible]</Text>
                 )}
               </View>
-            ))}
-          </View>
+            ))
+          )}
         </View>
-      )}
+      </View>
 
       <View style={pdfStyles.section}>
         <View style={pdfStyles.sectionHeader}>
@@ -401,53 +434,60 @@ const rasterizeBlobToJPEG = async (blob, maxW = 1024, maxH = 768, quality = 0.9)
   }
 };
 
-// Obtiene blob de evidencia (usa el cache de evidenceUrls si existe)
+// Obtiene blob de evidencia. Prioriza API (mismo origen/CORS controlado) para evitar CORS en /uploads
 const getEvidenceBlob = async (evidenciaId, evidenceUrls, evidenceService, evObj) => {
   const cached = evidenceUrls?.[evidenciaId];
   if (cached?.blob) {
     if (await isProbablyImageBlob(cached.blob)) {
       return { blob: cached.blob, contentType: cached.contentType || '' };
     }
-    // blob malo en caché → ignorar y seguir
   }
 
-  // 1) Intento URL pública (ya sabemos que funciona)
-  try {
-    const url = resolveEvidenceUrl(evObj);
-    const resp = await fetch(url, { method: 'GET', headers: { 'Accept': 'image/*' }, mode: 'cors' });
-    if (resp.ok) {
-      let pubBlob = await resp.blob();
-      pubBlob = coerceImageBlobType(pubBlob, evObj);
-      if (await isProbablyImageBlob(pubBlob)) {
-        return { blob: pubBlob, contentType: pubBlob.type || '' };
-      }
-    }
-  } catch (_) {}
-
-  // 2) Intento service
+  // 1) API (evita CORS: la API ya envía Access-Control-Allow-Origin para el frontend)
   try {
     const { blob, contentType } = await evidenceService.getEvidenceBlob(evidenciaId);
     let out = coerceImageBlobType(blob, evObj);
-    if (!(await isProbablyImageBlob(out))) {
-      out = coerceImageBlobType(await fetchApiImageBlob(evidenciaId), evObj);
+    if (await isProbablyImageBlob(out)) {
+      return { blob: out, contentType: out.type || contentType || '' };
     }
-    if (!(await isProbablyImageBlob(out))) throw new Error('not-image');
-    return { blob: out, contentType: out.type || contentType || '' };
+    out = coerceImageBlobType(await fetchApiImageBlob(evidenciaId), evObj);
+    if (await isProbablyImageBlob(out)) {
+      return { blob: out, contentType: out.type || contentType || '' };
+    }
   } catch (e1) {
-    // 3) Intento API directo
-    try {
-      let apiBlob = coerceImageBlobType(await fetchApiImageBlob(evidenciaId), evObj);
-      if (!(await isProbablyImageBlob(apiBlob))) throw new Error('not-image');
+    console.warn('[getEvidenceBlob] API falló para evidencia', evidenciaId, e1?.message || e1);
+  }
+
+  // 2) API directa con fetch (por si el service falló por axios/responseType)
+  try {
+    const apiBlob = coerceImageBlobType(await fetchApiImageBlob(evidenciaId), evObj);
+    if (await isProbablyImageBlob(apiBlob)) {
       return { blob: apiBlob, contentType: apiBlob.type || '' };
-    } catch (e2) {
-      // 4) Último recurso: URL público sin validación
-      const url = resolveEvidenceUrl(evObj);
-      const resp = await fetch(url, { method: 'GET', headers: { 'Accept': 'image/*' } });
-      if (!resp.ok) throw new Error(`Public HTTP ${resp.status}`);
-      const pubBlob = coerceImageBlobType(await resp.blob(), evObj);
+    }
+  } catch (e2) {
+    console.warn('[getEvidenceBlob] fetchApiImageBlob falló para evidencia', evidenciaId, e2?.message || e2);
+  }
+
+  // 3) Proxy API uploads (misma app, CORS controlado) — evita fetch directo a /backend/uploads que no envía CORS
+  try {
+    const fileName = String(evObj?.url_archivo || '').replace(/^uploads\//, '').trim();
+    if (!fileName) throw new Error('url_archivo vacío');
+    const apiUrl = buildApi('uploads/' + encodeURIComponent(fileName));
+    const resp = await fetch(apiUrl, { method: 'GET', headers: { Accept: 'image/*' }, credentials: 'include' });
+    if (!resp.ok) {
+      console.warn('[getEvidenceBlob] API uploads no OK', evidenciaId, resp.status, resp.statusText);
+      throw new Error(`API uploads HTTP ${resp.status}`);
+    }
+    const pubBlob = coerceImageBlobType(await resp.blob(), evObj);
+    if (await isProbablyImageBlob(pubBlob)) {
       return { blob: pubBlob, contentType: pubBlob.type || '' };
     }
+  } catch (e3) {
+    const msg = e3?.message || String(e3);
+    console.warn('[getEvidenceBlob] API uploads falló para evidencia', evidenciaId, msg);
   }
+
+  throw new Error('No se pudo obtener la imagen (API y URL pública fallaron)');
 };
 
 // Azúcar: devuelve {dataUrl,width,height} listo para PDF/Excel (fuerza JPEG)
@@ -939,17 +979,16 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                 }
               }
               
-              // Estrategia 3: Intentar cargar directamente desde URL pública (con manejo de CORS)
+              // Estrategia 3: API uploads (proxy con CORS) — evita fetch directo a /backend/uploads
               if (!imageDataUrl && evidencia.url_archivo) {
-                console.log('Intentando cargar desde URL pública:', evidencia.url_archivo);
+                console.log('Intentando cargar desde API uploads:', evidencia.url_archivo);
                 try {
-                  const publicUrl = buildUploadsUrl(evidencia.url_archivo);
-                  const response = await fetch(publicUrl, {
-                    mode: 'cors',
-                    credentials: 'include',
-                    headers: {
-                      'Accept': 'image/*'
-                    }
+                  const fileName = String(evidencia.url_archivo || '').replace(/^uploads\//, '').trim();
+                  const apiUrl = buildApi('uploads/' + encodeURIComponent(fileName));
+                  const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: { 'Accept': 'image/*' },
+                    credentials: 'include'
                   });
                   if (response.ok) {
                     const blob = await response.blob();
@@ -960,12 +999,12 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                         reader.onerror = reject;
                         reader.readAsDataURL(blob);
                       });
-                      console.log('Imagen cargada desde URL pública para Excel:', evidencia.id);
+                      console.log('Imagen cargada desde API uploads para Excel:', evidencia.id);
                     }
                   }
                 } catch (urlError) {
-                  console.warn('Error al cargar desde URL pública (CORS bloqueado):', urlError.message);
-                  // Intentar última estrategia: API autenticada
+                  console.warn('Error al cargar desde API uploads:', urlError.message);
+                  // Fallback: API evidencias/:id
                   try {
                     const token = localStorage.getItem('token') || '';
                     const apiUrl = buildApi(`evidencias/${evidencia.id}`);
@@ -973,7 +1012,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                       method: 'GET',
                       headers: {
                         'Accept': 'image/*',
-                        'Authorization': `Bearer ${token}`
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                       },
                       credentials: 'include'
                     });
@@ -986,11 +1025,11 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                           reader.onerror = reject;
                           reader.readAsDataURL(apiBlob);
                         });
-                        console.log('Imagen cargada desde API autenticada para Excel:', evidencia.id);
+                        console.log('Imagen cargada desde API evidencias para Excel:', evidencia.id);
                       }
                     }
                   } catch (apiError) {
-                    console.warn('Error al cargar desde API autenticada:', apiError.message);
+                    console.warn('Error al cargar desde API evidencias:', apiError.message);
                   }
                 }
               }
@@ -1125,6 +1164,12 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
     }
   };
 
+  /**
+   * Genera el PDF del reporte con jsPDF (frontend). Imágenes: se obtienen vía API (GET /api/evidencias/:id)
+   * para evitar CORS con /uploads; se redimensionan a JPEG y se embeben con doc.addImage().
+   * Si no se puede obtener la imagen se muestra "[Imagen no disponible]". Verificación: descargar PDF,
+   * abrir y comprobar sección "EVIDENCIA FOTOGRÁFICA"; el tamaño del PDF debe aumentar al incluir foto.
+   */
   const handleDownloadFullReportPdf = async () => {
     try {
       if (!report) return;
@@ -1154,91 +1199,61 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
           
           if (esImagen) {
             try {
-              let imageDataUrl = null;
-              
-              // Estrategia 1: Usar el blob cache si está disponible
+              let blob = null;
               const cached = evidenceUrls[evidencia.id];
-              if (cached && cached.blob) {
-                console.log('Usando blob del cache para evidencia', evidencia.id);
-                
-                if (await isProbablyImageBlob(cached.blob)) {
+              if (cached?.blob && (await isProbablyImageBlob(cached.blob))) {
+                blob = cached.blob;
+                console.log('Blob desde cache para evidencia', evidencia.id);
+              }
+              if (!blob) {
+                try {
+                  const out = await getEvidenceBlob(evidencia.id, evidenceUrls, evidenceService, evidencia);
+                  if (out?.blob && (await isProbablyImageBlob(out.blob))) blob = out.blob;
+                } catch (_) {}
+              }
+              if (!blob && evidencia.url_archivo) {
+                try {
+                  const fileName = String(evidencia.url_archivo || '').replace(/^uploads\//, '').trim();
+                  const apiUrl = buildApi('uploads/' + encodeURIComponent(fileName));
+                  const response = await fetch(apiUrl, { method: 'GET', headers: { Accept: 'image/*' }, credentials: 'include' });
+                  if (response.ok) {
+                    const b = await response.blob();
+                    if (await isProbablyImageBlob(b)) blob = coerceImageBlobType(b, evidencia);
+                  }
+                } catch (_) {}
+              }
+              if (blob) {
+                try {
+                  const resized = await rasterizeBlobToJPEG(blob, 340, 255, 0.88);
+                  evidenciasConImagenes.push({
+                    ...evidencia,
+                    imageDataUrl: resized.dataUrl,
+                    imageWidth: resized.width,
+                    imageHeight: resized.height,
+                  });
+                  console.log('Imagen agregada al PDF:', evidencia.id);
+                } catch (resizeErr) {
+                  console.warn('Redimensionado fallido, usando data URL directo:', resizeErr);
                   const reader = new FileReader();
-                  imageDataUrl = await new Promise((resolve, reject) => {
+                  const dataUrl = await new Promise((resolve, reject) => {
                     reader.onloadend = () => resolve(reader.result);
                     reader.onerror = reject;
-                    reader.readAsDataURL(cached.blob);
+                    reader.readAsDataURL(blob);
                   });
-                  console.log('Imagen cargada desde cache:', evidencia.id);
+                  evidenciasConImagenes.push({
+                    ...evidencia,
+                    imageDataUrl: dataUrl,
+                    imageWidth: 340,
+                    imageHeight: 255,
+                  });
                 }
-              }
-              
-              // Estrategia 2: Intentar cargar desde el servidor
-              if (!imageDataUrl) {
-                console.log('Cargando imagen desde servidor para evidencia', evidencia.id);
-                try {
-                  const blob = await getEvidenceBlob(
-                    evidencia.id, 
-                    evidenceUrls, 
-                    evidenceService, 
-                    evidencia
-                  );
-                  
-                  if (blob && await isProbablyImageBlob(blob)) {
-                    const reader = new FileReader();
-                    imageDataUrl = await new Promise((resolve, reject) => {
-                      reader.onloadend = () => resolve(reader.result);
-                      reader.onerror = reject;
-                      reader.readAsDataURL(blob);
-                    });
-                    console.log('Imagen cargada desde servidor:', evidencia.id);
-                  }
-                } catch (loadError) {
-                  console.warn('Error al cargar imagen desde servidor:', loadError);
-                }
-              }
-              
-              // Estrategia 3: Intentar cargar directamente desde URL pública
-              if (!imageDataUrl && evidencia.url_archivo) {
-                console.log('Intentando cargar desde URL pública:', evidencia.url_archivo);
-                try {
-                  const publicUrl = buildUploadsUrl(evidencia.url_archivo);
-                  const response = await fetch(publicUrl);
-                  if (response.ok) {
-                    const blob = await response.blob();
-                    if (await isProbablyImageBlob(blob)) {
-                      const reader = new FileReader();
-                      imageDataUrl = await new Promise((resolve, reject) => {
-                        reader.onloadend = () => resolve(reader.result);
-                        reader.onerror = reject;
-                        reader.readAsDataURL(blob);
-                      });
-                      console.log('Imagen cargada desde URL pública:', evidencia.id);
-                    }
-                  }
-                } catch (urlError) {
-                  console.warn('Error al cargar desde URL pública:', urlError);
-                }
-              }
-              
-              if (imageDataUrl) {
-                evidenciasConImagenes.push({
-                  ...evidencia,
-                  imageDataUrl: imageDataUrl,
-                });
-                console.log('Imagen agregada al PDF:', evidencia.id);
               } else {
-                evidenciasConImagenes.push({
-                  ...evidencia,
-                  imageDataUrl: null,
-                });
+                evidenciasConImagenes.push({ ...evidencia, imageDataUrl: null });
                 console.warn('✗ Imagen no disponible:', evidencia.id);
               }
             } catch (error) {
               console.error(`Error al procesar imagen ${evidencia.id}:`, error);
-              evidenciasConImagenes.push({
-                ...evidencia,
-                imageDataUrl: null,
-              });
+              evidenciasConImagenes.push({ ...evidencia, imageDataUrl: null });
             }
           }
         }
@@ -1246,17 +1261,117 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       
       console.log(`Generando PDF con ${evidenciasConImagenes.length} imágenes procesadas`);
       
-      // Generar el PDF usando @react-pdf/renderer
-      const blob = await pdf(
-        <HseqReportDocument 
-          report={report} 
-          evidencias={evidenciasConImagenes}
-        />
-      ).toBlob();
-      
+      // Generar PDF con jsPDF y addImage (imagen vía API evita CORS; addImage embebe base64 de forma fiable)
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const margin = 40;
+      let y = margin;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const maxContentWidth = pageWidth - margin * 2;
+      const imgMaxW = 340;
+      const imgMaxH = 255;
+      const writeLine = (text) => {
+        const t = (text === undefined || text === null) ? '' : String(text);
+        const lines = doc.splitTextToSize(t, maxContentWidth);
+        lines.forEach((line) => { doc.text(line, margin, y); y += 14; });
+      };
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(46, 91, 186);
+      writeLine('REPORTE HSEQ DETALLADO');
+      y += 4;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(14);
+      doc.setTextColor(100, 100, 100);
+      writeLine('MERIDIAN CONSULTING LTDA');
+      y += 12;
+      doc.setDrawColor(46, 91, 186);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 16;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(40, 40, 40);
+      writeLine('INFORMACIÓN GENERAL');
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(50, 50, 50);
+      ['ID del Reporte: ' + (report.id ?? 'N/A'), 'Tipo de Reporte: ' + (report.tipo_reporte ?? 'N/A'), 'Usuario: ' + (report.nombre_usuario ?? 'N/A'), 'Proyecto: ' + (report.proyecto_usuario ?? 'No asignado'), 'Estado: ' + (report.estado ?? 'N/A'), 'Fecha del Evento: ' + (report.fecha_evento ?? '') + ' ' + (report.hora_evento ?? ''), 'Fecha de Creación: ' + (report.creado_en ?? 'N/A'), 'Asunto: ' + (report.asunto || report.asunto_conversacion || 'N/A')].forEach(writeLine);
+      y += 12;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      writeLine('DETALLES DEL REPORTE');
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      if (report.tipo_reporte === 'hallazgos') {
+        if (report.lugar_hallazgo) writeLine('Lugar del Hallazgo: ' + report.lugar_hallazgo);
+        if (report.tipo_hallazgo) writeLine('Tipo de Hallazgo: ' + report.tipo_hallazgo);
+        if (report.estado_condicion) writeLine('Estado de la Condición: ' + report.estado_condicion);
+        if (report.descripcion_hallazgo) writeLine('Descripción: ' + report.descripcion_hallazgo);
+        if (report.recomendaciones) writeLine('Recomendaciones: ' + report.recomendaciones);
+      } else if (report.tipo_reporte === 'incidentes') {
+        if (report.ubicacion_incidente) writeLine('Ubicación: ' + report.ubicacion_incidente);
+        if (report.grado_criticidad) writeLine('Grado de Criticidad: ' + report.grado_criticidad);
+        if (report.tipo_afectacion) writeLine('Tipo de Afectación: ' + report.tipo_afectacion);
+        if (report.descripcion_incidente) writeLine('Descripción: ' + report.descripcion_incidente);
+      } else if (report.tipo_reporte === 'conversaciones') {
+        if (report.tipo_conversacion) writeLine('Tipo de Conversación: ' + report.tipo_conversacion);
+        if (report.sitio_evento_conversacion) writeLine('Sitio del Evento: ' + report.sitio_evento_conversacion);
+        if (report.descripcion_conversacion) writeLine('Descripción: ' + report.descripcion_conversacion);
+      } else if (report.tipo_reporte === 'pqr') {
+        if (report.tipo_pqr) writeLine('Tipo de PQR: ' + report.tipo_pqr);
+        if (report.telefono_contacto) writeLine('Teléfono: ' + report.telefono_contacto);
+        if (report.correo_contacto) writeLine('Correo: ' + report.correo_contacto);
+        if (report.descripcion_hallazgo) writeLine('Descripción: ' + report.descripcion_hallazgo);
+      }
+      y += 14;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      writeLine('EVIDENCIA FOTOGRÁFICA');
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      if (evidenciasConImagenes.length === 0) {
+        doc.setTextColor(120, 120, 120);
+        writeLine('Sin evidencia fotográfica');
+        doc.setTextColor(50, 50, 50);
+      } else {
+        for (let i = 0; i < evidenciasConImagenes.length; i++) {
+          const ev = evidenciasConImagenes[i];
+          if (ev.imageDataUrl) {
+            const w = ev.imageWidth || imgMaxW;
+            const h = ev.imageHeight || imgMaxH;
+            if (y + h + 30 > pageHeight - 40) { doc.addPage(); y = margin; }
+            doc.setFont('helvetica', 'bold');
+            writeLine('Evidencia ' + (i + 1) + ': ' + (ev.nombre_archivo || ev.url_archivo || 'Sin nombre'));
+            doc.setFont('helvetica', 'normal');
+            try {
+              doc.addImage(ev.imageDataUrl, 'JPEG', margin, y, w, h);
+            } catch (imgErr) {
+              try { doc.addImage(ev.imageDataUrl, 'PNG', margin, y, w, h); } catch (_) { writeLine('[Imagen no disponible]'); }
+            }
+            y += h + 6;
+            const caption = ev.creado_en ? new Date(ev.creado_en).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+            if (caption) { doc.setFontSize(9); doc.setTextColor(100, 100, 100); writeLine(caption); doc.setFontSize(10); doc.setTextColor(50, 50, 50); }
+            y += 12;
+          } else {
+            writeLine('Evidencia ' + (i + 1) + ': ' + (ev.nombre_archivo || ev.url_archivo || 'Sin nombre') + ' — [Imagen no disponible]');
+            y += 8;
+          }
+        }
+      }
+      y += 14;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      writeLine('INFORMACIÓN ADICIONAL');
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      writeLine('Sistema Generador: Sistema HSEQ - Meridian Colombia');
+      writeLine('Fecha de Generación: ' + new Date().toLocaleString('es-ES'));
+      const blob = doc.output('blob');
       console.log('PDF generado, tamaño:', blob.size, 'bytes');
-      
-      // Descargar el PDF
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1264,8 +1379,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
-      
-      // Limpiar
       setTimeout(() => {
         try {
           document.body.removeChild(a);
@@ -1274,9 +1387,8 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
           console.error('Error al limpiar recursos:', cleanupError);
         }
       }, 1000);
-      
       const numImagenesIncluidas = evidenciasConImagenes.filter(e => e.imageDataUrl).length;
-      alert(`PDF generado exitosamente con ${numImagenesIncluidas} de ${evidenciasConImagenes.length} imágenes`);
+      alert('PDF generado exitosamente con ' + numImagenesIncluidas + ' de ' + evidenciasConImagenes.length + ' imágenes');
       
     } catch (e) {
       console.error('Error al generar el PDF:', e);
@@ -1521,81 +1633,34 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
        return buildUploadsUrl(s);
      };
 
-               // Función para descargar una imagen individual
+               // Función para descargar una imagen/evidencia individual (API con timeout y reintentos)
     const handleDownloadImage = async (evidencia) => {
       try {
-        // Usar la misma URL directa que funciona para la visualización
-        const imageUrl = buildPublicImageUrl(evidencia.url_archivo);
-        const response = await fetch(imageUrl, {
-          method: 'GET',
-          headers: { 
-            'Accept': 'image/*'
+        let fileName = String(evidencia.url_archivo || '').trim() || `evidencia_${evidencia.id}`;
+        const baseFileName = fileName.replace(/^uploads\//, '');
+        const token = localStorage.getItem('token') || '';
+        const apiUrl = buildApi(`evidencias/${evidencia.id}${token ? `?token=${encodeURIComponent(token)}` : ''}`);
+        try {
+          const { blob, contentType, fileName: headerFileName } = await evidenceService.getEvidenceBlob(evidencia.id);
+          if (blob && blob.size > 0) {
+            const name = headerFileName || baseFileName || fileName;
+            const ext = (name.includes('.') ? name.split('.').pop() : '').toLowerCase();
+            const hasExt = /^(jpg|jpeg|png|gif|webp|pdf|mp4|webm|doc|docx)$/.test(ext);
+            const finalName = hasExt ? name : (name + (contentType && contentType.includes('png') ? '.png' : contentType && contentType.includes('pdf') ? '.pdf' : '.jpg'));
+            downloadBlob(blob, finalName, contentType);
+            alert('Imagen descargada exitosamente: ' + finalName);
+            return;
           }
+        } catch (_) {}
+        await downloadFileWithRetry(apiUrl, baseFileName || fileName, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          timeoutMs: 60000,
+          retries: 2,
         });
-        
-        if (!response.ok) {
-          throw new Error(`Error HTTP: ${response.status}`);
-        }
-        
-        // Obtener el blob con el tipo correcto
-        const blob = await response.blob();
-        
-        // Verificar que el blob tenga contenido
-        if (!blob || blob.size === 0) {
-          throw new Error('La imagen descargada está vacía');
-        }
-        
-        // Determinar la extensión correcta del archivo
-        let fileName = evidencia.url_archivo || `evidencia_${evidencia.id}`;
-        const contentType = blob.type || evidencia.tipo_archivo || '';
-        
-        // Asegurar que tenga extensión correcta
-        if (!fileName.includes('.')) {
-          if (contentType.includes('png')) {
-            fileName += '.png';
-          } else if (contentType.includes('gif')) {
-            fileName += '.gif';
-          } else if (contentType.includes('webp')) {
-            fileName += '.webp';
-          } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
-            fileName += '.jpg';
-          } else {
-            // Por defecto, usar la extensión del nombre original
-            const originalExt = evidencia.url_archivo ? evidencia.url_archivo.split('.').pop() : 'jpg';
-            fileName += '.' + originalExt;
-          }
-        }
-        
-        // Crear un nuevo blob con el tipo MIME correcto
-        const correctBlob = new Blob([blob], { type: contentType });
-        
-        // Crear URL del blob y descargar
-        const url = URL.createObjectURL(correctBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        
-        // Simular click
-        a.click();
-        
-        // Limpiar después de un tiempo
-        setTimeout(() => {
-          try {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          } catch (cleanupError) {
-            // Error en limpieza, ignorar
-          }
-        }, 2000);
-        
-        // Mostrar mensaje de éxito
-        alert('Imagen descargada exitosamente: ' + fileName);
-        
+        alert('Archivo descargado exitosamente: ' + (baseFileName || fileName));
       } catch (error) {
         console.error('Error descargando imagen:', error);
-        alert('Error al descargar la imagen: ' + error.message);
+        alert('Error al descargar la imagen: ' + (error?.message || 'Error de red'));
       }
     };
 
