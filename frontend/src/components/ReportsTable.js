@@ -4,7 +4,9 @@ import ReportDetailsModal from './ReportDetailsModal';
 import ApprovalModal from './ApprovalModal';
 import { buildApi, buildUploadsUrl } from '../config/api';
 import { gradosCriticidad, tiposAfectacion, reportTypes } from '../config/formOptions';
-import { reportService, userService } from '../services/api';
+import { getProcesoDisplayName, PROCESS_LABELS } from '../config/processLabels';
+import { reportService, userService, evidenceService } from '../services/api';
+import { downloadBlob } from '../utils/downloadHelper';
 import { Clock, ClipboardCheck, CircleCheck, CircleX, CheckCircle, ImageIcon, User } from 'lucide-react';
 
 // Skeleton de carga para la lista (evita layout shift y mejora UX)
@@ -92,59 +94,11 @@ const formatReportDateTime = (fechaEvento, creadoEn) => {
   }
 };
 
-// Nombres de proceso unificados (PDF pág. 2)
 // Mapeo tab → estados reales en BD (nunca usar "cerrado"/"cerrados")
 const TAB_TO_ESTADOS = {
   pending: ['pendiente'],
   in_review: ['en_revision'],
   closed: ['aprobado', 'rechazado'],
-};
-
-const getProcesoFromProyecto = (proyecto) => {
-  if (!proyecto || proyecto.trim() === '') {
-    return 'Administrativo';
-  }
-  
-  const proyectoTrim = proyecto.trim();
-  
-  if (proyectoTrim === 'PETROSERVICIOS') {
-    return 'Proyecto Petroservicios';
-  }
-  
-  const proyectosAdministrativos = [
-    'ADMINISTRACION',
-    'COMPANY MAN - ADMINISTRACION',
-    'ADMINISTRACION - STAFF',
-    'FRONTERA - ADMINISTRACION',
-    'Administrativo',
-    'PETROSERVICIOS - ADMINISTRACION',
-    'ADMINISTRACION COMPANY MAN'
-  ];
-  if (proyectosAdministrativos.includes(proyectoTrim)) {
-    return 'Administrativo';
-  }
-  
-  const proyectosCompanyMan = [
-    '3047761-4',
-    'COMPANY MAN - APIAY',
-    'COMPANY MAN',
-    'COMPANY MAN - CPO09',
-    'COMPANY MAN - GGS',
-    'COMPANY MAN - CASTILLA'
-  ];
-  if (proyectosCompanyMan.includes(proyectoTrim)) {
-    return 'Proyecto CW_Company Man';
-  }
-  
-  if (proyectoTrim === 'FRONTERA') {
-    return 'Proyecto Frontera';
-  }
-  
-  if (proyectoTrim === 'ZIRCON') {
-    return 'Proyecto ZIRCON';
-  }
-  
-  return proyectoTrim;
 };
 
 // Función para calcular días transcurridos desde la creación del reporte
@@ -527,32 +481,37 @@ const ReportsTable = ({
     setSelectedReportForApproval(null);
   };
 
-  const handleApproveWithModal = async (reportId, motivoAprobacion) => {
+  const handleApproveWithModal = async (reportId, motivoAprobacion, evidenceFile = null) => {
     try {
-      // Update the report status to 'aprobado' (approved/closed)
-      const result = await ReportService.updateReportStatus(
-        reportId, 
-        'aprobado', 
-        user?.id, 
-        `Caso aprobado por ${user?.nombre}. Motivo: ${motivoAprobacion}`
-      );
-      
+      const comentarios = `Caso aprobado por ${user?.nombre}. Motivo: ${motivoAprobacion}`;
+      // Siempre aprobar con PUT (endpoint que ya responde correctamente)
+      const result = await ReportService.updateReportStatus(reportId, 'aprobado', user?.id, comentarios);
+
       if (result.success) {
+        let evidenciaSubida = false;
+        if (evidenceFile) {
+          try {
+            await ReportService.uploadEvidence(reportId, evidenceFile);
+            evidenciaSubida = true;
+          } catch (err) {
+            setMessage('Reporte aprobado; la evidencia no pudo subirse: ' + (err?.message || err));
+            setTimeout(() => setMessage(''), 5000);
+          }
+        }
+        if (!evidenceFile) {
+          setMessage('Reporte aprobado y cerrado exitosamente');
+        } else if (evidenciaSubida) {
+          setMessage('Reporte aprobado y evidencia guardada correctamente');
+        }
         // Update local state
-        setReports(prev => 
-          prev.map(report => 
+        setReports(prev =>
+          prev.map(report =>
             report.id === reportId ? { ...report, estado: 'aprobado' } : report
           )
         );
-        setMessage('Reporte aprobado y cerrado exitosamente');
-        
         // Update statistics
         loadStats();
-        
-        // Clear message after 3 seconds
         setTimeout(() => setMessage(''), 3000);
-        
-        // Call callback if exists
         if (onStatusChange) {
           onStatusChange(reportId, 'aprobado');
         }
@@ -561,6 +520,26 @@ const ReportsTable = ({
       }
     } catch (error) {
       throw new Error('Error al aprobar el reporte: ' + error.message);
+    }
+  };
+
+  const handleDownloadEvidence = async (evidencia) => {
+    try {
+      const { blob, contentType, fileName: headerFileName } = await evidenceService.getEvidenceBlob(evidencia.id);
+      if (!blob || blob.size === 0) {
+        setMessage('No se pudo obtener el archivo');
+        setTimeout(() => setMessage(''), 3000);
+        return;
+      }
+      const baseName = String(evidencia.url_archivo || '').trim() || `evidencia_${evidencia.id}`;
+      const fileName = headerFileName || baseName.replace(/^uploads\//, '');
+      const ext = (fileName.includes('.') ? fileName.split('.').pop() : '').toLowerCase();
+      const hasExt = /^(jpg|jpeg|png|gif|webp|pdf|mp4|webm|doc|docx)$/.test(ext);
+      const finalName = hasExt ? fileName : (fileName + (contentType && contentType.includes('pdf') ? '.pdf' : contentType && contentType.includes('png') ? '.png' : '.jpg'));
+      downloadBlob(blob, finalName, contentType);
+    } catch (err) {
+      setMessage('Error al descargar la evidencia: ' + (err?.message || 'Error de red'));
+      setTimeout(() => setMessage(''), 4000);
     }
   };
 
@@ -826,7 +805,7 @@ const ReportsTable = ({
          </select>
        </div>
                 <div>
-          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Afectación</label>
+          <label className={`block text-xs mb-1 font-medium ${useDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Tipo de afectación</label>
           <select name="tipo_afectacion" value={filters.tipo_afectacion} onChange={handleFilterChange} className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
             useDarkTheme 
               ? 'bg-gray-800 border-gray-600 text-gray-100' 
@@ -844,11 +823,11 @@ const ReportsTable = ({
               : 'bg-white border-gray-300 text-gray-900'
           }`}>
            <option value="">Todos los Procesos</option>
-           <option value="petroservicios">Gestión Proyecto - Petroservicios</option>
-           <option value="administrativa">Gestión Administrativa</option>
-           <option value="company-man">Gestión Proyecto - Company man</option>
-           <option value="frontera">Gestión Proyecto Frontera</option>
-           <option value="zircon">Gestión Proyecto ZIRCON</option>
+           <option value="petroservicios">{PROCESS_LABELS.petroservicios}</option>
+           <option value="administrativa">{PROCESS_LABELS.administrativa}</option>
+           <option value="company-man">{PROCESS_LABELS['company-man']}</option>
+           <option value="frontera">{PROCESS_LABELS.frontera}</option>
+           <option value="zircon">{PROCESS_LABELS.zircon}</option>
          </select>
        </div>
                 <div>
@@ -1000,7 +979,7 @@ const ReportsTable = ({
                       ? 'bg-red-100/20 border-red-300/50'
                       : 'bg-white/20 border-white/30'
               }`}>
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-0 mb-4">
+                <div className="flex flex-wrap gap-0 mb-4">
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <span className={`inline-flex items-center gap-2 px-2 sm:px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(report.estado)} drop-shadow`}>
                       <StatusIcon estado={report.estado} className="w-[14px] h-[14px] sm:w-4 sm:h-4 flex-shrink-0" />
@@ -1017,7 +996,7 @@ const ReportsTable = ({
                         ? 'bg-purple-900/40 text-purple-200 border-purple-700/50' 
                         : 'bg-purple-500/30 text-purple-100 border-purple-400/50'
                     }`}>
-                      {getProcesoFromProyecto(report.proyecto_usuario)}
+                      {getProcesoDisplayName(report.proyecto_usuario)}
                     </span>
                     {/* Indicador de tiempo transcurrido */}
                     <div className={`px-2 py-1 rounded-full text-xs font-semibold border ${
@@ -1152,46 +1131,71 @@ const ReportsTable = ({
                       <div className="flex space-x-2 overflow-x-auto pb-2">
                         {report.evidencias.slice(0, 3).map((evidencia, index) => {
                           const isImage = evidencia.tipo_archivo && evidencia.tipo_archivo.startsWith('image/');
+                          const evidenceViewUrl = buildApi(`evidencias/${evidencia.id}?token=${encodeURIComponent(localStorage.getItem('token') || '')}`);
                           return (
-                            <div key={evidencia.id} className="flex-shrink-0">
-                              {isImage ? (
-                                <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden border ${
-                                  useDarkTheme 
-                                    ? 'bg-gray-700 border-gray-600' 
-                                    : 'bg-white/20 border-white/30'
-                                }`}>
-                                  <img 
-                                    src={buildApi(`evidencias/${evidencia.id}?token=${encodeURIComponent(localStorage.getItem('token') || '')}`)}
-                                    alt={`Evidencia ${index + 1}`}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      e.target.style.display = 'none';
-                                      e.target.nextSibling.style.display = 'flex';
-                                    }}
-                                  />
-                                  <div className={`w-full h-full flex items-center justify-center ${
-                                    useDarkTheme ? 'bg-gray-700' : 'bg-white/20'
-                                  }`} style={{display: 'none'}}>
+                            <div key={evidencia.id} className="flex-shrink-0 flex flex-col items-center gap-1">
+                              <div className="relative group/ev">
+                                {isImage ? (
+                                  <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden border ${
+                                    useDarkTheme 
+                                      ? 'bg-gray-700 border-gray-600' 
+                                      : 'bg-white/20 border-white/30'
+                                  }`}>
+                                    <img 
+                                      src={evidenceViewUrl}
+                                      alt={`Evidencia ${index + 1}`}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.nextSibling.style.display = 'flex';
+                                      }}
+                                    />
+                                    <div className={`w-full h-full flex items-center justify-center ${
+                                      useDarkTheme ? 'bg-gray-700' : 'bg-white/20'
+                                    }`} style={{display: 'none'}}>
+                                      <svg className={`w-4 h-4 sm:w-6 sm:h-6 ${
+                                        useDarkTheme ? 'text-gray-500' : 'text-white/50'
+                                      }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z"/>
+                                      </svg>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-lg border flex items-center justify-center ${
+                                    useDarkTheme 
+                                      ? 'bg-gray-700 border-gray-600' 
+                                      : 'bg-white/20 border-white/30'
+                                  }`}>
                                     <svg className={`w-4 h-4 sm:w-6 sm:h-6 ${
                                       useDarkTheme ? 'text-gray-500' : 'text-white/50'
                                     }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z"/>
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                     </svg>
                                   </div>
-                                </div>
-                              ) : (
-                                <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-lg border flex items-center justify-center ${
-                                  useDarkTheme 
-                                    ? 'bg-gray-700 border-gray-600' 
-                                    : 'bg-white/20 border-white/30'
-                                }`}>
-                                  <svg className={`w-4 h-4 sm:w-6 sm:h-6 ${
-                                    useDarkTheme ? 'text-gray-500' : 'text-white/50'
-                                  }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                  </svg>
-                                </div>
-                              )}
+                                )}
+                              </div>
+                              <div className="flex items-center gap-0.5">
+                                <a
+                                  href={evidenceViewUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className={`bg-green-600 hover:bg-green-700 text-white px-1.5 py-0.5 rounded text-xs transition-colors duration-200 no-underline ${
+                                    useDarkTheme ? 'text-gray-100' : 'text-white'
+                                  }`}
+                                  title="Ver"
+                                >
+                                  Ver
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleDownloadEvidence(evidencia); }}
+                                  title="Descargar"
+                                  className="bg-blue-600 hover:bg-blue-700 text-white px-1.5 py-0.5 rounded text-xs transition-colors duration-200"
+                                >
+                                  Descargar
+                                </button>
+                              </div>
                             </div>
                           );
                         })}

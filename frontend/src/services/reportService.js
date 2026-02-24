@@ -292,6 +292,16 @@ class ReportService {
     }
 
     /**
+     * Subir evidencia para un reporte (usa endpoint existente POST reports/:id/evidencias).
+     */
+    static async uploadEvidence(reportId, file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await http.post(`reports/${reportId}/evidencias`, formData);
+        return response.data;
+    }
+
+    /**
      * Obtener un reporte específico por ID
      */
     static async getReportById(reportId) {

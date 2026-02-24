@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import ReportService from '../services/reportService';
 import { evidenceService } from '../services/api';
 import { buildApi, buildUploadsUrl } from '../config/api';
+import { getProcesoDisplayName } from '../config/processLabels';
 import { downloadBlob, downloadFileWithRetry } from '../utils/downloadHelper';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
@@ -135,7 +136,7 @@ const HseqReportDocument = ({ report, evidencias = [] }) => (
           </View>
           <View style={pdfStyles.row}>
             <Text style={pdfStyles.label}>Proyecto:</Text>
-            <Text style={pdfStyles.value}>{report.proyecto_usuario || 'No asignado'}</Text>
+            <Text style={pdfStyles.value}>{report.proyecto_usuario ? getProcesoDisplayName(report.proyecto_usuario) : 'No asignado'}</Text>
           </View>
           <View style={pdfStyles.row}>
             <Text style={pdfStyles.label}>Estado:</Text>
@@ -823,7 +824,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         ['Tipo de Reporte', getEventTypeLabel(report.tipo_reporte) || ''],
         ['Estado', getStatusLabel(report.estado) || ''],
         ['Usuario', report.nombre_usuario || ''],
-        ['Proyecto', report.proyecto_usuario || 'No asignado'],
+        ['Proyecto', report.proyecto_usuario ? getProcesoDisplayName(report.proyecto_usuario) : 'No asignado'],
         ['Fecha del Evento', formatFieldValue('fecha_evento', report.fecha_evento) || ''],
         ['Hora del Evento', report.hora_evento || ''],
         ['Fecha de Creación', formatFieldValue('creado_en', report.creado_en) || ''],
@@ -1296,7 +1297,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.setTextColor(50, 50, 50);
-      ['ID del Reporte: ' + (report.id ?? 'N/A'), 'Tipo de Reporte: ' + (report.tipo_reporte ?? 'N/A'), 'Usuario: ' + (report.nombre_usuario ?? 'N/A'), 'Proyecto: ' + (report.proyecto_usuario ?? 'No asignado'), 'Estado: ' + (report.estado ?? 'N/A'), 'Fecha del Evento: ' + (report.fecha_evento ?? '') + ' ' + (report.hora_evento ?? ''), 'Fecha de Creación: ' + (report.creado_en ?? 'N/A'), 'Asunto: ' + (report.asunto || report.asunto_conversacion || 'N/A')].forEach(writeLine);
+      ['ID del Reporte: ' + (report.id ?? 'N/A'), 'Tipo de Reporte: ' + (report.tipo_reporte ?? 'N/A'), 'Usuario: ' + (report.nombre_usuario ?? 'N/A'), 'Proyecto: ' + (report.proyecto_usuario ? getProcesoDisplayName(report.proyecto_usuario) : 'No asignado'), 'Estado: ' + (report.estado ?? 'N/A'), 'Fecha del Evento: ' + (report.fecha_evento ?? '') + ' ' + (report.hora_evento ?? ''), 'Fecha de Creación: ' + (report.creado_en ?? 'N/A'), 'Asunto: ' + (report.asunto || report.asunto_conversacion || 'N/A')].forEach(writeLine);
       y += 12;
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
@@ -1465,7 +1466,7 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         `ID del Reporte: ${report.id ?? ''}`,
         `Tipo de Reporte: ${getEventTypeLabel(report.tipo_reporte)}`,
         `Usuario: ${report.nombre_usuario ?? ''}`,
-        `Proyecto: ${report.proyecto_usuario ?? 'No asignado'}`,
+        `Proyecto: ${report.proyecto_usuario ? getProcesoDisplayName(report.proyecto_usuario) : 'No asignado'}`,
         `Estado: ${getStatusLabel(report.estado ?? '')}`,
         `Fecha del Evento: ${report.fecha_evento ?? ''} ${report.hora_evento ?? ''}`,
         `Fecha de Creación: ${report.creado_en ?? ''}`,
@@ -1773,32 +1774,30 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                       {evidencia.url_archivo || 'Sin nombre'}
                     </p>
                   </div>
-                                     <div className="flex items-center space-x-2">
-                                           {isImage && (
-                        <>
-                          <button
-                            onClick={() => window.open(buildPublicImageUrl(evidencia.url_archivo), '_blank')}
-                            className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs flex items-center space-x-1 transition-colors duration-200"
-                            title="Abrir imagen en nueva pestaña"
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                            </svg>
-                            <span>Abrir</span>
-                          </button>
-                          <button
-                            onClick={() => handleDownloadImage(evidencia)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs flex items-center space-x-1 transition-colors duration-200"
-                            title="Descargar imagen"
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                            </svg>
-                            <span>Descargar</span>
-                          </button>
-                        </>
-                      )}
-                   </div>
+                  <div className="flex items-center space-x-2">
+                    <a
+                      href={buildApi(`evidencias/${evidencia.id}?token=${encodeURIComponent(localStorage.getItem('token') || '')}`)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs flex items-center space-x-1 transition-colors duration-200 no-underline"
+                      title="Abrir archivo en nueva pestaña"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                      </svg>
+                      <span>Ver</span>
+                    </a>
+                    <button
+                      onClick={() => handleDownloadImage(evidencia)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs flex items-center space-x-1 transition-colors duration-200"
+                      title="Descargar archivo"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                      </svg>
+                      <span>Descargar</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

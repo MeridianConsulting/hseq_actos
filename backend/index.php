@@ -91,6 +91,10 @@ function handleRequest($method, $path){
     if (ob_get_length()) ob_clean();
     
     $path = trim($path, "/");
+    // Normalizar: quitar prefijo api/ por si el rewrite pasa "api/reports/status"
+    if (strpos($path, 'api/') === 0) {
+        $path = substr($path, 4);
+    }
     
     // (log interno deshabilitado en producción)
     
@@ -500,7 +504,7 @@ function handleRequest($method, $path){
         }
     }
     
-    // Endpoint para actualizar estado de reportes
+    // Endpoint para actualizar estado de reportes (PUT JSON, sin archivo)
     if($path === 'reports/status' && $method === "PUT"){
         if (!$requireRole(['soporte','admin'])) { return; }
         try {
@@ -560,6 +564,80 @@ function handleRequest($method, $path){
                 "message" => "Error interno del servidor",
                 "error" => $e->getMessage()
             ]);
+            return;
+        }
+    }
+
+    // Endpoint para actualizar estado (aprobación) con evidencia opcional (POST multipart)
+    if ($path === 'reports/status' && $method === 'POST') {
+        if (!$requireRole(['soporte','admin'])) { return; }
+        try {
+            $reportId = isset($_POST['report_id']) ? (int)$_POST['report_id'] : null;
+            $status = isset($_POST['status']) ? trim((string)$_POST['status']) : '';
+            $revisorId = isset($_POST['revisor_id']) && $_POST['revisor_id'] !== '' ? (int)$_POST['revisor_id'] : null;
+            $comentarios = isset($_POST['comentarios']) ? trim((string)$_POST['comentarios']) : null;
+
+            if (!$reportId || !$status) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Faltan campos requeridos: report_id y status']);
+                return;
+            }
+
+            $reportController = new ReportController();
+            $result = $reportController->updateReportStatus($reportId, $status, $revisorId, $comentarios);
+
+            if (!$result['success']) {
+                http_response_code(400);
+                echo json_encode($result);
+                return;
+            }
+
+            // Evidencia opcional: mismo criterio que POST reports/:id/evidencias
+            if (isset($_FILES['evidencia_aprobacion']) && $_FILES['evidencia_aprobacion']['error'] === UPLOAD_ERR_OK) {
+                $file = $_FILES['evidencia_aprobacion'];
+                $tmpPath = $file['tmp_name'];
+                $mime = @mime_content_type($tmpPath) ?: ($file['type'] ?? '');
+                $allowed = [
+                    'image/jpeg','image/png','image/gif','image/webp',
+                    'application/pdf',
+                    'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'video/mp4','video/webm','video/ogg','video/quicktime'
+                ];
+                if (!in_array($mime, $allowed)) {
+                    http_response_code(200);
+                    $result['evidence_warning'] = 'Tipo de archivo no permitido; aprobación guardada sin evidencia.';
+                    echo json_encode($result);
+                    return;
+                }
+                $size = @filesize($tmpPath);
+                if ($size === false || $size > 10 * 1024 * 1024) {
+                    http_response_code(200);
+                    $result['evidence_warning'] = 'Archivo demasiado grande (max 10MB); aprobación guardada sin evidencia.';
+                    echo json_encode($result);
+                    return;
+                }
+                $ext = pathinfo($file['name'], PATHINFO_EXTENSION) ?: 'bin';
+                $evidenceData = [
+                    'data' => base64_encode(file_get_contents($tmpPath)),
+                    'type' => $mime,
+                    'extension' => $ext,
+                    'size' => $size,
+                ];
+                $evidenceResult = $reportController->uploadEvidence($reportId, $evidenceData);
+                if ($evidenceResult['success']) {
+                    $result['evidence_id'] = $evidenceResult['evidence_id'] ?? null;
+                    $result['evidence_saved'] = true;
+                } else {
+                    $result['evidence_warning'] = $evidenceResult['message'] ?? 'Error al guardar evidencia';
+                }
+            }
+
+            http_response_code(200);
+            echo json_encode($result);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Error interno del servidor', 'error' => $e->getMessage()]);
             return;
         }
     }

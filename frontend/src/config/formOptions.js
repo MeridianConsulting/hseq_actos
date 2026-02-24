@@ -1,5 +1,6 @@
 // Configuración de opciones para los formularios
 export const instalaciones = [
+  { value: 'oficina', label: 'Oficina' },
   { value: 'area_perforacion_exploratoria', label: 'Área de perforación Exploratoria' },
   { value: 'campamentos', label: 'Campamentos' },
   { value: 'campo_produccion', label: 'Campo de Producción' },
@@ -14,10 +15,12 @@ export const instalaciones = [
 ];
 
 export const tiposHallazgo = [
+  { value: 'accion_correctiva', label: 'Acción Correctiva' },
   { value: 'accion_mejoramiento', label: 'Acción de mejoramiento' },
   { value: 'aspecto_positivo', label: 'Aspecto positivo' },
   { value: 'condicion_insegura', label: 'Condición insegura' },
-  { value: 'acto_inseguro', label: 'Acto inseguro' }
+  { value: 'acto_inseguro', label: 'Acto inseguro' },
+  { value: 'observaciones', label: 'Observaciones' }
 ];
 
 export const estadosCondicion = [

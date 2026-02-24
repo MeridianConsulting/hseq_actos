@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { getUser, getUserName, getUserEmail } from '../utils/auth';
 
 const ApprovalModal = ({ isOpen, onClose, report, onApprove }) => {
   const [formData, setFormData] = useState({
     motivoAprobacion: ''
   });
+  const [evidenceFile, setEvidenceFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (isOpen && textareaRef.current) {
@@ -19,7 +22,9 @@ const ApprovalModal = ({ isOpen, onClose, report, onApprove }) => {
   useEffect(() => {
     if (isOpen) {
       setFormData({ motivoAprobacion: '' });
+      setEvidenceFile(null);
       setError(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   }, [isOpen]);
 
@@ -117,8 +122,8 @@ ${userName}`;
     setError(null);
 
     try {
-             // Call the onApprove callback with the form data
-       await onApprove(report.id, formData.motivoAprobacion);
+             // Call the onApprove callback with the form data and optional evidence file
+       await onApprove(report.id, formData.motivoAprobacion, evidenceFile || null);
        
       // Abrir redacción en Gmail (adicional al envío automático del backend)
       const gmailUrl = generateGmailUrl(formData.motivoAprobacion);
@@ -139,9 +144,19 @@ ${userName}`;
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl max-w-2xl w-full shadow-2xl border border-gray-700">
+  // Mismo patrón que ReportDetailsModal: render en document.body para centrado correcto en pantalla
+  const modalContent = (
+    <div
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-2 sm:p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="approval-modal-title"
+      onClick={onClose}
+    >
+      <div
+        className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl max-w-2xl w-full shadow-2xl border border-gray-700 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-t-3xl p-6 border-b border-gray-700">
           <div className="flex justify-between items-center">
@@ -152,7 +167,7 @@ ${userName}`;
                 </svg>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">
+                <h2 id="approval-modal-title" className="text-2xl font-bold text-white">
                   Aprobar Reporte
                 </h2>
                 <p className="text-white text-opacity-60 text-sm">
@@ -220,6 +235,23 @@ ${userName}`;
                  readOnly
                  className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white text-opacity-80 cursor-not-allowed"
                />
+            </div>
+
+                         {/* Adjuntar evidencia (opcional) */}
+            <div>
+              <label className="block text-white font-medium mb-2">
+                Adjuntar evidencia
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf,application/pdf"
+                onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)}
+                className="w-full px-4 py-3 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg text-white text-opacity-80 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-white file:bg-opacity-20 file:text-white"
+              />
+              {evidenceFile && (
+                <span className="text-white text-opacity-60 text-sm mt-1 block">{evidenceFile.name}</span>
+              )}
             </div>
 
                          {/* Reason for approval (Required) */}
@@ -302,6 +334,7 @@ ${userName}`;
       </div>
     </div>
   );
+  return createPortal(modalContent, document.body);
 };
 
 export default ApprovalModal;

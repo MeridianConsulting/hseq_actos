@@ -1360,6 +1360,86 @@ class ReportController {
     }
 
     /**
+     * Obtener adjuntos para el correo a partir de todas las evidencias del reporte.
+     * Los archivos se leen desde backend/uploads (misma ruta que uploadEvidence).
+     * Si un archivo no existe o no es legible, se registra warning y se continúa con los demás.
+     *
+     * @param int $reportId
+     * @param array $attachments Array existente de adjuntos (se agregan aquí las evidencias)
+     * @return array Mismo array con los adjuntos de evidencia añadidos
+     */
+    private function getAttachmentsFromReportEvidence(int $reportId, array $attachments): array {
+        $uploadDir = realpath(__DIR__ . '/../uploads');
+        if (!$uploadDir || !is_dir($uploadDir)) {
+            error_log("notifyReportEvent: directorio uploads no disponible (reportId={$reportId}, path=" . (__DIR__ . '/../uploads') . ")");
+            return $attachments;
+        }
+        $stmt = $this->conn->prepare("SELECT id, tipo_archivo, url_archivo FROM evidencias WHERE id_reporte = ? ORDER BY creado_en ASC");
+        if (!$stmt) {
+            error_log("notifyReportEvent: error preparando consulta de evidencias (reportId={$reportId})");
+            return $attachments;
+        }
+        $stmt->bind_param('i', $reportId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $rows = [];
+        while ($row = $res->fetch_assoc()) {
+            $rows[] = $row;
+        }
+        $stmt->close();
+        if (empty($rows)) {
+            return $attachments;
+        }
+        $added = 0;
+        foreach ($rows as $row) {
+            if (empty($row['url_archivo'])) {
+                continue;
+            }
+            $fileName = trim((string) $row['url_archivo']);
+            // Solo nombre de archivo, sin rutas (evitar directory traversal)
+            $fileName = str_replace(['../', '..\\'], '', $fileName);
+            $baseName = basename($fileName);
+            if ($baseName === '' || strpos($fileName, '..') !== false || strpos($fileName, '/') !== false || strpos($fileName, '\\') !== false) {
+                error_log("notifyReportEvent: url_archivo inválido omitido (reportId={$reportId}, evId=" . ($row['id'] ?? '') . ")");
+                continue;
+            }
+            $filePath = $uploadDir . DIRECTORY_SEPARATOR . $baseName;
+            if (!is_file($filePath) || !is_readable($filePath)) {
+                error_log("notifyReportEvent: archivo de evidencia no encontrado o no legible (reportId={$reportId}, evId=" . ($row['id'] ?? '') . ", file=" . $baseName . ")");
+                continue;
+            }
+            $content = @file_get_contents($filePath);
+            if ($content === false) {
+                error_log("notifyReportEvent: no se pudo leer archivo de evidencia (reportId={$reportId}, file=" . $baseName . ")");
+                continue;
+            }
+            $mimeType = !empty($row['tipo_archivo']) ? trim((string) $row['tipo_archivo']) : 'application/octet-stream';
+            $safeFilename = preg_replace('/[^\w\.\-]/', '_', $baseName) ?: 'evidencia_' . ($row['id'] ?? $added);
+            $attachments[] = [
+                'filename' => $safeFilename,
+                'content'  => $content,
+                'mime_type' => $mimeType,
+            ];
+            $added++;
+        }
+        if ($added > 0) {
+            error_log("notifyReportEvent: adjuntos de evidencia agregados al correo (reportId={$reportId}, count={$added})");
+        $content = @file_get_contents($filePath);
+        if ($content === false) {
+            error_log("notifyReportEvent: no se pudo leer archivo de evidencia (reportId={$reportId})");
+            return $attachments;
+        }
+        $mimeType = !empty($row['tipo_archivo']) ? trim((string) $row['tipo_archivo']) : 'application/octet-stream';
+        $attachments[] = [
+            'filename' => basename($fileName),
+            'content'  => $content,
+            'mime_type' => $mimeType,
+        ];
+        }
+        return $attachments;
+    }
+
+    /**
      * Enviar notificación por correo y registrar en tabla notificaciones
      */
     public function notifyReportEvent(int $reportId, string $tipo, array $extra = []) : void {
@@ -1407,10 +1487,9 @@ class ReportController {
                 if (!empty($extra['comentarios'])) {
                     $body .= "<p>Comentarios de revisión: {$this->e($extra['comentarios'])}</p>";
                 }
-                
-            // Si el reporte fue aprobado o rechazado (cerrado), NO adjuntar PDF (requerido por el cliente)
+                // Si el reporte fue aprobado o rechazado (cerrado), adjuntar evidencia asociada si existe
                 if (in_array($estadoOriginal, ['aprobado', 'rechazado'])) {
-                    // Intencionalmente no se adjunta PDF para evitar demoras/errores; el frontend abrirá Gmail
+                    $attachments = $this->getAttachmentsFromReportEvidence($reportId, $attachments);
                 }
             } else if ($tipo === 'vencido') {
                 $subject = "[HSEQ] Recordatorio: reporte #{$rep['id']} supera 30 días";

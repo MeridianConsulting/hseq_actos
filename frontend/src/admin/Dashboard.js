@@ -16,7 +16,8 @@ import { userService } from '../services/api';
 import { buildApi, buildUploadsUrl } from '../config/api';
 import ReportsTable from '../components/ReportsTable';
 import { reportTypes, gradosCriticidad } from '../config/formOptions';
-import { AlertCircle, Clock, CircleCheck, Calendar, BarChart2, TrendingUp, FileSpreadsheet, Search, X, User, Users, Plus, ClipboardCheck } from 'lucide-react';
+import { getProcesoDisplayName, PROCESS_LABELS } from '../config/processLabels';
+import { AlertCircle, Clock, CircleCheck, Calendar, BarChart2, TrendingUp, FileSpreadsheet, Search, User, Users, Plus, ClipboardCheck } from 'lucide-react';
 
 // Nombres de proceso unificados (PDF pág. 2)
 const getProcesoFromProyecto = (proyecto) => {
@@ -59,6 +60,29 @@ const formatPeriodTick = (v) => {
 const formatProcesoTick = (v) => {
   const s = String(v);
   return s.length > 22 ? s.slice(0, 22) + '…' : s;
+};
+
+// Solo para la gráfica "Cantidad de reportes por proceso": normaliza el label a Title Case
+// y sin guiones bajos, para que todas las variantes se agrupen en una sola barra.
+const normalizeProcesoLabel = (procesoRaw) => {
+  if (!procesoRaw || typeof procesoRaw !== 'string') return procesoRaw || '';
+  const t = procesoRaw.trim();
+  if (t === '') return '';
+  const withSpaces = t.replace(/_/g, ' ');
+  const lower = withSpaces.toLowerCase();
+  const titleCase = lower.replace(/\b\w/g, (c) => c.toUpperCase());
+  // Casos específicos para unificar con el display esperado
+  if (titleCase === 'Administrativo') return 'Administracion';
+  if (titleCase === 'Cw Company Man' || lower === 'cw_company man') return 'Proyecto Cw Grm';
+  if (titleCase === 'Frontera') return 'Proyecto Frontera';
+  if (titleCase === 'Petroservicios') return 'Proyecto Petroservicios';
+  if (titleCase === 'Zircon') return 'Proyecto Zircon';
+  if (lower === 'proyecto cw grm' || lower === 'proyecto_cw_grm') return 'Proyecto Cw Grm';
+  if (lower === 'proyecto frontera' || lower === 'proyecto_frontera') return 'Proyecto Frontera';
+  if (lower === 'proyecto petroservicios' || lower === 'proyecto_petroservicios') return 'Proyecto Petroservicios';
+  if (lower === 'proyecto zircon' || lower === 'proyecto_zircon') return 'Proyecto Zircon';
+  if (lower === 'administracion') return 'Administracion';
+  return titleCase;
 };
 
 const Dashboard = () => {
@@ -1620,15 +1644,16 @@ const Dashboard = () => {
     setShowExcelFiltersModal(true);
   }, []);
 
-  // Bar chart: Cantidad de reportes por proceso/área
+  // Bar chart: Cantidad de reportes por proceso/área (labels normalizados solo aquí)
   const reportsByProcess = useMemo(() => {
-    // Si hay reportes cargados, agruparlos por proceso
+    // Si hay reportes cargados, agruparlos por proceso (label normalizado = misma barra para variantes)
     if (reportsForProcessChart.length > 0) {
       const processMap = new Map();
       
       reportsForProcessChart.forEach(report => {
         const proyecto = report.proyecto_usuario || '';
-        const proceso = getProcesoFromProyecto(proyecto);
+        const procesoRaw = getProcesoFromProyecto(proyecto);
+        const proceso = normalizeProcesoLabel(procesoRaw);
         
         if (!processMap.has(proceso)) {
           processMap.set(proceso, 0);
@@ -1642,14 +1667,17 @@ const Dashboard = () => {
         .sort((a, b) => b.total - a.total);
     }
     
-    // Fallback: intentar usar datos del backend si existen
+    // Fallback: intentar usar datos del backend si existen (normalizar label para la gráfica)
     const rows = stats?.reportesPorProceso || stats?.reportes_por_proceso || [];
     if (!Array.isArray(rows)) return [];
 
-    return rows.map((r) => ({
-      proceso: r.proceso || r.area || r.nombre || 'Sin proceso',
-      total: Number(r.total) || Number(r.cantidad) || Number(r.count) || 0,
-    }));
+    return rows.map((r) => {
+      const raw = r.proceso || r.area || r.nombre || 'Sin proceso';
+      return {
+        proceso: normalizeProcesoLabel(raw),
+        total: Number(r.total) || Number(r.cantidad) || Number(r.count) || 0,
+      };
+    });
   }, [reportsForProcessChart, stats?.reportesPorProceso, stats?.reportes_por_proceso]);
 
   const processChartHeight = useMemo(() => {
