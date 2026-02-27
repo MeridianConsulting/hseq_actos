@@ -1038,11 +1038,37 @@ function handleRequest($method, $path){
         }
     }
 
-    // Endpoint para actualizar un reporte
+    // Endpoint para actualizar un reporte: dueño, admin o soporte puede editar
     if(preg_match('/^(?:api\/)?reports\/(\d+)$/', $path, $matches) && $method === "PUT"){
-        if (!$requireRole(['soporte','admin'])) { return; }
+        $reportId = $matches[1];
+        $conn = (new Database())->getConnection();
+        $stmt = $conn->prepare("SELECT id, id_usuario FROM reportes WHERE id = ?");
+        if (!$stmt) {
+            http_response_code(500);
+            echo json_encode(['success'=>false,'message'=>'Error interno']);
+            return;
+        }
+        $stmt->bind_param("i", $reportId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res->num_rows === 0) {
+            http_response_code(404);
+            echo json_encode(['success'=>false,'message'=>'Reporte no encontrado']);
+            return;
+        }
+        $report = $res->fetch_assoc();
+        $authUserId = (int)($GLOBALS['auth_user_id'] ?? 0);
+        $authRole = is_string($GLOBALS['auth_user_role'] ?? null) ? strtolower(trim($GLOBALS['auth_user_role'])) : '';
+        $isAdmin = ($authRole === 'admin');
+        $isSoporte = ($authRole === 'soporte');
+        $isOwner = ((int)$report['id_usuario'] === $authUserId);
+        if (!$isAdmin && !$isSoporte && !$isOwner) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'No puede editar reportes de otros usuarios']);
+            return;
+        }
+        $stmt->close();
         try {
-            $reportId = $matches[1];
             $input = file_get_contents("php://input");
             
             if (empty($input)) {
@@ -1088,28 +1114,101 @@ function handleRequest($method, $path){
         }
     }
 
-    // Endpoint para eliminar un reporte
-    if(preg_match('/^(?:api\/)?reports\/(\d+)$/', $path, $matches) && $method === "DELETE"){
-        if (!$requireRole(['admin'])) { return; }
+    // Eliminar reporte vía POST: dueño, admin o soporte puede eliminar
+    if(preg_match('/^(?:api\/)?reports\/(\d+)\/delete$/', $path, $matches) && $method === "POST"){
+        $reportId = $matches[1];
+        $conn = (new Database())->getConnection();
+        $stmt = $conn->prepare("SELECT id, id_usuario FROM reportes WHERE id = ?");
+        if (!$stmt) {
+            http_response_code(500);
+            echo json_encode(['success'=>false,'message'=>'Error interno']);
+            return;
+        }
+        $stmt->bind_param("i", $reportId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res->num_rows === 0) {
+            http_response_code(404);
+            echo json_encode(['success'=>false,'message'=>'Reporte no encontrado']);
+            return;
+        }
+        $report = $res->fetch_assoc();
+        $authUserId = (int)($GLOBALS['auth_user_id'] ?? 0);
+        $authRole = is_string($GLOBALS['auth_user_role'] ?? null) ? strtolower(trim($GLOBALS['auth_user_role'])) : '';
+        $isAdmin = ($authRole === 'admin');
+        $isSoporte = ($authRole === 'soporte');
+        $isOwner = ((int)$report['id_usuario'] === $authUserId);
+        if (!$isAdmin && !$isSoporte && !$isOwner) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'No puede eliminar reportes de otros usuarios']);
+            return;
+        }
+        $stmt->close();
         try {
-            $reportId = $matches[1];
-            
             $reportController = new ReportController();
             $result = $reportController->deleteReport($reportId);
-            
             if($result['success']){
                 http_response_code(200);
             } else {
                 http_response_code(400);
             }
-            
             echo json_encode($result);
             return;
-            
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode([
-                "success" => false, 
+                "success" => false,
+                "message" => "Error interno del servidor",
+                "error" => $e->getMessage()
+            ]);
+            return;
+        }
+    }
+
+    // Endpoint para eliminar un reporte: dueño, admin o soporte puede eliminar
+    if(preg_match('/^(?:api\/)?reports\/(\d+)$/', $path, $matches) && $method === "DELETE"){
+        $reportId = $matches[1];
+        $conn = (new Database())->getConnection();
+        $stmt = $conn->prepare("SELECT id, id_usuario FROM reportes WHERE id = ?");
+        if (!$stmt) {
+            http_response_code(500);
+            echo json_encode(['success'=>false,'message'=>'Error interno']);
+            return;
+        }
+        $stmt->bind_param("i", $reportId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res->num_rows === 0) {
+            http_response_code(404);
+            echo json_encode(['success'=>false,'message'=>'Reporte no encontrado']);
+            return;
+        }
+        $report = $res->fetch_assoc();
+        $authUserId = (int)($GLOBALS['auth_user_id'] ?? 0);
+        $authRole = is_string($GLOBALS['auth_user_role'] ?? null) ? strtolower(trim($GLOBALS['auth_user_role'])) : '';
+        $isAdmin = ($authRole === 'admin');
+        $isSoporte = ($authRole === 'soporte');
+        $isOwner = ((int)$report['id_usuario'] === $authUserId);
+        if (!$isAdmin && !$isSoporte && !$isOwner) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'No puede eliminar reportes de otros usuarios']);
+            return;
+        }
+        $stmt->close();
+        try {
+            $reportController = new ReportController();
+            $result = $reportController->deleteReport($reportId);
+            if($result['success']){
+                http_response_code(200);
+            } else {
+                http_response_code(400);
+            }
+            echo json_encode($result);
+            return;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
                 "message" => "Error interno del servidor",
                 "error" => $e->getMessage()
             ]);

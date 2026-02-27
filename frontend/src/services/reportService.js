@@ -336,11 +336,11 @@ class ReportService {
     }
 
     /**
-     * Eliminar un reporte
+     * Eliminar un reporte (usa POST para evitar 403 cuando el servidor bloquea DELETE)
      */
     static async deleteReport(reportId) {
         try {
-            const response = await http.delete(`reports/${reportId}`);
+            const response = await http.post(`reports/${reportId}/delete`);
             return response.data; // Devolver solo los datos, no todo el objeto response
         } catch (error) {
             //
