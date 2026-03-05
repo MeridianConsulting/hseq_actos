@@ -1206,6 +1206,24 @@ class ReportController {
                 $incidentesPorMes[] = $row;
             }
 
+            // 1b. Reportes por proceso/área (para gráfica "Cantidad de reportes por proceso") — mismos filtros fecha/proyecto; solo aprobado, rechazado, en_revision
+            $procesoWhere = $effectiveWhere . " AND reportes.estado IN ('aprobado', 'rechazado', 'en_revision')";
+            $sqlReportesPorProceso = "
+                SELECT COALESCE(u.Proyecto, 'Sin proceso') as proceso, COUNT(*) as total
+                FROM reportes
+                $joinClause
+                $procesoWhere
+                GROUP BY u.Proyecto
+                ORDER BY total DESC
+            ";
+            $resultReportesPorProceso = $this->conn->query($sqlReportesPorProceso);
+            $reportesPorProceso = [];
+            if ($resultReportesPorProceso) {
+                while ($row = $resultReportesPorProceso->fetch_assoc()) {
+                    $reportesPorProceso[] = $row;
+                }
+            }
+
             // 2. Distribución por tipo de incidente con colores
             $sqlDistribucionTipo = "
                 SELECT 
@@ -1268,6 +1286,28 @@ class ReportController {
             ";
             $resultKPIs = $this->conn->query($sqlKPIs);
             $kpis = $resultKPIs->fetch_assoc();
+
+            // 4b. Resumen por periodo (pendientes, en_revision, aprobados, rechazados por mes) — para gráfica "Resumen de gestión" con eje X de tiempo
+            $sqlResumenPorPeriodo = "
+                SELECT 
+                    DATE_FORMAT(COALESCE(fecha_evento, creado_en), '%Y-%m') as mes,
+                    COUNT(CASE WHEN estado = 'pendiente' THEN 1 END) as pendientes,
+                    COUNT(CASE WHEN estado = 'en_revision' THEN 1 END) as en_revision,
+                    COUNT(CASE WHEN estado = 'aprobado' THEN 1 END) as aprobados,
+                    COUNT(CASE WHEN estado = 'rechazado' THEN 1 END) as rechazados
+                FROM reportes 
+                $joinClause
+                $effectiveWhere
+                GROUP BY DATE_FORMAT(COALESCE(fecha_evento, creado_en), '%Y-%m')
+                ORDER BY mes ASC
+            ";
+            $resultResumenPorPeriodo = $this->conn->query($sqlResumenPorPeriodo);
+            $resumenPorPeriodo = [];
+            if ($resultResumenPorPeriodo) {
+                while ($row = $resultResumenPorPeriodo->fetch_assoc()) {
+                    $resumenPorPeriodo[] = $row;
+                }
+            }
 
             // 5. Días sin accidentes (último incidente)
             $incidentesWhere = $effectiveWhere . " AND tipo_reporte = 'incidentes'";
@@ -1339,6 +1379,8 @@ class ReportController {
                 'success' => true,
                 'data' => [
                     'incidentesPorMes' => $incidentesPorMes,
+                    'resumenPorPeriodo' => $resumenPorPeriodo,
+                    'reportesPorProceso' => $reportesPorProceso,
                     'distribucionTipo' => $distribucionTipo,
                     'tendencias' => $tendencias,
                     'kpis' => $kpis,

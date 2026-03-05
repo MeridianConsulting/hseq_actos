@@ -4,7 +4,7 @@ import ReportDetailsModal from './ReportDetailsModal';
 import ApprovalModal from './ApprovalModal';
 import { buildApi, buildUploadsUrl } from '../config/api';
 import { gradosCriticidad, tiposAfectacion, reportTypes } from '../config/formOptions';
-import { getProcesoDisplayName, PROCESS_LABELS } from '../config/processLabels';
+import { getProcesoDisplayName, PROCESS_LABELS, PROYECTOS_FILTER_CW_GRM, PROYECTOS_FILTER_CW_GGS } from '../config/processLabels';
 import { reportService, userService, evidenceService } from '../services/api';
 import { downloadBlob } from '../utils/downloadHelper';
 import { Clock, ClipboardCheck, CircleCheck, CircleX, CheckCircle, ImageIcon, User } from 'lucide-react';
@@ -218,7 +218,8 @@ const ReportsTable = ({
       if (baseFilters.proceso) {
         if (baseFilters.proceso === 'petroservicios') baseFilters.proyecto = 'PETROSERVICIOS';
         else if (baseFilters.proceso === 'administrativa') baseFilters.proyecto = 'ADMINISTRACION,COMPANY MAN - ADMINISTRACION,ADMINISTRACION - STAFF,FRONTERA - ADMINISTRACION,Administrativo,PETROSERVICIOS - ADMINISTRACION,ADMINISTRACION COMPANY MAN';
-        else if (baseFilters.proceso === 'company-man') baseFilters.proyecto = '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN - GGS,COMPANY MAN - CASTILLA';
+        else if (baseFilters.proceso === 'company-man-grm') baseFilters.proyecto = PROYECTOS_FILTER_CW_GRM;
+        else if (baseFilters.proceso === 'company-man-ggs') baseFilters.proyecto = PROYECTOS_FILTER_CW_GGS;
         else if (baseFilters.proceso === 'frontera') baseFilters.proyecto = 'FRONTERA';
         else if (baseFilters.proceso === 'zircon') baseFilters.proyecto = 'ZIRCON';
         delete baseFilters.proceso;
@@ -308,7 +309,8 @@ const ReportsTable = ({
       if (apiFilters.proceso) {
         if (apiFilters.proceso === 'petroservicios') apiFilters.proyecto = 'PETROSERVICIOS';
         else if (apiFilters.proceso === 'administrativa') apiFilters.proyecto = 'ADMINISTRACION,COMPANY MAN - ADMINISTRACION,ADMINISTRACION - STAFF,FRONTERA - ADMINISTRACION,Administrativo,PETROSERVICIOS - ADMINISTRACION,ADMINISTRACION COMPANY MAN';
-        else if (apiFilters.proceso === 'company-man') apiFilters.proyecto = '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN - GGS,COMPANY MAN - CASTILLA';
+        else if (apiFilters.proceso === 'company-man-grm') apiFilters.proyecto = PROYECTOS_FILTER_CW_GRM;
+        else if (apiFilters.proceso === 'company-man-ggs') apiFilters.proyecto = PROYECTOS_FILTER_CW_GGS;
         else if (apiFilters.proceso === 'frontera') apiFilters.proyecto = 'FRONTERA';
         else if (apiFilters.proceso === 'zircon') apiFilters.proyecto = 'ZIRCON';
         delete apiFilters.proceso;
@@ -825,7 +827,8 @@ const ReportsTable = ({
            <option value="">Todos los Procesos</option>
            <option value="petroservicios">{PROCESS_LABELS.petroservicios}</option>
            <option value="administrativa">{PROCESS_LABELS.administrativa}</option>
-           <option value="company-man">{PROCESS_LABELS['company-man']}</option>
+           <option value="company-man-grm">{PROCESS_LABELS['company-man-grm']}</option>
+           <option value="company-man-ggs">{PROCESS_LABELS['company-man-ggs']}</option>
            <option value="frontera">{PROCESS_LABELS.frontera}</option>
            <option value="zircon">{PROCESS_LABELS.zircon}</option>
          </select>

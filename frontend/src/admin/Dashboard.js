@@ -16,7 +16,7 @@ import { userService } from '../services/api';
 import { buildApi, buildUploadsUrl } from '../config/api';
 import ReportsTable from '../components/ReportsTable';
 import { reportTypes, gradosCriticidad } from '../config/formOptions';
-import { getProcesoDisplayName, PROCESS_LABELS } from '../config/processLabels';
+import { getProcesoDisplayName, PROCESS_LABELS, PROYECTOS_FILTER_CW_GRM, PROYECTOS_FILTER_CW_GGS } from '../config/processLabels';
 import { AlertCircle, Clock, CircleCheck, Calendar, BarChart2, TrendingUp, FileSpreadsheet, Search, User, Users, Plus, ClipboardCheck } from 'lucide-react';
 
 // Nombres de proceso unificados (PDF pág. 2)
@@ -60,29 +60,6 @@ const formatPeriodTick = (v) => {
 const formatProcesoTick = (v) => {
   const s = String(v);
   return s.length > 22 ? s.slice(0, 22) + '…' : s;
-};
-
-// Solo para la gráfica "Cantidad de reportes por proceso": normaliza el label a Title Case
-// y sin guiones bajos, para que todas las variantes se agrupen en una sola barra.
-const normalizeProcesoLabel = (procesoRaw) => {
-  if (!procesoRaw || typeof procesoRaw !== 'string') return procesoRaw || '';
-  const t = procesoRaw.trim();
-  if (t === '') return '';
-  const withSpaces = t.replace(/_/g, ' ');
-  const lower = withSpaces.toLowerCase();
-  const titleCase = lower.replace(/\b\w/g, (c) => c.toUpperCase());
-  // Casos específicos para unificar con el display esperado
-  if (titleCase === 'Administrativo') return 'Administracion';
-  if (titleCase === 'Cw Company Man' || lower === 'cw_company man') return 'Proyecto Cw Grm';
-  if (titleCase === 'Frontera') return 'Proyecto Frontera';
-  if (titleCase === 'Petroservicios') return 'Proyecto Petroservicios';
-  if (titleCase === 'Zircon') return 'Proyecto Zircon';
-  if (lower === 'proyecto cw grm' || lower === 'proyecto_cw_grm') return 'Proyecto Cw Grm';
-  if (lower === 'proyecto frontera' || lower === 'proyecto_frontera') return 'Proyecto Frontera';
-  if (lower === 'proyecto petroservicios' || lower === 'proyecto_petroservicios') return 'Proyecto Petroservicios';
-  if (lower === 'proyecto zircon' || lower === 'proyecto_zircon') return 'Proyecto Zircon';
-  if (lower === 'administracion') return 'Administracion';
-  return titleCase;
 };
 
 const Dashboard = () => {
@@ -210,19 +187,16 @@ const Dashboard = () => {
   const dashboardFilters = useMemo(() => {
     if (!dashboardProceso) return {};
     if (dashboardProceso === 'petroservicios') {
-      // Gestión Proyecto - Petroservicios
       return { proyecto: 'PETROSERVICIOS' };
     } else if (dashboardProceso === 'administrativa') {
-      // Gestión Administrativa
       return { proyecto: 'ADMINISTRACION,COMPANY MAN - ADMINISTRACION,ADMINISTRACION - STAFF,FRONTERA - ADMINISTRACION,Administrativo,PETROSERVICIOS - ADMINISTRACION,ADMINISTRACION COMPANY MAN' };
-    } else if (dashboardProceso === 'company-man') {
-      // Gestión Proyecto - Company man
-      return { proyecto: '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN - GGS,COMPANY MAN - CASTILLA' };
+    } else if (dashboardProceso === 'company-man-grm') {
+      return { proyecto: PROYECTOS_FILTER_CW_GRM };
+    } else if (dashboardProceso === 'company-man-ggs') {
+      return { proyecto: PROYECTOS_FILTER_CW_GGS };
     } else if (dashboardProceso === 'frontera') {
-      // Gestión Proyecto Frontera
       return { proyecto: 'FRONTERA' };
     } else if (dashboardProceso === 'zircon') {
-      // Gestión Proyecto ZIRCON
       return { proyecto: 'ZIRCON' };
     }
     return {};
@@ -235,9 +209,9 @@ const Dashboard = () => {
     let dateFrom, dateTo;
     
     if (selectedPeriod === 'month') {
-      // Mes actual
-      dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
-      dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      // Año en curso (YTD): desde 01-01 hasta hoy — para mostrar acumulado por mes (Ene, Feb, … mes actual)
+      dateFrom = new Date(now.getFullYear(), 0, 1);
+      dateTo = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     } else if (selectedPeriod === 'quarter') {
       // Trimestre actual (Q1: 0-2, Q2: 3-5, Q3: 6-8, Q4: 9-11)
       const currentQuarter = Math.floor(now.getMonth() / 3);
@@ -598,14 +572,15 @@ const Dashboard = () => {
       // Aplicar filtro de proceso (mismo mapping del dashboardStats)
       Object.assign(filters, dashboardFilters);
 
-      // Agregar filtro de fecha según el período seleccionado
+      // Agregar filtro de fecha según el período seleccionado (mismo criterio que periodDateFilters / gráfica Reportes por período)
       if (selectedPeriod !== 'all') {
         const now = new Date();
         let dateFrom, dateTo;
 
         if (selectedPeriod === 'month') {
-          dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
-          dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+          // Año en curso (YTD): 01-01 hasta hoy
+          dateFrom = new Date(now.getFullYear(), 0, 1);
+          dateTo = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
         } else if (selectedPeriod === 'quarter') {
           const currentQuarter = Math.floor(now.getMonth() / 3);
           dateFrom = new Date(now.getFullYear(), currentQuarter * 3, 1);
@@ -634,8 +609,8 @@ const Dashboard = () => {
           let dateFrom, dateTo;
 
           if (selectedPeriod === 'month') {
-            dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
-            dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+            dateFrom = new Date(now.getFullYear(), 0, 1);
+            dateTo = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
           } else if (selectedPeriod === 'quarter') {
             const currentQuarter = Math.floor(now.getMonth() / 3);
             dateFrom = new Date(now.getFullYear(), currentQuarter * 3, 1);
@@ -1542,19 +1517,16 @@ const Dashboard = () => {
         // Mapear 'proceso' a 'proyecto' para el backend (mapeo de Gestiones a Proyectos)
         if (key === 'proceso') {
           if (excelFilters[key] === 'petroservicios') {
-            // Gestión Proyecto - Petroservicios
             cleanFilters['proyecto'] = 'PETROSERVICIOS';
           } else if (excelFilters[key] === 'administrativa') {
-            // Gestión Administrativa
             cleanFilters['proyecto'] = 'ADMINISTRACION,COMPANY MAN - ADMINISTRACION,ADMINISTRACION - STAFF,FRONTERA - ADMINISTRACION,Administrativo,PETROSERVICIOS - ADMINISTRACION,ADMINISTRACION COMPANY MAN';
-          } else if (excelFilters[key] === 'company-man') {
-            // Gestión Proyecto - Company man
-            cleanFilters['proyecto'] = '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN - GGS,COMPANY MAN - CASTILLA';
+          } else if (excelFilters[key] === 'company-man-grm') {
+            cleanFilters['proyecto'] = PROYECTOS_FILTER_CW_GRM;
+          } else if (excelFilters[key] === 'company-man-ggs') {
+            cleanFilters['proyecto'] = PROYECTOS_FILTER_CW_GGS;
           } else if (excelFilters[key] === 'frontera') {
-            // Gestión Proyecto Frontera
             cleanFilters['proyecto'] = 'FRONTERA';
           } else if (excelFilters[key] === 'zircon') {
-            // Gestión Proyecto ZIRCON
             cleanFilters['proyecto'] = 'ZIRCON';
           }
         } else {
@@ -1644,37 +1616,26 @@ const Dashboard = () => {
     setShowExcelFiltersModal(true);
   }, []);
 
-  // Bar chart: Cantidad de reportes por proceso/área (labels normalizados solo aquí)
+  // Bar chart: Cantidad de reportes por proceso (labels desde processLabels: Proyecto CW GRM / Proyecto CW GGS)
   const reportsByProcess = useMemo(() => {
-    // Si hay reportes cargados, agruparlos por proceso (label normalizado = misma barra para variantes)
     if (reportsForProcessChart.length > 0) {
       const processMap = new Map();
-      
       reportsForProcessChart.forEach(report => {
         const proyecto = report.proyecto_usuario || '';
-        const procesoRaw = getProcesoFromProyecto(proyecto);
-        const proceso = normalizeProcesoLabel(procesoRaw);
-        
-        if (!processMap.has(proceso)) {
-          processMap.set(proceso, 0);
-        }
+        const proceso = getProcesoDisplayName(proyecto);
+        if (!processMap.has(proceso)) processMap.set(proceso, 0);
         processMap.set(proceso, processMap.get(proceso) + 1);
       });
-      
-      // Convertir a array y ordenar por cantidad descendente
       return Array.from(processMap.entries())
         .map(([proceso, total]) => ({ proceso, total }))
         .sort((a, b) => b.total - a.total);
     }
-    
-    // Fallback: intentar usar datos del backend si existen (normalizar label para la gráfica)
     const rows = stats?.reportesPorProceso || stats?.reportes_por_proceso || [];
     if (!Array.isArray(rows)) return [];
-
     return rows.map((r) => {
       const raw = r.proceso || r.area || r.nombre || 'Sin proceso';
       return {
-        proceso: normalizeProcesoLabel(raw),
+        proceso: getProcesoDisplayName(raw),
         total: Number(r.total) || Number(r.cantidad) || Number(r.count) || 0,
       };
     });
@@ -1756,14 +1717,144 @@ const Dashboard = () => {
     return Object.entries(sum).map(([k, v]) => ({ id: k, label: labelCap(k), value: v, color: colors[k] }));
   }, [stats?.distribucionTipo, incidentsByMonth, selectedPeriod]);
 
-  const reportesResumenChart = useMemo(() => {
-    // Usar KPIs del backend (ya filtrados por periodo si no es 'Todos')
+  // Etiqueta del periodo actual según filtro (mes, trimestre o año).
+  // Para el modo mensual intentamos derivar el mes a partir de los datos reales del backend:
+  // - Backend agrupa por mes usando COALESCE(fecha_evento, creado_en) → campo "mes" con formato "YYYY-MM"
+  // - Si existe stats.resumenPorPeriodo, tomamos el último "mes" de ese arreglo
+  // - Si no existe, usamos stats.incidentesPorMes como fuente secundaria
+  // - Solo si tampoco hay datos caemos al mes/año actuales del sistema
+  const currentPeriodLabel = useMemo(() => {
+    const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    let year;
+    let monthIndex;
+
+    const pickLastMes = () => {
+      if (Array.isArray(stats?.resumenPorPeriodo) && stats.resumenPorPeriodo.length > 0) {
+        return (stats.resumenPorPeriodo[stats.resumenPorPeriodo.length - 1].mes || '').toString().trim();
+      }
+      if (Array.isArray(stats?.incidentesPorMes) && stats.incidentesPorMes.length > 0) {
+        return (stats.incidentesPorMes[stats.incidentesPorMes.length - 1].mes || '').toString().trim();
+      }
+      return '';
+    };
+
+    const mesStr = pickLastMes();
+    if (/^\d{4}-\d{2}$/.test(mesStr)) {
+      const [yStr, mStr] = mesStr.split('-');
+      year = parseInt(yStr, 10);
+      monthIndex = parseInt(mStr, 10) - 1;
+    } else {
+      const now = new Date();
+      year = now.getFullYear();
+      monthIndex = now.getMonth();
+    }
+
+    if (selectedPeriod === 'month') {
+      return MONTH_LABELS[monthIndex] || 'Dic';
+    }
+    if (selectedPeriod === 'quarter') {
+      const q = Math.floor(monthIndex / 3) + 1;
+      return `T${q}`;
+    }
+    return String(year);
+  }, [selectedPeriod, stats?.resumenPorPeriodo, stats?.incidentesPorMes]);
+
+  // Resumen de gestión por periodo (eje X = tiempo, como Total de reportes por período)
+  const reportesResumenByPeriod = useMemo(() => {
+    const data = stats?.resumenPorPeriodo || [];
+    if (!Array.isArray(data) || data.length === 0) {
+      const pendientes = Number(stats?.kpis?.pendientes) || 0;
+      const enRevision = Number(stats?.kpis?.en_revision) || 0;
+      const aprobados = Number(stats?.kpis?.aprobados) || 0;
+      const rechazados = Number(stats?.kpis?.rechazados) || 0;
+      return [{ period: currentPeriodLabel, Pendientes: pendientes, 'En Revisión': enRevision, Aprobados: aprobados, Rechazados: rechazados }];
+    }
+    const periodType = selectedPeriod;
+    const currentYear = new Date().getFullYear();
+    const parseResumenYear = (m) => {
+      const mesStr = (m.mes || '').toString().trim();
+      if (/^\d{4}-\d{2}$/.test(mesStr)) return parseInt(mesStr.split('-')[0], 10);
+      return currentYear;
+    };
+    const parseResumenMonthIndex = (m) => {
+      const mesStr = (m.mes || '').toString().trim();
+      if (/^\d{4}-\d{2}$/.test(mesStr)) return parseInt(mesStr.split('-')[1], 10) - 1;
+      return null;
+    };
+
+    if (periodType === 'month') {
+      const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const byMonth = MONTH_LABELS.map(period => ({
+        period,
+        Pendientes: 0,
+        'En Revisión': 0,
+        Aprobados: 0,
+        Rechazados: 0
+      }));
+      data.forEach(m => {
+        const y = parseResumenYear(m);
+        const mi = parseResumenMonthIndex(m);
+        if (y !== currentYear || mi == null || mi < 0 || mi > 11) return;
+        byMonth[mi].Pendientes += Number(m.pendientes) || 0;
+        byMonth[mi]['En Revisión'] += Number(m.en_revision) || 0;
+        byMonth[mi].Aprobados += Number(m.aprobados) || 0;
+        byMonth[mi].Rechazados += Number(m.rechazados) || 0;
+      });
+      return byMonth;
+    }
+
+    if (periodType === 'quarter') {
+      const QUARTER_LABELS = ['T1', 'T2', 'T3', 'T4'];
+      const byQuarter = QUARTER_LABELS.map(period => ({
+        period,
+        Pendientes: 0,
+        'En Revisión': 0,
+        Aprobados: 0,
+        Rechazados: 0
+      }));
+      data.forEach(m => {
+        const y = parseResumenYear(m);
+        const mi = parseResumenMonthIndex(m);
+        if (y !== currentYear || mi == null || mi < 0 || mi > 11) return;
+        const q = Math.floor(mi / 3) + 1;
+        const idx = q - 1;
+        byQuarter[idx].Pendientes += Number(m.pendientes) || 0;
+        byQuarter[idx]['En Revisión'] += Number(m.en_revision) || 0;
+        byQuarter[idx].Aprobados += Number(m.aprobados) || 0;
+        byQuarter[idx].Rechazados += Number(m.rechazados) || 0;
+      });
+      return byQuarter;
+    }
+
+    if (periodType === 'year') {
+      const years = [currentYear - 2, currentYear - 1, currentYear];
+      const byYear = years.map(y => ({
+        period: String(y),
+        Pendientes: 0,
+        'En Revisión': 0,
+        Aprobados: 0,
+        Rechazados: 0
+      }));
+      data.forEach(m => {
+        const y = parseResumenYear(m);
+        const idx = years.indexOf(y);
+        if (idx === -1) return;
+        byYear[idx].Pendientes += Number(m.pendientes) || 0;
+        byYear[idx]['En Revisión'] += Number(m.en_revision) || 0;
+        byYear[idx].Aprobados += Number(m.aprobados) || 0;
+        byYear[idx].Rechazados += Number(m.rechazados) || 0;
+      });
+      return byYear;
+    }
+
     const pendientes = Number(stats?.kpis?.pendientes) || 0;
     const enRevision = Number(stats?.kpis?.en_revision) || 0;
     const aprobados = Number(stats?.kpis?.aprobados) || 0;
     const rechazados = Number(stats?.kpis?.rechazados) || 0;
-    return [{ estado: 'Reportes', Pendientes: pendientes, 'En Revisión': enRevision, Aprobados: aprobados, Rechazados: rechazados }];
-  }, [stats?.kpis, selectedPeriod]);
+    return [{ period: currentPeriodLabel, Pendientes: pendientes, 'En Revisión': enRevision, Aprobados: aprobados, Rechazados: rechazados }];
+  }, [stats?.resumenPorPeriodo, stats?.kpis, selectedPeriod, currentPeriodLabel]);
+
+  const reportesResumenChart = useMemo(() => reportesResumenByPeriod, [reportesResumenByPeriod]);
 
   // Loading reutilizado (igual al de gráficos) - aplica a anual/trimestral/mensual
   const dashboardLoadingContent = (
@@ -2140,7 +2231,7 @@ const Dashboard = () => {
                         text: { fill: '#f3f4f6', fontSize: 12 },
                         axis: {
                           ticks: { text: { fill: '#d1d5db', fontSize: 11 } },
-                          domain: { line: { stroke: 'rgba(255,255,255,0.15)' } },
+                          domain: { line: { stroke: 'transparent', strokeWidth: 0 } },
                           legend: { text: { fill: '#e5e7eb', fontWeight: 600 } }
                         },
                         grid: { line: { stroke: 'rgba(255,255,255,0.1)' } },
@@ -2155,23 +2246,7 @@ const Dashboard = () => {
                           }
                         }
                       }}
-                      axisBottom={{
-                        tickSize: 5,
-                        tickPadding: 8,
-                        tickRotation: -35,
-                        format: formatPeriodTick,
-                        legend: 'Periodo',
-                        legendPosition: 'middle',
-                        legendOffset: 60
-                      }}
-                      axisLeft={{
-                        tickSize: 5,
-                        tickPadding: 8,
-                        tickRotation: 0,
-                        legend: 'Cantidad de reportes',
-                        legendPosition: 'middle',
-                        legendOffset: -50
-                      }}
+                      axisLeft={{ format: () => '' }}
                       labelSkipHeight={14}
                       labelSkipWidth={16}
                       labelTextColor="#ffffff"
@@ -2237,9 +2312,9 @@ const Dashboard = () => {
                     <ResponsiveBar
                       data={reportesResumenChart}
                       keys={['Pendientes', 'En Revisión', 'Aprobados', 'Rechazados']}
-                      indexBy="estado"
-                      margin={{ top: 30, right: 30, bottom: 50, left: 60 }}
-                      padding={0.15}
+                      indexBy="period"
+                      margin={{ top: 30, right: 30, bottom: 95, left: 60 }}
+                      padding={0.3}
                       groupMode="grouped"
                       valueScale={{ type: 'linear' }}
                       colors={[
@@ -2261,17 +2336,22 @@ const Dashboard = () => {
                         grid: { line: { stroke: 'rgba(255,255,255,0.1)', strokeDasharray: '4 4' } },
                         tooltip: { container: { background: '#111827', color: '#f9fafb', fontSize: 13, borderRadius: 8, padding: '8px 12px', boxShadow: '0 6px 20px rgba(0,0,0,0.4)' } }
                       }}
-                      axisBottom={null}
-                      axisLeft={null}
+                      axisBottom={{
+                        tickSize: 5,
+                        tickPadding: 8,
+                        tickRotation: -45,
+                        legend: '',
+                      }}
+                      axisLeft={{ format: () => '' }}
                       labelTextColor="#ffffff"
-                      labelSkipHeight={16}
-                      labelSkipWidth={12}
-                      label={d => (d.value >= 2 ? d.value : '')}
+                      labelSkipHeight={0}
+                      labelSkipWidth={0}
+                      label={d => (d.value > 0 ? String(d.value) : '')}
                       animate={true}
                       motionConfig="gentle"
                       enableGridY={true}
                       legends={[]}
-                      tooltip={({ id, value, color }) => (
+                      tooltip={({ id, value, color, indexValue }) => (
                         <div
                           style={{
                             padding: '8px 12px',
@@ -2280,20 +2360,16 @@ const Dashboard = () => {
                             borderRadius: '8px',
                             boxShadow: '0 6px 15px rgba(0,0,0,0.3)',
                             display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px'
+                            flexDirection: 'column',
+                            gap: '4px'
                           }}
                         >
-                          <div
-                            style={{
-                              width: '12px',
-                              height: '12px',
-                              backgroundColor: color,
-                              borderRadius: '3px'
-                            }}
-                          ></div>
-                          <strong style={{ color: '#f3f4f6' }}>{id}:</strong>
-                          <span style={{ color: '#d1d5db' }}>{value}</span>
+                          <div style={{ color: '#9ca3af', fontSize: 11 }}>Periodo: <strong>{indexValue}</strong></div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '12px', height: '12px', backgroundColor: color, borderRadius: '3px' }} />
+                            <strong style={{ color: '#f3f4f6' }}>{id}:</strong>
+                            <span style={{ color: '#d1d5db' }}>{value}</span>
+                          </div>
                         </div>
                       )}
                     />
@@ -2380,7 +2456,7 @@ const Dashboard = () => {
                           text: { fill: '#f3f4f6', fontSize: 12 },
                           axis: {
                             ticks: { text: { fill: '#d1d5db', fontSize: 11 } },
-                            domain: { line: { stroke: 'rgba(255,255,255,0.15)' } },
+                            domain: { line: { stroke: 'transparent', strokeWidth: 0 } },
                             legend: { text: { fill: '#e5e7eb', fontWeight: 600, fontSize: 12 } },
                           },
                           grid: { line: { stroke: 'rgba(255,255,255,0.1)', strokeDasharray: '3 3' } },
@@ -2396,16 +2472,6 @@ const Dashboard = () => {
                             },
                           },
                         }}
-                        axisTop={null}
-                        axisRight={null}
-                        axisBottom={{
-                          tickSize: 5,
-                          tickPadding: 8,
-                          tickRotation: 0,
-                          legend: 'Cantidad de reportes',
-                          legendPosition: 'middle',
-                          legendOffset: 40,
-                        }}
                         axisLeft={{
                           tickSize: 5,
                           tickPadding: 8,
@@ -2414,6 +2480,10 @@ const Dashboard = () => {
                           legend: '',
                           legendPosition: 'middle',
                           legendOffset: -160,
+                        }}
+                        axisBottom={{
+                          legend: '',
+                          format: () => '',
                         }}
                         labelSkipHeight={14}
                         labelSkipWidth={16}
@@ -2590,16 +2660,17 @@ const Dashboard = () => {
                   className="px-3 py-2 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 >
                   <option value="">Todos los Procesos</option>
-                  <option value="administrativa">Administrativo</option>
-                  <option value="company-man">Proyecto CW_Company Man</option>
-                  <option value="frontera">Proyecto Frontera</option>
-                  <option value="petroservicios">Proyecto Petroservicios</option>
-                  <option value="zircon">Proyecto ZIRCON</option>
+                  <option value="administrativa">{PROCESS_LABELS.administrativa}</option>
+                  <option value="company-man-grm">{PROCESS_LABELS['company-man-grm']}</option>
+                  <option value="company-man-ggs">{PROCESS_LABELS['company-man-ggs']}</option>
+                  <option value="frontera">{PROCESS_LABELS.frontera}</option>
+                  <option value="petroservicios">{PROCESS_LABELS.petroservicios}</option>
+                  <option value="zircon">{PROCESS_LABELS.zircon}</option>
                 </select>
               </div>
               {dashboardProceso && (
                 <div className="text-xs text-gray-400">
-                  Filtro aplicado a estadísticas, gráficos y tabla: <span className="text-blue-300 font-semibold">{({ administrativa: 'Administrativo', 'company-man': 'Proyecto CW_Company Man', frontera: 'Proyecto Frontera', petroservicios: 'Proyecto Petroservicios', zircon: 'Proyecto ZIRCON' })[dashboardProceso] || dashboardProceso}</span>
+                  Filtro aplicado a estadísticas, gráficos y tabla: <span className="text-blue-300 font-semibold">{PROCESS_LABELS[dashboardProceso] || dashboardProceso}</span>
                 </div>
               )}
             </div>
@@ -3062,11 +3133,12 @@ const Dashboard = () => {
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-600 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     >
                      <option value="">Todos los Procesos</option>
-                     <option value="administrativa">Administrativo</option>
-                     <option value="company-man">Proyecto CW_Company Man</option>
-                     <option value="frontera">Proyecto Frontera</option>
-                     <option value="petroservicios">Proyecto Petroservicios</option>
-                     <option value="zircon">Proyecto ZIRCON</option>
+                     <option value="administrativa">{PROCESS_LABELS.administrativa}</option>
+                     <option value="company-man-grm">{PROCESS_LABELS['company-man-grm']}</option>
+                     <option value="company-man-ggs">{PROCESS_LABELS['company-man-ggs']}</option>
+                     <option value="frontera">{PROCESS_LABELS.frontera}</option>
+                     <option value="petroservicios">{PROCESS_LABELS.petroservicios}</option>
+                     <option value="zircon">{PROCESS_LABELS.zircon}</option>
                     </select>
                   </div>
                   

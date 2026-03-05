@@ -68,6 +68,8 @@ class ReportService {
                     throw new Error('La descripción debe tener al menos 20 caracteres');
                 }
                 break;
+            default:
+                throw new Error('Tipo de reporte no válido');
         }
         
         return formattedData;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import ReportService from '../../services/reportService';
 import SuccessAnimation from '../SuccessAnimation';
 import { getTodayLocal } from './FormInputs';
@@ -641,9 +642,9 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-2 sm:p-4 backdrop-blur-sm">
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
           {/* Header */}
           <div className="sticky top-0 bg-gradient-to-r from-gray-900 to-gray-800 rounded-t-3xl p-6 border-b border-gray-700">
@@ -732,7 +733,7 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
                   form="edit-report-form"
                   disabled={isLoading}
                   className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                  aria-describedby={isLoading ? "loading-description" : undefined}
+                  aria-describedby={isLoading ? 'loading-description' : undefined}
                 >
                   {isLoading ? (
                     <>
@@ -765,6 +766,8 @@ const EditReportModal = ({ isOpen, onClose, report, onSuccess }) => {
       />
     </>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default EditReportModal; 
