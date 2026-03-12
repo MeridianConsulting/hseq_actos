@@ -1752,21 +1752,21 @@ const Dashboard = () => {
 
           {/* Welcome Section */}
           {user && (
-            <div className={`mb-8 transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              <div className="text-center py-8 px-6 rounded-2xl bg-gradient-to-b from-gray-800/40 to-gray-900/60 border border-gray-700 backdrop-blur-sm" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 tracking-tight text-white drop-shadow-md">
+            <div className={`mb-10 transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <div className="text-center py-6 px-6 rounded-xl bg-gray-900/50 border border-white/[0.06]" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1.5 tracking-tight text-white">
                   ¡Bienvenido, {getUserName()}!
                 </h1>
-                <p className="text-sm md:text-base text-gray-300 font-medium tracking-wide">
+                <p className="text-xs md:text-sm text-gray-400 font-medium tracking-wide">
                   Plataforma HSEQ — Sistema de Gestión de Seguridad y Calidad
                 </p>
               </div>
 
               {/* User Information Card - Redesigned */}
                 <div className="mt-8 transition-all duration-1000 delay-300">
-                <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl border border-gray-700 overflow-hidden" style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}>
+                <div className="bg-gray-900/70 rounded-xl border border-white/[0.06] overflow-hidden" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
                   {/* Header Section with Avatar */}
-                  <div className="relative p-4 md:p-8 text-center bg-gray-800/50 border-b border-gray-700">
+                  <div className="relative p-4 md:p-8 text-center bg-gray-800/30 border-b border-white/[0.06]">
                     
                     {/* Avatar and User Info */}
                     <div className="relative z-10">
@@ -1911,171 +1911,144 @@ const Dashboard = () => {
           )}
 
           {/* Period Filter */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="flex flex-wrap justify-center gap-3 mb-3">
+          <div className="flex flex-col items-center mb-10">
+            <div className="inline-flex items-center bg-gray-900/60 border border-white/[0.08] rounded-xl p-1 gap-1">
               {['month', 'quarter', 'year'].map((period) => (
                 <button
                   key={period}
-                    onClick={() => {
-                    handlePeriodChange(period);
-                  }}
+                  onClick={() => handlePeriodChange(period)}
                   disabled={loading}
-                  className={`py-2 px-3 md:px-4 rounded-lg font-semibold transition-all duration-300 text-sm md:text-base ${
-                    selectedPeriod === period ? 'scale-105 ring-2 ring-white ring-opacity-50' : 'hover:scale-105'
-                  } ${loading ? 'opacity-70 cursor-wait' : ''}`}
+                  className={`relative py-2 px-4 md:px-5 rounded-lg font-semibold transition-all duration-250 text-sm ${
+                    loading ? 'opacity-70 cursor-wait' : ''
+                  }`}
                   style={{
-                    backgroundColor: selectedPeriod === period 
-                      ? 'var(--color-tertiary)' 
-                      : 'rgba(252, 247, 255, 0.15)',
-                    color: selectedPeriod === period 
-                      ? 'var(--color-dark)' 
-                      : 'var(--color-secondary)',
-                    border: '1px solid rgba(252, 247, 255, 0.3)',
-                    boxShadow: selectedPeriod === period ? '0 4px 12px rgba(0,0,0,0.3)' : 'none'
+                    backgroundColor: selectedPeriod === period
+                      ? 'var(--color-tertiary)'
+                      : 'transparent',
+                    color: selectedPeriod === period
+                      ? 'var(--color-dark)'
+                      : 'rgba(255,255,255,0.55)',
+                    boxShadow: selectedPeriod === period ? '0 2px 8px rgba(0,0,0,0.25)' : 'none'
                   }}
                 >
                   {loading && selectedPeriod === period ? (
-                    <>
-                      <svg className="inline w-4 h-4 mr-2 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <span className="inline-flex items-center gap-2">
+                      <svg className="w-3.5 h-3.5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Cargando...
-                    </>
+                      <span>Cargando...</span>
+                    </span>
                   ) : (
-                  period === 'month' ? 'Mensual' : period === 'quarter' ? 'Trimestral' : 'Anual'
+                    period === 'month' ? 'Mensual' : period === 'quarter' ? 'Trimestral' : 'Anual'
                   )}
                 </button>
               ))}
             </div>
-            {/* Indicador visual del período activo */}
-            {selectedPeriod && (
-              <div style={loading ? { display: 'flex', justifyContent: 'center', width: '100%', marginTop: '16px' } : undefined}>
-                <div className={`text-sm text-gray-300 bg-gray-800/50 px-4 py-2 rounded-lg border transition-all duration-300 ${
-                  loading ? 'border-yellow-500 animate-pulse' : 'border-gray-700'
+
+            {selectedPeriod && !loading && stats && (
+              <div className="mt-3 inline-flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
+                <span className={`inline-flex items-center gap-1.5 font-semibold ${
+                  selectedPeriod === 'month' ? 'text-blue-400' :
+                  selectedPeriod === 'quarter' ? 'text-green-400' :
+                  'text-orange-400'
                 }`}>
-                  <div className={`flex items-center gap-3 ${loading ? 'justify-center' : ''}`}>
-                    <span className="font-semibold">Período activo: </span>
-                    <span className={`inline-flex items-center gap-2 font-bold ${
-                      selectedPeriod === 'month' ? 'text-blue-300' :
-                      selectedPeriod === 'quarter' ? 'text-green-300' :
-                      'text-orange-300'
-                    }`}>
-                      {selectedPeriod === 'month' ? <><Calendar className="w-4 h-4" /> Mes actual</> :
-                       selectedPeriod === 'quarter' ? <><BarChart2 className="w-4 h-4" /> Trimestre actual</> :
-                       <><TrendingUp className="w-4 h-4" /> Año actual</>}
-                    </span>
-                    {!loading && stats ? (
-                      <>
-                        <span className="ml-3 text-xs text-gray-400">
-                          | Total reportes: <span className="font-bold text-white">{stats?.kpis?.total_reportes || 0}</span>
-                        </span>
-                        <span className="ml-3 text-xs text-gray-400">
-                          | Pendientes: <span className="font-bold text-yellow-400">{stats?.kpis?.pendientes || 0}</span>
-                        </span>
-                        <span className="ml-3 text-xs text-gray-400">
-                          | En revisión: <span className="font-bold text-blue-400">{enRevision}</span>
-                        </span>
-                        <span className="ml-3 text-xs text-gray-400">
-                          | Cerrados: <span className="font-bold text-green-400">{totalCerrados}</span>
-                        </span>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
+                  {selectedPeriod === 'month' ? <><Calendar className="w-3.5 h-3.5" /> Mes actual</> :
+                   selectedPeriod === 'quarter' ? <><BarChart2 className="w-3.5 h-3.5" /> Trimestre actual</> :
+                   <><TrendingUp className="w-3.5 h-3.5" /> Año actual</>}
+                </span>
+                <span className="hidden sm:inline text-gray-600">|</span>
+                <span>Total: <span className="font-semibold text-gray-200">{stats?.kpis?.total_reportes || 0}</span></span>
+                <span>Pendientes: <span className="font-semibold text-yellow-400">{stats?.kpis?.pendientes || 0}</span></span>
+                <span>En revisión: <span className="font-semibold text-blue-400">{enRevision}</span></span>
+                <span>Cerrados: <span className="font-semibold text-green-400">{totalCerrados}</span></span>
               </div>
             )}
           </div>
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-10">
             {loading && (
               <div
                 className="col-span-full"
-                style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '200px' }}
+                style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '140px' }}
               >
                 {dashboardLoadingContent}
               </div>
             )}
             {error && <div className="text-center text-base text-red-500 col-span-full">{error}</div>}
             {!loading && !error && kpis.map((kpi, index) => (
-              <div 
+              <div
                 key={index}
-                className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 border border-gray-700 hover:transform hover:scale-[1.02] transition-all duration-300"
-                style={{ boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}
+                className="group relative bg-gray-900/70 rounded-xl p-4 md:p-5 border border-white/[0.06] hover:border-white/[0.12] transition-all duration-300 flex flex-col justify-between overflow-hidden"
+                style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  {kpi.Icon && <kpi.Icon className="w-5 h-5 flex-shrink-0" style={{ color: kpi.color }} />}
-                  <h3 className="text-2xl md:text-3xl font-bold" style={{ color: kpi.color }}>
+                <div
+                  className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl"
+                  style={{ background: kpi.color }}
+                />
+                <div className="flex items-start justify-between mb-3">
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center"
+                    style={{ background: `${kpi.color}18` }}
+                  >
+                    {kpi.Icon && <kpi.Icon className="w-[18px] h-[18px]" style={{ color: kpi.color }} />}
+                  </div>
+                </div>
+                <div>
+                  <h3
+                    className="text-2xl md:text-3xl font-bold tracking-tight leading-none mb-1"
+                    style={{ color: kpi.color }}
+                  >
                     {kpi.value}
                   </h3>
-                </div>
-                <p className="text-xs md:text-sm text-gray-400">
-                  {kpi.title}
-                </p>
-                {kpi.subtitle && (
-                  <p className="text-xs text-gray-500 mt-1 truncate" title={kpi.subtitle}>
-                    {kpi.subtitle}
+                  <p className="text-xs md:text-sm text-gray-400 font-medium leading-snug">
+                    {kpi.title}
                   </p>
-                )}
+                  {kpi.subtitle && (
+                    <p className="text-[11px] text-gray-500 mt-1 truncate" title={kpi.subtitle}>
+                      {kpi.subtitle}
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
           </div>
 
           {/* Charts Grid - 1 column, 3 rows */}
-          <div className="grid grid-cols-1 gap-6 mb-8">
+          <div className="flex flex-col gap-5 mb-10">
             {loading && (
               <div
-                className="col-span-full"
-                style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '450px' }}
+                style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '380px' }}
               >
                 {dashboardLoadingContent}
               </div>
             )}
-            {error && <div className="text-center text-base text-red-500 col-span-full">{error}</div>}
+            {error && <div className="text-center text-base text-red-500">{error}</div>}
             {!loading && !error && (
               <>
-                {/* Bar Chart - Incidentes por Mes */}
-                <div 
-                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-6"
-                  style={{
-                    height: '450px',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
-                  }}
+                {/* Chart 1 — Total de reportes por período */}
+                <div
+                  className="bg-gray-900/70 border border-white/[0.06] rounded-xl p-5 md:p-6 flex flex-col"
+                  style={{ height: '420px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
                 >
-                  {/* Decorative elements */}
-                  <div className="absolute top-0 right-0 w-32 h-32 opacity-5">
-                    <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-accent), var(--color-tertiary))' }}></div>
-                  </div>
-                  
-                  {/* Chart Header */}
-                  <div className="relative z-10 mb-6">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-3 space-y-3 md:space-y-0">
-                      <div className="flex items-center space-x-3">
-                        <div 
-                          className="w-10 h-10 rounded-xl flex items-center justify-center"
-                          style={{ 
-                            background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
-                          }}
-                        >
-                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="text-lg md:text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                            Total de reportes por período ({periodLabel})
-                          </h3>
-                        </div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center"
+                        style={{ background: 'rgba(239,68,68,0.15)' }}
+                      >
+                        <svg className="w-4 h-4" style={{ color: '#ef4444' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
                       </div>
+                      <h3 className="text-base md:text-lg font-semibold text-gray-100">
+                        Total de reportes por período <span className="text-gray-500 font-normal text-sm">({periodLabel})</span>
+                      </h3>
                     </div>
                   </div>
-                  
-                  {/* Chart Container */}
-                  <div className="relative bar-periodo-wrapper" style={{ height: '320px', minHeight: '320px' }}>
+
+                  <div className="relative flex-1 min-h-0 bar-periodo-wrapper">
                     <ResponsiveBar
                       data={incidentsByMonth}
                       keys={['incidentes', 'hallazgos', 'conversaciones', 'pqr']}
@@ -2151,38 +2124,29 @@ const Dashboard = () => {
                   ]} />
                 </div>
 
-                {/* Cantidad de reportes por proceso */}
+                {/* Chart 2 — Cantidad de reportes por proceso */}
                 <div
-                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-6 flex flex-col"
-                  style={{
-                    height: '450px',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
-                    overflow: 'hidden',
-                  }}
+                  className="bg-gray-900/70 border border-white/[0.06] rounded-xl p-5 md:p-6 flex flex-col"
+                  style={{ height: '420px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', overflow: 'hidden' }}
                 >
-                  {/* Header */}
-                  <div className="mb-4">
-                    <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
                       <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center"
-                        style={{
-                          background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                        }}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center"
+                        style={{ background: 'rgba(59,130,246,0.15)' }}
                       >
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" style={{ color: '#3b82f6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 15l4-4 4 4M7 9h10" />
                         </svg>
                       </div>
-                      <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
+                      <h3 className="text-base md:text-lg font-semibold text-gray-100">
                         Cantidad de reportes por proceso
                       </h3>
                     </div>
                   </div>
 
-                  {/* Body: alto fijo visible, scroll solo si hay muchos procesos */}
-                  <div className="flex-1 min-h-0 overflow-y-auto pr-2">
-                    <div style={{ minHeight: 260, height: Math.min(processChartHeight, 320), width: '100%' }}>
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+                    <div style={{ minHeight: 260, height: Math.min(processChartHeight, 300), width: '100%' }}>
                       <ResponsiveBar
                         data={reportsByProcess}
                         keys={['total']}
@@ -2269,54 +2233,35 @@ const Dashboard = () => {
                   <LegendRow items={[{ label: 'Total', color: '#3b82f6' }]} />
                 </div>
 
-                {/* Pie Chart - Efectividad de cierre */}
-                <div 
-                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-6"
-                  style={{
-                    height: '450px',
-                    position: 'relative',
-                    overflow: 'visible',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
-                  }}
+                {/* Chart 3 — Efectividad de cierre */}
+                <div
+                  className="bg-gray-900/70 border border-white/[0.06] rounded-xl p-5 md:p-6 flex flex-col"
+                  style={{ height: '420px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
                 >
-                  {/* Decorative elements */}
-                  <div className="absolute top-0 left-0 w-24 h-24 opacity-5">
-                    <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-tertiary), var(--color-accent))' }}></div>
-                  </div>
-                  
-                  {/* Chart Header */}
-                  <div className="relative z-10 mb-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div 
-                          className="w-10 h-10 rounded-xl flex items-center justify-center"
-                          style={{ 
-                            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                            boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)'
-                          }}
-                        >
-                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                            Efectividad de cierre
-                          </h3>
-                        </div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center"
+                        style={{ background: 'rgba(34,197,94,0.15)' }}
+                      >
+                        <svg className="w-4 h-4" style={{ color: '#22c55e' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                        </svg>
                       </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold" style={{ color: 'var(--color-secondary)' }}>
-                          {closureEffectiveness.reduce((acc, d) => acc + (Number(d.value) || 0), 0)}
-                        </div>
-                        <div className="text-xs" style={{ color: 'rgba(252, 247, 255, 0.6)' }}>Total cerrados</div>
+                      <h3 className="text-base md:text-lg font-semibold text-gray-100">
+                        Efectividad de cierre
+                      </h3>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-gray-100 tabular-nums">
+                        {closureEffectiveness.reduce((acc, d) => acc + (Number(d.value) || 0), 0)}
                       </div>
+                      <div className="text-[11px] text-gray-500">Total cerrados</div>
                     </div>
                   </div>
-                  
-                  {/* Chart Container: donut con porcentaje de efectividad en el centro */}
-                  <div className="relative" style={{ height: '320px' }}>
+
+                  <div className="relative flex-1 min-h-0">
                     <ResponsivePie
                       data={closureEffectiveness}
                       margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
@@ -2394,15 +2339,15 @@ const Dashboard = () => {
           </div>
 
           {/* Download Reports Section */}
-          <div className="mb-8">
-            <div className="mb-6 pb-4 border-b border-gray-700/50">
-              <div className="flex flex-col items-center justify-center text-center space-y-3">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--color-tertiary), var(--color-accent))' }}>
-                  <BarChart2 className="w-7 h-7 text-white" />
+          <div className="mb-10">
+            <div className="mb-6 pb-4 border-b border-white/[0.06]">
+              <div className="flex flex-col items-center justify-center text-center space-y-2">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(99,201,219,0.15)' }}>
+                  <BarChart2 className="w-5 h-5" style={{ color: 'var(--color-tertiary)' }} />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Reportes y Exportación</h2>
-                  <p className="text-xs text-gray-400 mt-1">Descarga reportes en diferentes formatos</p>
+                  <h2 className="text-xl font-semibold text-gray-100">Reportes y Exportación</h2>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Descarga reportes en diferentes formatos</p>
                 </div>
               </div>
             </div>
