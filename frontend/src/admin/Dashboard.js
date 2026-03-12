@@ -8,8 +8,6 @@ import '../assets/css/styles.css';
 // Importar componentes de Nivo
 import { ResponsiveBar } from '@nivo/bar';
 import { ResponsivePie } from '@nivo/pie';
-import { ResponsiveLine } from '@nivo/line';
-import { ResponsiveRadar } from '@nivo/radar';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import reportService from '../services/reportService';
 import { userService } from '../services/api';
@@ -41,11 +39,14 @@ const getProcesoFromProyecto = (proyecto) => {
 
 // Leyenda HTML reutilizable (fuera del SVG para evitar solapamientos)
 const LegendRow = ({ items }) => (
-  <div className="flex flex-wrap gap-x-5 gap-y-2 mt-3 text-xs text-gray-200">
+  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-3 mt-auto border-t border-white/[0.06] text-[11px] text-gray-400">
     {items.map(it => (
-      <div key={it.label} className="flex items-center gap-2">
-        <span className="w-3 h-3 rounded-full" style={{ background: it.color }} />
-        <span className="whitespace-nowrap">{it.label}</span>
+      <div key={it.label} className="flex items-center gap-1.5">
+        <span
+          className="w-2.5 h-2.5 rounded-[3px] flex-shrink-0"
+          style={{ background: it.color, boxShadow: `0 0 6px ${it.color}44` }}
+        />
+        <span className="whitespace-nowrap leading-none">{it.label}</span>
       </div>
     ))}
   </div>
@@ -1728,15 +1729,6 @@ const Dashboard = () => {
     return Object.entries(sum).map(([k, v]) => ({ id: k, label: labelCap(k), value: v, color: colors[k] }));
   }, [stats?.distribucionTipo, incidentsByMonth, selectedPeriod]);
 
-  const reportesResumenChart = useMemo(() => {
-    // Usar KPIs del backend (ya filtrados por periodo si no es 'Todos')
-    const pendientes = Number(stats?.kpis?.pendientes) || 0;
-    const enRevision = Number(stats?.kpis?.en_revision) || 0;
-    const aprobados = Number(stats?.kpis?.aprobados) || 0;
-    const rechazados = Number(stats?.kpis?.rechazados) || 0;
-    return [{ estado: 'Reportes', Pendientes: pendientes, 'En Revisión': enRevision, Aprobados: aprobados, Rechazados: rechazados }];
-  }, [stats?.kpis, selectedPeriod]);
-
   // Loading reutilizado (igual al de gráficos) - aplica a anual/trimestral/mensual
   const dashboardLoadingContent = (
     <div className="text-center">
@@ -1756,7 +1748,7 @@ const Dashboard = () => {
       >
         {/* Main content */}
         <div className="flex-1">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-24 md:pt-28 transition-all duration-500" style={{ maxWidth: '1280px' }}>
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-16 pt-24 md:pt-28 transition-all duration-500" style={{ maxWidth: '1400px' }}>
 
           {/* Welcome Section */}
           {user && (
@@ -2030,8 +2022,8 @@ const Dashboard = () => {
             ))}
           </div>
 
-          {/* Charts Grid - Enhanced */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+          {/* Charts Grid - 1 column, 3 rows */}
+          <div className="grid grid-cols-1 gap-6 mb-8">
             {loading && (
               <div
                 className="col-span-full"
@@ -2159,148 +2151,11 @@ const Dashboard = () => {
                   ]} />
                 </div>
 
-                {/* Resumen de gestión - Barras por estado y criticidad */}
-                <div 
-                  className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-6 relative overflow-hidden"
-                  style={{
-                    height: '450px',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
-                  }}
-                >
-                  {/* Decorative elements */}
-                  <div className="absolute top-0 left-0 w-20 h-20 opacity-5">
-                    <div className="w-full h-full rounded-full" style={{ background: 'linear-gradient(45deg, var(--color-accent), var(--color-primary))' }}></div>
-                  </div>
-                  
-                  {/* Chart Header */}
-                  <div className="relative z-10 mb-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div 
-                          className="w-10 h-10 rounded-xl flex items-center justify-center"
-                          style={{ 
-                            background: 'linear-gradient(135deg, #10b981, #059669)',
-                            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)'
-                          }}
-                        >
-                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3v18h18M7 15l4-4 4 4M7 9h10" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-bold text-gray-100 tracking-wide">
-                            Resumen de gestión
-                          </h3>
-                        </div>
-                      </div>
-                      <div className="text-right space-y-1">
-                        <div className="text-xs text-gray-400">
-                          Total: <span className="font-semibold text-gray-100">{stats?.kpis?.total_reportes || 0}</span>
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          Tasa aprobación: <span className="font-semibold text-gray-100">{stats?.kpis?.tasa_aprobacion || 0}%</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Chart Container */}
-                  <div className="relative" style={{ height: '320px' }}>
-                    <ResponsiveBar
-                      data={reportesResumenChart}
-                      keys={['Pendientes', 'En Revisión', 'Aprobados', 'Rechazados']}
-                      indexBy="estado"
-                      margin={{ top: 30, right: 30, bottom: 50, left: 60 }}
-                      padding={0.15}
-                      groupMode="grouped"
-                      valueScale={{ type: 'linear' }}
-                      colors={[
-                        '#fbbf24', // Pendientes
-                        '#3b82f6', // En Revisión
-                        '#22c55e', // Aprobados
-                        '#ef4444'  // Rechazados
-                      ]}
-                      borderRadius={6}
-                      borderColor={{ from: 'color', modifiers: [['darker', 0.4]] }}
-                      theme={{
-                        background: 'transparent',
-                        text: { fill: '#f3f4f6', fontSize: 12 },
-                        axis: {
-                          ticks: { text: { fill: '#d1d5db', fontSize: 10 } },
-                          domain: { line: { stroke: 'rgba(255,255,255,0.1)' } },
-                          legend: { text: { fill: '#e5e7eb', fontSize: 11, fontWeight: 600 } }
-                        },
-                        grid: { line: { stroke: 'rgba(255,255,255,0.1)', strokeDasharray: '4 4' } },
-                        tooltip: { container: { background: '#111827', color: '#f9fafb', fontSize: 13, borderRadius: 8, padding: '8px 12px', boxShadow: '0 6px 20px rgba(0,0,0,0.4)' } }
-                      }}
-                      axisBottom={null}
-                      axisLeft={null}
-                      labelTextColor="#ffffff"
-                      labelSkipHeight={16}
-                      labelSkipWidth={12}
-                      label={d => (d.value >= 2 ? d.value : '')}
-                      animate={true}
-                      motionConfig="gentle"
-                      enableGridY={true}
-                      legends={[]}
-                      tooltip={({ id, value, color }) => (
-                        <div
-                          style={{
-                            padding: '8px 12px',
-                            background: '#1f2937',
-                            border: '1px solid #374151',
-                            borderRadius: '8px',
-                            boxShadow: '0 6px 15px rgba(0,0,0,0.3)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px'
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: '12px',
-                              height: '12px',
-                              backgroundColor: color,
-                              borderRadius: '3px'
-                            }}
-                          ></div>
-                          <strong style={{ color: '#f3f4f6' }}>{id}:</strong>
-                          <span style={{ color: '#d1d5db' }}>{value}</span>
-                        </div>
-                      )}
-                    />
-                  </div>
-                  <LegendRow items={[
-                    { label: 'Pendientes', color: '#fbbf24' },
-                    { label: 'En Revisión', color: '#3b82f6' },
-                    { label: 'Aprobados', color: '#22c55e' },
-                    { label: 'Rechazados', color: '#ef4444' },
-                  ]} />
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* (Se movió la sección de asignación más abajo) */}
-
-          {/* Second Row Charts - Enhanced */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-            {loading && (
-              <div
-                className="col-span-full"
-                style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '450px' }}
-              >
-                {dashboardLoadingContent}
-              </div>
-            )}
-            {error && <div className="text-center text-base text-red-500 col-span-full">{error}</div>}
-            {!loading && !error && (
-              <>
-                {/* Cantidad de reportes por proceso - flex + scroll interno */}
+                {/* Cantidad de reportes por proceso */}
                 <div
                   className="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-6 flex flex-col"
                   style={{
-                    minHeight: '450px',
+                    height: '450px',
                     boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
                     overflow: 'hidden',
                   }}
