@@ -84,6 +84,7 @@ const Dashboard = () => {
   const [supports, setSupports] = useState([]);
   const [reportsForProcessChart, setReportsForProcessChart] = useState([]);
   const [closedReports, setClosedReports] = useState([]);
+  const [managementSummary, setManagementSummary] = useState(null);
   
   // Filtros para Excel
   const [excelFilters, setExcelFilters] = useState({
@@ -204,6 +205,14 @@ const Dashboard = () => {
     }
     return {};
   }, [dashboardProceso]);
+  const managementTableFilters = useMemo(() => ({
+    proceso: dashboardProceso || undefined,
+    ...(isMisReportesVista && user?.id ? { user_id: user.id } : {})
+  }), [dashboardProceso, isMisReportesVista, user?.id]);
+  const managementSummaryFilters = useMemo(() => ({
+    ...dashboardFilters,
+    ...(isMisReportesVista && user?.id ? { user_id: user.id } : {})
+  }), [dashboardFilters, isMisReportesVista, user?.id]);
   const effectivePeriod = selectedPeriod;
   
   // Calcular fechas según el período seleccionado para filtrar reportes
@@ -452,17 +461,28 @@ const Dashboard = () => {
   // Pie chart: Distribución por tipo (definida más abajo con filtro de periodo)
 
   // Resumen de gestión para gráfico de barras (sustituye Métricas de seguridad)
-  const totalReportes = useMemo(() => Number(stats?.kpis?.total_reportes) || 0, [stats?.kpis?.total_reportes]);
-  const pendientes = useMemo(() => Number(stats?.kpis?.pendientes) || 0, [stats?.kpis?.pendientes]);
+  const totalReportes = useMemo(
+    () => Number(managementSummary?.total ?? stats?.kpis?.total_reportes) || 0,
+    [managementSummary?.total, stats?.kpis?.total_reportes]
+  );
+  const pendientes = useMemo(
+    () => Number(managementSummary?.pending ?? stats?.kpis?.pendientes) || 0,
+    [managementSummary?.pending, stats?.kpis?.pendientes]
+  );
   // Cerrados: usa campo directo del backend si existe; si no, lo calcula como Aprobados + Rechazados
   const totalCerrados = useMemo(() => {
+    const summaryClosed = Number(managementSummary?.closed);
+    if (!Number.isNaN(summaryClosed)) return summaryClosed;
     const direct = Number(stats?.kpis?.total_cerrados);
     if (!Number.isNaN(direct) && direct > 0) return direct;
     const aprobados = Number(stats?.kpis?.aprobados) || 0;
     const rechazados = Number(stats?.kpis?.rechazados) || 0;
     return aprobados + rechazados;
-  }, [stats?.kpis?.total_cerrados, stats?.kpis?.aprobados, stats?.kpis?.rechazados]);
-  const enRevision = useMemo(() => Number(stats?.kpis?.en_revision) || 0, [stats?.kpis?.en_revision]);
+  }, [managementSummary?.closed, stats?.kpis?.total_cerrados, stats?.kpis?.aprobados, stats?.kpis?.rechazados]);
+  const enRevision = useMemo(
+    () => Number(managementSummary?.inReview ?? stats?.kpis?.en_revision) || 0,
+    [managementSummary?.inReview, stats?.kpis?.en_revision]
+  );
   const totalAbiertosCalc = useMemo(() => Math.max(totalReportes - totalCerrados, 0), [totalReportes, totalCerrados]);
   const totalAbiertos = useMemo(() => Number(stats?.kpis?.total_abiertos) || totalAbiertosCalc, [stats?.kpis?.total_abiertos, totalAbiertosCalc]);
 
@@ -479,16 +499,16 @@ const Dashboard = () => {
   // KPIs (coherentes con Resumen de gestión)
   const kpis = useMemo(() => [
     {
-      title: 'Total reportes (período)',
+      title: 'Total reportes',
       value: totalReportes ?? '-',
       color: '#ef4444',
       Icon: AlertCircle,
-      subtitle: periodRangeFormatted ? `${periodLabel} · ${periodRangeFormatted}` : periodLabel
+      subtitle: isMisReportesVista ? 'Mis reportes' : 'Gestión completa'
     },
     { title: 'Pendientes', value: pendientes ?? '-', color: '#fbbf24', Icon: Clock },
     { title: 'En revisión', value: enRevision ?? '-', color: '#3b82f6', Icon: ClipboardCheck },
     { title: 'Cerrados', value: totalCerrados ?? '-', color: '#22c55e', Icon: CircleCheck }
-  ], [totalReportes, pendientes, enRevision, totalCerrados, periodLabel, periodRangeFormatted]);
+  ], [totalReportes, pendientes, enRevision, totalCerrados, isMisReportesVista]);
 
   // Cargar proyectos únicos
   const loadProyectos = useCallback(async () => {
@@ -650,6 +670,38 @@ const Dashboard = () => {
     }
   }, [selectedPeriod, dashboardFilters]);
 
+  const loadManagementSummary = useCallback(async () => {
+    try {
+      const resp = await reportService.getAllReports({
+        per_page: 10000,
+        page: 1,
+        ...managementSummaryFilters
+      });
+
+      const list = Array.isArray(resp?.reports)
+        ? resp.reports
+        : Array.isArray(resp?.data)
+          ? resp.data
+          : [];
+
+      setManagementSummary({
+        total: list.length,
+        pending: list.filter((report) => report.estado === 'pendiente').length,
+        inReview: list.filter((report) => report.estado === 'en_revision').length,
+        closed: list.filter((report) => report.estado === 'aprobado' || report.estado === 'rechazado').length
+      });
+    } catch (e) {
+      console.error('Error cargando resumen de gestión:', e);
+      setManagementSummary(null);
+    }
+  }, [managementSummaryFilters]);
+
+  const handleReportsTableStatusChange = useCallback(() => {
+    refreshStats();
+    loadReportsForProcessChart();
+    loadManagementSummary();
+  }, [refreshStats, loadReportsForProcessChart, loadManagementSummary]);
+
   useEffect(() => {
     const userData = getUser();
     if (userData) {
@@ -670,6 +722,10 @@ const Dashboard = () => {
   useEffect(() => {
     loadReportsForProcessChart();
   }, [selectedPeriod, dashboardProceso, loadReportsForProcessChart]);
+
+  useEffect(() => {
+    loadManagementSummary();
+  }, [loadManagementSummary]);
 
   const handleAssignToSupport = useCallback(async (reportId, supportUserId) => {
     if (!supportUserId) return;
@@ -1958,8 +2014,9 @@ const Dashboard = () => {
                    <><TrendingUp className="w-3.5 h-3.5" /> Año actual</>}
                 </span>
                 <span className="hidden sm:inline text-gray-600">|</span>
-                <span>Total: <span className="font-semibold text-gray-200">{stats?.kpis?.total_reportes || 0}</span></span>
-                <span>Pendientes: <span className="font-semibold text-yellow-400">{stats?.kpis?.pendientes || 0}</span></span>
+                <span className="text-gray-500">Gestión actual:</span>
+                <span>Total: <span className="font-semibold text-gray-200">{totalReportes}</span></span>
+                <span>Pendientes: <span className="font-semibold text-yellow-400">{pendientes}</span></span>
                 <span>En revisión: <span className="font-semibold text-blue-400">{enRevision}</span></span>
                 <span>Cerrados: <span className="font-semibold text-green-400">{totalCerrados}</span></span>
               </div>
@@ -2741,11 +2798,8 @@ const Dashboard = () => {
                   title={isMisReportesVista ? 'Mis Reportes' : 'Todos los Reportes'}
                   containerClassName=""
                   useDarkTheme={true}
-                  onStatusChange={refreshStats}
-                  externalFilters={{ 
-                    proceso: dashboardProceso || undefined,
-                    ...(isMisReportesVista && user?.id ? { user_id: user.id } : {})
-                  }}
+                  onStatusChange={handleReportsTableStatusChange}
+                  externalFilters={managementTableFilters}
                 />
               </div>
             </div>
