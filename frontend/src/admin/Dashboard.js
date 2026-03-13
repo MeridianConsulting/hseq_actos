@@ -221,8 +221,8 @@ const Dashboard = () => {
     let dateFrom, dateTo;
     
     if (selectedPeriod === 'month') {
-      // Mes actual
-      dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+      // Histórico mensual del año actual hasta el mes en curso
+      dateFrom = new Date(now.getFullYear(), 0, 1);
       dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     } else if (selectedPeriod === 'quarter') {
       // Trimestre actual (Q1: 0-2, Q2: 3-5, Q3: 6-8, Q4: 9-11)
@@ -601,7 +601,7 @@ const Dashboard = () => {
         let dateFrom, dateTo;
 
         if (selectedPeriod === 'month') {
-          dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+          dateFrom = new Date(now.getFullYear(), 0, 1);
           dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
         } else if (selectedPeriod === 'quarter') {
           const currentQuarter = Math.floor(now.getMonth() / 3);
@@ -631,7 +631,7 @@ const Dashboard = () => {
           let dateFrom, dateTo;
 
           if (selectedPeriod === 'month') {
-            dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+            dateFrom = new Date(now.getFullYear(), 0, 1);
             dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
           } else if (selectedPeriod === 'quarter') {
             const currentQuarter = Math.floor(now.getMonth() / 3);
@@ -2009,7 +2009,7 @@ const Dashboard = () => {
                   selectedPeriod === 'quarter' ? 'text-green-400' :
                   'text-orange-400'
                 }`}>
-                  {selectedPeriod === 'month' ? <><Calendar className="w-3.5 h-3.5" /> Mes actual</> :
+                  {selectedPeriod === 'month' ? <><Calendar className="w-3.5 h-3.5" /> Meses del año actual</> :
                    selectedPeriod === 'quarter' ? <><BarChart2 className="w-3.5 h-3.5" /> Trimestre actual</> :
                    <><TrendingUp className="w-3.5 h-3.5" /> Año actual</>}
                 </span>
