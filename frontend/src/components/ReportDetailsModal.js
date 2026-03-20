@@ -752,8 +752,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       
       setIsDownloadingExcel(true);
       
-      console.log('Iniciando generación de Excel con evidencias:', report.evidencias);
-      
       // Importar ExcelJS dinámicamente
       const ExcelJSModule = await import('exceljs');
       const ExcelJS = ExcelJSModule.default || ExcelJSModule;
@@ -922,17 +920,12 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
         evidenceHeader.style = sectionHeaderStyle;
         currentRow++;
         
-        console.log(`Procesando ${report.evidencias.length} evidencias para Excel...`);
-        
         for (let index = 0; index < report.evidencias.length; index++) {
           const evidencia = report.evidencias[index];
-          console.log('Procesando evidencia:', evidencia);
           
           // Verificar si es una imagen por tipo o extensión
           const esImagen = (evidencia.tipo_archivo && evidencia.tipo_archivo.startsWith('image/')) ||
                           /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(evidencia.url_archivo || evidencia.nombre_archivo || '');
-          
-          console.log('¿Es imagen?:', esImagen, 'Tipo:', evidencia.tipo_archivo);
           
           if (esImagen) {
             try {
@@ -941,8 +934,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
               // Estrategia 1: Usar el blob cache si está disponible
               const cached = evidenceUrls[evidencia.id];
               if (cached && cached.blob) {
-                console.log('Usando blob del cache para evidencia', evidencia.id);
-                
                 if (await isProbablyImageBlob(cached.blob)) {
                   const reader = new FileReader();
                   imageDataUrl = await new Promise((resolve, reject) => {
@@ -950,13 +941,11 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                     reader.onerror = reject;
                     reader.readAsDataURL(cached.blob);
                   });
-                  console.log('Imagen cargada desde cache para Excel:', evidencia.id);
                 }
               }
               
               // Estrategia 2: Intentar cargar desde el servidor
               if (!imageDataUrl) {
-                console.log('Cargando imagen desde servidor para evidencia', evidencia.id);
                 try {
                   const { blob } = await getEvidenceBlob(
                     evidencia.id, 
@@ -972,7 +961,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                       reader.onerror = reject;
                       reader.readAsDataURL(blob);
                     });
-                    console.log('Imagen cargada desde servidor para Excel:', evidencia.id);
                   }
                 } catch (loadError) {
                   console.warn('Error al cargar imagen desde servidor:', loadError);
@@ -981,7 +969,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
               
               // Estrategia 3: API uploads (proxy con CORS) — evita fetch directo a /backend/uploads
               if (!imageDataUrl && evidencia.url_archivo) {
-                console.log('Intentando cargar desde API uploads:', evidencia.url_archivo);
                 try {
                   const fileName = String(evidencia.url_archivo || '').replace(/^uploads\//, '').trim();
                   const apiUrl = buildApi('uploads/' + encodeURIComponent(fileName));
@@ -999,7 +986,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                         reader.onerror = reject;
                         reader.readAsDataURL(blob);
                       });
-                      console.log('Imagen cargada desde API uploads para Excel:', evidencia.id);
                     }
                   }
                 } catch (urlError) {
@@ -1025,7 +1011,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                           reader.onerror = reject;
                           reader.readAsDataURL(apiBlob);
                         });
-                        console.log('Imagen cargada desde API evidencias para Excel:', evidencia.id);
                       }
                     }
                   } catch (apiError) {
@@ -1061,7 +1046,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                 });
                 
                 currentRow++;
-                console.log('Imagen agregada al Excel:', evidencia.id);
               } else {
                 // Si no se pudo cargar la imagen, solo mostrar información
                 worksheet.getCell(`A${currentRow}`).value = `Evidencia ${index + 1}`;
@@ -1129,8 +1113,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       const safeName = String(report.asunto || report.asunto_conversacion || 'reporte').replace(/[^a-z0-9_.-]/gi, '_');
       const fileName = `reporte_${report.id || ''}_${safeName}.xlsx`;
       
-      console.log('Generando archivo Excel con imágenes...');
-      
       // Generar y descargar el archivo
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -1176,8 +1158,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       
       setIsDownloadingPdf(true);
       
-      console.log('Iniciando generación de PDF con evidencias:', report.evidencias);
-      
       // Generar nombre de archivo
       const safeName = String(report.asunto || report.asunto_conversacion || 'reporte').replace(/[^a-z0-9_.-]/gi, '_');
       const fileName = `reporte_hseq_${report.id || ''}_${safeName}.pdf`;
@@ -1186,16 +1166,10 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       const evidenciasConImagenes = [];
       
       if (report.evidencias && report.evidencias.length > 0) {
-        console.log(`Procesando ${report.evidencias.length} evidencias...`);
-        
         for (const evidencia of report.evidencias) {
-          console.log('Procesando evidencia:', evidencia);
-          
           // Verificar si es una imagen por tipo o extensión
           const esImagen = (evidencia.tipo_archivo && evidencia.tipo_archivo.startsWith('image/')) ||
                           /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(evidencia.url_archivo || evidencia.nombre_archivo || '');
-          
-          console.log('¿Es imagen?:', esImagen, 'Tipo:', evidencia.tipo_archivo);
           
           if (esImagen) {
             try {
@@ -1203,7 +1177,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
               const cached = evidenceUrls[evidencia.id];
               if (cached?.blob && (await isProbablyImageBlob(cached.blob))) {
                 blob = cached.blob;
-                console.log('Blob desde cache para evidencia', evidencia.id);
               }
               if (!blob) {
                 try {
@@ -1231,7 +1204,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
                     imageWidth: resized.width,
                     imageHeight: resized.height,
                   });
-                  console.log('Imagen agregada al PDF:', evidencia.id);
                 } catch (resizeErr) {
                   console.warn('Redimensionado fallido, usando data URL directo:', resizeErr);
                   const reader = new FileReader();
@@ -1258,8 +1230,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
           }
         }
       }
-      
-      console.log(`Generando PDF con ${evidenciasConImagenes.length} imágenes procesadas`);
       
       // Generar PDF con jsPDF y addImage (imagen vía API evita CORS; addImage embebe base64 de forma fiable)
       const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -1371,7 +1341,6 @@ const ReportDetailsModal = ({ isOpen, onClose, reportId }) => {
       writeLine('Sistema Generador: Sistema HSEQ - Meridian Colombia');
       writeLine('Fecha de Generación: ' + new Date().toLocaleString('es-ES'));
       const blob = doc.output('blob');
-      console.log('PDF generado, tamaño:', blob.size, 'bytes');
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

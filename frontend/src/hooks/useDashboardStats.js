@@ -21,7 +21,6 @@ export const useDashboardStats = (period, filters = {}) => {
       
       if (response.success) {
         setStats(response.data);
-        console.log('Dashboard stats loaded:', response.data);
       } else {
         setError(response.message || 'Error al cargar estadísticas');
       }

@@ -6,6 +6,8 @@ import { buildApi, buildUploadsUrl } from '../config/api';
 import { gradosCriticidad, tiposAfectacion, reportTypes } from '../config/formOptions';
 import { reportService, userService } from '../services/api';
 import { Clock, ClipboardCheck, CircleCheck, CircleX, CheckCircle, ImageIcon, User } from 'lucide-react';
+import { normalizeProcesoNombre } from '../utils/processNormalization';
+import { useLocation } from 'react-router-dom';
 
 // Skeleton de carga para la lista (evita layout shift y mejora UX)
 const ReportsListSkeleton = ({ count = 5, useDarkTheme }) => (
@@ -124,17 +126,26 @@ const getProcesoFromProyecto = (proyecto) => {
     return 'Administrativo';
   }
   
-  const proyectosCompanyMan = [
+  const proyectosCompanyManGgs = [
+    'COMPANY MAN - GGS',
+    'COMPANY MAN GGS'
+  ];
+  const proyectosCompanyManGrm = [
+    // Variantes que antes caían en "Proyecto CW_Company Man" (ahora GRM)
     '3047761-4',
     'COMPANY MAN - APIAY',
     'COMPANY MAN',
     'COMPANY MAN - CPO09',
-    'COMPANY MAN - GGS',
-    'COMPANY MAN - CASTILLA'
+    'COMPANY MAN - CASTILLA',
+    // Variante real encontrada en BD
+    'COMPANY MAN GRM',
+    'COMPANY MAN - GRM',
+    // Por si el backend ya devuelve el proceso anterior como proyecto
+    'CW_Company Man',
+    'Cw Company Man',
   ];
-  if (proyectosCompanyMan.includes(proyectoTrim)) {
-    return 'Proyecto CW_Company Man';
-  }
+  if (proyectosCompanyManGgs.includes(proyectoTrim)) return 'Proyecto CW GGS';
+  if (proyectosCompanyManGrm.includes(proyectoTrim)) return 'Proyecto CW GRM';
   
   if (proyectoTrim === 'FRONTERA') {
     return 'Proyecto Frontera';
@@ -144,7 +155,8 @@ const getProcesoFromProyecto = (proyecto) => {
     return 'Proyecto ZIRCON';
   }
   
-  return proyectoTrim;
+  // Normalizar nombres viejos/variantes que ya vengan como "proceso"
+  return normalizeProcesoNombre(proyectoTrim);
 };
 
 // Función para calcular días transcurridos desde la creación del reporte
@@ -221,6 +233,7 @@ const ReportsTable = ({
   externalFilters = {},
   showOnlyPendientes = false
 }) => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState(showOnlyPendientes ? 'pending' : 'pending');
   const [reports, setReports] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -255,24 +268,51 @@ const ReportsTable = ({
   // Cargar estadísticas (todos los reportes)
   const loadStats = async () => {
     try {
-      // Mismos filtros que la tabla (proceso/periodo) para que contadores y lista coincidan
+      // Mismos filtros que la tabla (proceso) para que contadores coincidan.
+      // Importante: el backend capea `per_page` a 100, así que si hay >100
+      // debemos ir por páginas para que los conteos no queden desactualizados.
       const baseFilters = {
-        per_page: 1000,
+        per_page: 100,
         page: 1,
         ...externalFilters
       };
       if (baseFilters.proceso) {
         if (baseFilters.proceso === 'petroservicios') baseFilters.proyecto = 'PETROSERVICIOS';
         else if (baseFilters.proceso === 'administrativa') baseFilters.proyecto = 'ADMINISTRACION,COMPANY MAN - ADMINISTRACION,ADMINISTRACION - STAFF,FRONTERA - ADMINISTRACION,Administrativo,PETROSERVICIOS - ADMINISTRACION,ADMINISTRACION COMPANY MAN';
-        else if (baseFilters.proceso === 'company-man') baseFilters.proyecto = '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN - GGS,COMPANY MAN - CASTILLA';
+          else if (baseFilters.proceso === 'company-man') baseFilters.proyecto = '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN GRM,COMPANY MAN - GGS,COMPANY MAN GGS,COMPANY MAN - CASTILLA';
         else if (baseFilters.proceso === 'frontera') baseFilters.proyecto = 'FRONTERA';
         else if (baseFilters.proceso === 'zircon') baseFilters.proyecto = 'ZIRCON';
         delete baseFilters.proceso;
       }
-      const statsResult = await ReportService.getAllReports(baseFilters);
-      if (statsResult.success) {
-        setAllReports(statsResult.reports || []);
+
+      const pageSize = 100; // coincide con el cap del backend
+
+      // Primera página para obtener meta.total
+      const firstRes = await ReportService.getAllReports({
+        ...baseFilters,
+        per_page: pageSize,
+        page: 1
+      });
+
+      const total = Number(firstRes?.meta?.total ?? 0);
+      const totalPages = total > 0 ? Math.ceil(total / pageSize) : 1;
+
+      let acc = Array.isArray(firstRes?.reports) ? firstRes.reports : (Array.isArray(firstRes?.data) ? firstRes.data : []);
+
+      // Cargar páginas restantes (si aplica)
+      for (let p = 2; p <= totalPages; p++) {
+        const pageRes = await ReportService.getAllReports({
+          ...baseFilters,
+          per_page: pageSize,
+          page: p
+        });
+        const pageReports = Array.isArray(pageRes?.reports)
+          ? pageRes.reports
+          : (Array.isArray(pageRes?.data) ? pageRes.data : []);
+        acc = acc.concat(pageReports);
       }
+
+      setAllReports(acc);
     } catch (error) {
       console.error('Error al cargar estadísticas:', error);
     }
@@ -354,7 +394,7 @@ const ReportsTable = ({
       if (apiFilters.proceso) {
         if (apiFilters.proceso === 'petroservicios') apiFilters.proyecto = 'PETROSERVICIOS';
         else if (apiFilters.proceso === 'administrativa') apiFilters.proyecto = 'ADMINISTRACION,COMPANY MAN - ADMINISTRACION,ADMINISTRACION - STAFF,FRONTERA - ADMINISTRACION,Administrativo,PETROSERVICIOS - ADMINISTRACION,ADMINISTRACION COMPANY MAN';
-        else if (apiFilters.proceso === 'company-man') apiFilters.proyecto = '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN - GGS,COMPANY MAN - CASTILLA';
+        else if (apiFilters.proceso === 'company-man') apiFilters.proyecto = '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN GRM,COMPANY MAN - GGS,COMPANY MAN GGS,COMPANY MAN - CASTILLA';
         else if (apiFilters.proceso === 'frontera') apiFilters.proyecto = 'FRONTERA';
         else if (apiFilters.proceso === 'zircon') apiFilters.proyecto = 'ZIRCON';
         delete apiFilters.proceso;
@@ -389,7 +429,6 @@ const ReportsTable = ({
 
   // Carga inicial: solo stats, proyectos y responsables (una vez). Reportes se cargan en el efecto siguiente
   useEffect(() => {
-    loadStats();
     loadProyectos();
     loadResponsables();
   }, []);
@@ -399,6 +438,13 @@ const ReportsTable = ({
     loadReports();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, filters.page, filters.per_page, filters.sort_by, filters.sort_dir, externalFilters, showOnlyPendientes]);
+
+  // Si el usuario crea un reporte y vuelve al dashboard, recargar conteos y lista.
+  // Esto evita que la sección "Gestión Completa de Reportes" muestre valores desactualizados.
+  useEffect(() => {
+    loadStats();
+    loadReports();
+  }, [location.pathname]);
 
   const handleStatusChange = async (reportId, newStatus) => {
     try {
@@ -669,6 +715,20 @@ const ReportsTable = ({
     });
   }, [reports, activeTab, filters.revisado_por, filters.efectividad_cierre]);
 
+  // UX: si no hay pendientes ni en revisión, mostrar por defecto "Cerrados"
+  // para que el usuario vea el total real (ej: cuando todo está aprobado/rechazado).
+  useEffect(() => {
+    if (showOnlyPendientes) return;
+    if (!Array.isArray(allReports) || allReports.length === 0) return;
+    if (activeTab !== 'pending') return;
+
+    const pendingCount = allReports.filter(r => r.estado === 'pendiente').length;
+    const inReviewCount = allReports.filter(r => r.estado === 'en_revision').length;
+    if (pendingCount === 0 && inReviewCount === 0) {
+      setActiveTab('closed');
+    }
+  }, [allReports, activeTab, showOnlyPendientes]);
+
   const stats = useMemo(() => ({
     pending: allReports.filter(r => r.estado === 'pendiente').length,
     inReview: allReports.filter(r => r.estado === 'en_revision').length,
@@ -846,7 +906,7 @@ const ReportsTable = ({
            <option value="">Todos los Procesos</option>
            <option value="petroservicios">Gestión Proyecto - Petroservicios</option>
            <option value="administrativa">Gestión Administrativa</option>
-           <option value="company-man">Gestión Proyecto - Company man</option>
+           <option value="company-man">Proyecto CW GRM</option>
            <option value="frontera">Gestión Proyecto Frontera</option>
            <option value="zircon">Gestión Proyecto ZIRCON</option>
          </select>

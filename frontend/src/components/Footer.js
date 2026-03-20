@@ -11,7 +11,7 @@ const Footer = () => {
         </div>
         <div className="footer-section">
           <h3>Contacto</h3>
-          <p>Dirección: Cl. 67 #7-94, Bogotá, Colombia</p>
+          <p>Dirección: Cl. 67 #7-35, Bogotá, Colombia</p>
           <p>Teléfono: (571) 7469090 Ext 1190</p>
           <p>Email: info@meridianconsulting.com.co</p>
         </div>

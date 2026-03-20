@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { getUser, logout, getUserName, isAdmin } from '../utils/auth';
+import { normalizeProcesoNombre } from '../utils/processNormalization';
 import '../assets/css/styles.css';
 
 // Importar componentes de Nivo
@@ -28,13 +29,30 @@ const getProcesoFromProyecto = (proyecto) => {
     'FRONTERA - ADMINISTRACION', 'Administrativo', 'PETROSERVICIOS - ADMINISTRACION', 'ADMINISTRACION COMPANY MAN'
   ];
   if (proyectosAdministrativos.includes(proyectoTrim)) return 'Administrativo';
-  const proyectosCompanyMan = [
-    '3047761-4', 'COMPANY MAN - APIAY', 'COMPANY MAN', 'COMPANY MAN - CPO09', 'COMPANY MAN - GGS', 'COMPANY MAN - CASTILLA'
+  const proyectosCompanyManGgs = [
+    'COMPANY MAN - GGS',
+    'COMPANY MAN GGS'
   ];
-  if (proyectosCompanyMan.includes(proyectoTrim)) return 'CW_Company Man';
+  const proyectosCompanyManGrm = [
+    // Variantes que antes caían en "CW_Company Man" (ahora GRM)
+    '3047761-4',
+    'COMPANY MAN - APIAY',
+    'COMPANY MAN',
+    'COMPANY MAN - CPO09',
+    'COMPANY MAN - CASTILLA',
+    // Variante real encontrada en BD
+    'COMPANY MAN GRM',
+    'COMPANY MAN - GRM',
+    // Por si el backend ya devuelve el proceso anterior como proyecto
+    'CW_Company Man',
+    'Cw Company Man',
+  ];
+  if (proyectosCompanyManGgs.includes(proyectoTrim)) return 'Proyecto CW GGS';
+  if (proyectosCompanyManGrm.includes(proyectoTrim)) return 'Proyecto CW GRM';
   if (proyectoTrim === 'FRONTERA') return 'Frontera';
   if (proyectoTrim === 'ZIRCON') return 'ZIRCON';
-  return proyectoTrim;
+  // Normalizar nombres viejos/variantes que ya vengan como "proceso"
+  return normalizeProcesoNombre(proyectoTrim);
 };
 
 // Leyenda HTML reutilizable (fuera del SVG para evitar solapamientos)
@@ -195,7 +213,7 @@ const Dashboard = () => {
       return { proyecto: 'ADMINISTRACION,COMPANY MAN - ADMINISTRACION,ADMINISTRACION - STAFF,FRONTERA - ADMINISTRACION,Administrativo,PETROSERVICIOS - ADMINISTRACION,ADMINISTRACION COMPANY MAN' };
     } else if (dashboardProceso === 'company-man') {
       // Gestión Proyecto - Company man
-      return { proyecto: '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN - GGS,COMPANY MAN - CASTILLA' };
+      return { proyecto: '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN GRM,COMPANY MAN - GGS,COMPANY MAN GGS,COMPANY MAN - CASTILLA' };
     } else if (dashboardProceso === 'frontera') {
       // Gestión Proyecto Frontera
       return { proyecto: 'FRONTERA' };
@@ -205,14 +223,6 @@ const Dashboard = () => {
     }
     return {};
   }, [dashboardProceso]);
-  const managementTableFilters = useMemo(() => ({
-    proceso: dashboardProceso || undefined,
-    ...(isMisReportesVista && user?.id ? { user_id: user.id } : {})
-  }), [dashboardProceso, isMisReportesVista, user?.id]);
-  const managementSummaryFilters = useMemo(() => ({
-    ...dashboardFilters,
-    ...(isMisReportesVista && user?.id ? { user_id: user.id } : {})
-  }), [dashboardFilters, isMisReportesVista, user?.id]);
   const effectivePeriod = selectedPeriod;
   
   // Calcular fechas según el período seleccionado para filtrar reportes
@@ -245,6 +255,18 @@ const Dashboard = () => {
     return {};
   }, [selectedPeriod]);
 
+  // Filtros para la tabla "Gestión Completa de Reportes"
+  // Deben coincidir con el mismo período/proceso que usa el dashboard.
+  const managementTableFilters = useMemo(() => ({
+    proceso: dashboardProceso || undefined,
+    ...(isMisReportesVista && user?.id ? { user_id: user.id } : {})
+  }), [dashboardProceso, isMisReportesVista, user?.id]);
+
+  const managementSummaryFilters = useMemo(() => ({
+    ...dashboardFilters,
+    ...(isMisReportesVista && user?.id ? { user_id: user.id } : {})
+  }), [dashboardFilters, isMisReportesVista, user?.id]);
+
   // Etiqueta del período activo y rango formateado (para KPI y gráfico)
   const periodLabel = useMemo(() => {
     if (selectedPeriod === 'month') return 'Mensual';
@@ -265,11 +287,11 @@ const Dashboard = () => {
 
   // Combinar filtros de dashboard con filtros de fecha del período
   const dashboardStatsFilters = useMemo(() => {
-    return {
-      ...dashboardFilters,
-      ...periodDateFilters
-    };
-  }, [dashboardFilters, periodDateFilters]);
+    // Para mantener consistencia con los conteos (meta.total) evitamos
+    // filtrar por rango calendario date_from/date_to; el backend ya maneja
+    // el período con su lógica (intervalo) y así los conteos coinciden.
+    return { ...dashboardFilters };
+  }, [dashboardFilters]);
   const { stats, loading, error, refreshStats } = useDashboardStats(effectivePeriod, dashboardStatsFilters);
   
   // Debug: Log cuando cambie el período seleccionado
@@ -462,26 +484,49 @@ const Dashboard = () => {
 
   // Resumen de gestión para gráfico de barras (sustituye Métricas de seguridad)
   const totalReportes = useMemo(
-    () => Number(managementSummary?.total ?? stats?.kpis?.total_reportes) || 0,
-    [managementSummary?.total, stats?.kpis?.total_reportes]
+    () => {
+      const directTotal = Number(stats?.kpis?.total_reportes) || 0;
+      // Solo priorizar managementSummary cuando realmente es "Mis reportes"
+      if (isMisReportesVista) {
+        return Number(managementSummary?.total ?? stats?.kpis?.total_reportes) || 0;
+      }
+      return directTotal;
+    },
+    [isMisReportesVista, managementSummary?.total, stats?.kpis?.total_reportes]
   );
   const pendientes = useMemo(
-    () => Number(managementSummary?.pending ?? stats?.kpis?.pendientes) || 0,
-    [managementSummary?.pending, stats?.kpis?.pendientes]
+    () => {
+      const directPendientes = Number(stats?.kpis?.pendientes) || 0;
+      if (isMisReportesVista) {
+        return Number(managementSummary?.pending ?? stats?.kpis?.pendientes) || 0;
+      }
+      return directPendientes;
+    },
+    [isMisReportesVista, managementSummary?.pending, stats?.kpis?.pendientes]
   );
   // Cerrados: usa campo directo del backend si existe; si no, lo calcula como Aprobados + Rechazados
   const totalCerrados = useMemo(() => {
-    const summaryClosed = Number(managementSummary?.closed);
-    if (!Number.isNaN(summaryClosed)) return summaryClosed;
+    // Solo priorizar managementSummary cuando realmente es "Mis reportes"
+    if (isMisReportesVista) {
+      const summaryClosed = Number(managementSummary?.closed);
+      if (!Number.isNaN(summaryClosed)) return summaryClosed;
+    }
+
     const direct = Number(stats?.kpis?.total_cerrados);
     if (!Number.isNaN(direct) && direct > 0) return direct;
     const aprobados = Number(stats?.kpis?.aprobados) || 0;
     const rechazados = Number(stats?.kpis?.rechazados) || 0;
     return aprobados + rechazados;
-  }, [managementSummary?.closed, stats?.kpis?.total_cerrados, stats?.kpis?.aprobados, stats?.kpis?.rechazados]);
+  }, [isMisReportesVista, managementSummary?.closed, stats?.kpis?.total_cerrados, stats?.kpis?.aprobados, stats?.kpis?.rechazados]);
   const enRevision = useMemo(
-    () => Number(managementSummary?.inReview ?? stats?.kpis?.en_revision) || 0,
-    [managementSummary?.inReview, stats?.kpis?.en_revision]
+    () => {
+      const directEnRevision = Number(stats?.kpis?.en_revision) || 0;
+      if (isMisReportesVista) {
+        return Number(managementSummary?.inReview ?? stats?.kpis?.en_revision) || 0;
+      }
+      return directEnRevision;
+    },
+    [isMisReportesVista, managementSummary?.inReview, stats?.kpis?.en_revision]
   );
   const totalAbiertosCalc = useMemo(() => Math.max(totalReportes - totalCerrados, 0), [totalReportes, totalCerrados]);
   const totalAbiertos = useMemo(() => Number(stats?.kpis?.total_abiertos) || totalAbiertosCalc, [stats?.kpis?.total_abiertos, totalAbiertosCalc]);
@@ -1582,7 +1627,7 @@ const Dashboard = () => {
             cleanFilters['proyecto'] = 'ADMINISTRACION,COMPANY MAN - ADMINISTRACION,ADMINISTRACION - STAFF,FRONTERA - ADMINISTRACION,Administrativo,PETROSERVICIOS - ADMINISTRACION,ADMINISTRACION COMPANY MAN';
           } else if (excelFilters[key] === 'company-man') {
             // Gestión Proyecto - Company man
-            cleanFilters['proyecto'] = '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN - GGS,COMPANY MAN - CASTILLA';
+            cleanFilters['proyecto'] = '3047761-4,COMPANY MAN - APIAY,COMPANY MAN,COMPANY MAN - CPO09,COMPANY MAN GRM,COMPANY MAN - GGS,COMPANY MAN GGS,COMPANY MAN - CASTILLA';
           } else if (excelFilters[key] === 'frontera') {
             // Gestión Proyecto Frontera
             cleanFilters['proyecto'] = 'FRONTERA';
@@ -1704,7 +1749,7 @@ const Dashboard = () => {
     if (!Array.isArray(rows)) return [];
 
     return rows.map((r) => ({
-      proceso: r.proceso || r.area || r.nombre || 'Sin proceso',
+      proceso: normalizeProcesoNombre(r.proceso || r.area || r.nombre || 'Sin proceso'),
       total: Number(r.total) || Number(r.cantidad) || Number(r.count) || 0,
     }));
   }, [reportsForProcessChart, stats?.reportesPorProceso, stats?.reportes_por_proceso]);
@@ -2149,22 +2194,12 @@ const Dashboard = () => {
                           }
                         }
                       }}
-                      axisBottom={{
-                        tickSize: 5,
-                        tickPadding: 8,
-                        tickRotation: -35,
-                        format: formatPeriodTick,
-                        legend: 'Periodo',
-                        legendPosition: 'middle',
-                        legendOffset: 60
-                      }}
                       axisLeft={{
-                        tickSize: 5,
-                        tickPadding: 8,
+                        tickSize: 0,
+                        tickPadding: 0,
                         tickRotation: 0,
-                        legend: 'Cantidad de reportes',
-                        legendPosition: 'middle',
-                        legendOffset: -50
+                        format: () => '',
+                        legend: ''
                       }}
                       labelSkipHeight={14}
                       labelSkipWidth={16}
@@ -2420,7 +2455,7 @@ const Dashboard = () => {
                 >
                   <option value="">Todos los Procesos</option>
                   <option value="administrativa">Administrativo</option>
-                  <option value="company-man">Proyecto CW_Company Man</option>
+                  <option value="company-man">Proyecto CW GRM</option>
                   <option value="frontera">Proyecto Frontera</option>
                   <option value="petroservicios">Proyecto Petroservicios</option>
                   <option value="zircon">Proyecto ZIRCON</option>
@@ -2428,7 +2463,7 @@ const Dashboard = () => {
               </div>
               {dashboardProceso && (
                 <div className="text-xs text-gray-400">
-                  Filtro aplicado a estadísticas, gráficos y tabla: <span className="text-blue-300 font-semibold">{({ administrativa: 'Administrativo', 'company-man': 'Proyecto CW_Company Man', frontera: 'Proyecto Frontera', petroservicios: 'Proyecto Petroservicios', zircon: 'Proyecto ZIRCON' })[dashboardProceso] || dashboardProceso}</span>
+                  Filtro aplicado a estadísticas, gráficos y tabla: <span className="text-blue-300 font-semibold">{({ administrativa: 'Administrativo', 'company-man': 'Proyecto CW GRM', frontera: 'Proyecto Frontera', petroservicios: 'Proyecto Petroservicios', zircon: 'Proyecto ZIRCON' })[dashboardProceso] || dashboardProceso}</span>
                 </div>
               )}
             </div>
@@ -2457,7 +2492,7 @@ const Dashboard = () => {
                     </div>
                     <div className="text-center">
                       <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>
-                        {loading ? '...' : (stats?.kpis?.total_reportes ?? '0')}
+                        {loading ? '...' : (totalReportes ?? '0')}
                       </div>
                       <div className="text-xs opacity-70 text-gray-400">Reportes</div>
                     </div>
@@ -2506,7 +2541,7 @@ const Dashboard = () => {
                    <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
                      <div className="text-center">
                        <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>
-                         {loading ? '...' : (stats?.kpis?.total_reportes ?? '0')}
+                        {loading ? '...' : (totalReportes ?? '0')}
                        </div>
                        <div className="text-xs opacity-70 text-gray-400">Reportes</div>
                      </div>
@@ -2565,7 +2600,7 @@ const Dashboard = () => {
                      </div>
                      <div className="text-center">
                        <div className="text-base md:text-lg font-bold" style={{ color: 'var(--color-tertiary)' }}>
-                         {loading ? '...' : (stats?.kpis?.total_reportes ?? '0')}
+                        {loading ? '...' : (totalReportes ?? '0')}
                        </div>
                        <div className="text-xs opacity-70 text-gray-400">Reportes</div>
                      </div>
@@ -2889,7 +2924,7 @@ const Dashboard = () => {
                     >
                      <option value="">Todos los Procesos</option>
                      <option value="administrativa">Administrativo</option>
-                     <option value="company-man">Proyecto CW_Company Man</option>
+                     <option value="company-man">Proyecto CW GRM</option>
                      <option value="frontera">Proyecto Frontera</option>
                      <option value="petroservicios">Proyecto Petroservicios</option>
                      <option value="zircon">Proyecto ZIRCON</option>
